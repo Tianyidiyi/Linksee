@@ -1,0 +1,21 @@
+{
+  "name": "@clickdown/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node ./scripts/build.mjs",
+    "pack": "npm pack",
+    "start:demo": "node ./src/demo/server.mjs",
+    "test:socket-demo": "node ./src/demo/socket-smoke.mjs"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "selfsigned": "^2.4.1",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1"
+  },
+  "files": [
+    "dist"
+  ]
+}

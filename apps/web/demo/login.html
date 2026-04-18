@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Demo Login</title>
+    <style>
+      body { font-family: "Segoe UI", sans-serif; margin: 32px; }
+      button { padding: 10px 16px; margin-right: 12px; }
+      .hint { color: #555; margin-top: 12px; }
+    </style>
+  </head>
+  <body>
+    <h1>登录窗口（Demo）</h1>
+    <p>点击登录后不校验用户名密码，仅写入本地 token，并可跳转状态页。</p>
+    <button id="loginBtn">登录并跳转状态页</button>
+    <button id="logoutBtn">退出（清除 token）</button>
+    <p class="hint">为了双窗口测试：先打开 status.html，再在此页点击登录。</p>
+
+    <script>
+      const runtimeOrigin =
+        window.location.origin && window.location.origin !== "null"
+          ? window.location.origin
+          : "";
+      const storedOrigin = localStorage.getItem("demo_origin") || "";
+      const DEMO_ORIGIN = runtimeOrigin || storedOrigin || "https://localhost:3443";
+      const loginBtn = document.getElementById("loginBtn");
+      const logoutBtn = document.getElementById("logoutBtn");
+      const authChannel = window.BroadcastChannel ? new BroadcastChannel("demo_auth") : null;
+
+      if (runtimeOrigin && storedOrigin !== runtimeOrigin) {
+        localStorage.setItem("demo_origin", runtimeOrigin);
+      }
+
+      if (window.location.protocol === "file:") {
+        const tip = document.createElement("p");
+        tip.className = "hint";
+        tip.textContent = "当前是 file:// 打开，已切换到服务地址后再测试。";
+        document.body.appendChild(tip);
+      }
+
+      loginBtn.addEventListener("click", () => {
+        localStorage.setItem("demo_auth_token", "demo-token");
+        localStorage.setItem("demo_origin", DEMO_ORIGIN);
+        if (authChannel) {
+          authChannel.postMessage({ type: "auth-changed", token: "demo-token" });
+        }
+        window.location.href = `${DEMO_ORIGIN}/status.html`;
+      });
+
+      logoutBtn.addEventListener("click", () => {
+        localStorage.removeItem("demo_auth_token");
+        if (authChannel) {
+          authChannel.postMessage({ type: "auth-changed", token: null });
+        }
+        alert("已清除 token");
+      });
+    </script>
+  </body>
+</html>
