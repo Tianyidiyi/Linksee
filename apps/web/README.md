@@ -4,9 +4,9 @@
 
 ## 角色定位
 
-- [api](src/api/)：通过 HTTP 访问业务写接口和查询接口
-- [realtime](src/realtime/)：处理 Socket 连接、订阅和事件分发
-- state：把 HTTP 结果与 Socket 增量更新合并到页面状态（规划中）
+- api：通过 HTTP 访问业务写接口和查询接口
+- realtime：处理 Socket 连接、订阅和事件分发
+- state：把 HTTP 结果与 Socket 增量更新合并到页面状态
 
 ## 前端硬规则
 

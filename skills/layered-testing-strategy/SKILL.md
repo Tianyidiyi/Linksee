@@ -29,4 +29,4 @@ description: '制定 unit, integration, e2e 分层测试策略并形成质量门
 
 - [references/test-matrix.md](references/test-matrix.md)
 - [references/fix-first-test-gate.md](references/fix-first-test-gate.md)
-- [tests/README.md](../../tests/README.md)
+- [tests/README.md](../../../tests/README.md)
