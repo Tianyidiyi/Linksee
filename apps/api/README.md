@@ -10,11 +10,11 @@
 
 ## 目录
 
-- src/http：REST 接口入口层
-- src/socket：Socket 连接与事件推送
-- src/events：领域事件定义与发布入口
-- src/auth：认证与权限中间件
-- src/shared：通信契约与通用类型
+- [src/http](src/http/)：REST 接口入口层
+- [src/socket](src/socket/)：Socket 连接与事件推送
+- [src/events](src/events/)：领域事件定义与发布入口
+- `src/auth`：认证与权限中间件（规划中）
+- [src/shared](src/shared/)：通信契约与通用类型
 
 ## 硬规则
 
