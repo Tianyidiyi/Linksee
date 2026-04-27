@@ -4,26 +4,26 @@
 
 ## 结构说明
 
-- 每个技能目录必须包含 `SKILL.md`
-- `SKILL.md` 使用 YAML frontmatter，name 必须与目录名一致
+- 每个技能目录必须包含 SKILL.md
+- SKILL.md 使用 YAML frontmatter，name 必须与目录名一致
 - description 需包含触发关键词，便于 Agent 检索
 
 ## 当前技能
 
-- [architecture-review](architecture-review/)
-- [api-contract-first](api-contract-first/)
-- [design-md-ui-workflow](design-md-ui-workflow/)
-- [layered-testing-strategy](layered-testing-strategy/)
-- [auth-permission-baseline](auth-permission-baseline/)
-- [release-readiness-checklist](release-readiness-checklist/)
+- architecture-review
+- api-contract-first
+- design-md-ui-workflow
+- layered-testing-strategy
+- auth-permission-baseline
+- release-readiness-checklist
 
 ## 使用方式
 
-- 开发测试发布全流程示例：[USAGE-FLOW.md](USAGE-FLOW.md)
+- 开发测试发布全流程示例：USAGE-FLOW.md
 
 ## 规范来源
 
-- 规范来源说明：[SPEC-REFERENCES.md](SPEC-REFERENCES.md)
+- 规范来源说明：SPEC-REFERENCES.md
 
 ## 核心工程规则（新增）
 
@@ -34,5 +34,5 @@
 
 ## 内容组织建议
 
-- `SKILL.md`：触发条件与主流程
+- SKILL.md：触发条件与主流程
 - references/：详细清单、矩阵、反例与扩展说明

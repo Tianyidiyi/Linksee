@@ -14,9 +14,9 @@
 
 预期结果：
 
-- [apps/api/dist/BUILD_INFO.json](../../apps/api/dist/BUILD_INFO.json)
-- [apps/web/dist/BUILD_INFO.json](../../apps/web/dist/BUILD_INFO.json)
-- [apps/worker/dist/BUILD_INFO.json](../../apps/worker/dist/BUILD_INFO.json)
+- apps/api/dist/BUILD_INFO.json
+- apps/web/dist/BUILD_INFO.json
+- apps/worker/dist/BUILD_INFO.json
 
 ## 3. 打包命令
 
@@ -26,8 +26,7 @@
 
 预期结果：
 
-- 当前包名暂沿用历史 workspace 名：`@clickdown/api`、`@clickdown/web`、`@clickdown/worker`
-- 产品对外名称为 Linksee；若后续重命名 package，需要同步更新根 [package.json](../../package.json) 与各应用 package.json
+- 生成 @clickdown/api、@clickdown/web、@clickdown/worker 对应 tgz 包
 
 ## 4. 一键验证
 
@@ -40,4 +39,4 @@
 - npm run dev:deps:up
 - npm run dev:deps:down
 
-说明：依赖服务来自 [infra/docker/docker-compose.dev.yml](../docker/docker-compose.dev.yml)。
+说明：依赖服务来自 infra/docker/docker-compose.dev.yml。
