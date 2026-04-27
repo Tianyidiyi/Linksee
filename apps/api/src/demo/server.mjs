@@ -105,6 +105,7 @@ io.on("connection", (socket) => {
 server.listen(port, host, () => {
   const protocol = useHttps ? "https" : "http";
   console.log(`[demo] server running: ${protocol}://localhost:${port}`);
+  console.log("[demo] Linksee teaching demo: /index.html");
   console.log("[demo] login page: /login.html");
   console.log("[demo] status page: /status.html");
   console.log("[demo] note: token is demo-token");

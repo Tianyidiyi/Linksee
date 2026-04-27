@@ -1,5 +1,6 @@
 # Demo 页面
 
+- [index.html](index.html)：Linksee 教学协作产品 Demo（身份选择 + 角色工作台）
 - [login.html](login.html)：登录按钮页（仅写入 demo token）
 - [status.html](status.html)：在线状态页（基于 Socket 显示在线/离线）
 
@@ -27,6 +28,7 @@
 - 预期出现类似 `[demo][heartbeat] socket=... seq=... rttMs=...`
 
 4. 打开页面
+- https://localhost:3443/index.html
 - https://localhost:3443/login.html
 - https://localhost:3443/status.html
 

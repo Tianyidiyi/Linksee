@@ -1,0 +1,1140 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Linksee 教学协作 Demo</title>
+    <style>
+      :root {
+        --bg: #f6f7f9;
+        --panel: #ffffff;
+        --panel-soft: #f9fafb;
+        --text: #18202b;
+        --muted: #637083;
+        --line: #d9dee7;
+        --line-strong: #c8d0dc;
+        --blue: #2563eb;
+        --blue-soft: #e8f0ff;
+        --green: #0f8a5f;
+        --green-soft: #e6f6ef;
+        --amber: #b7791f;
+        --amber-soft: #fff4db;
+        --red: #bd2c2c;
+        --red-soft: #ffe8e8;
+        --ink: #111827;
+        --shadow: 0 18px 45px rgba(17, 24, 39, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(246, 247, 249, 0.96)),
+          radial-gradient(circle at 12% 12%, rgba(37, 99, 235, 0.12), transparent 32%),
+          radial-gradient(circle at 86% 18%, rgba(15, 138, 95, 0.1), transparent 30%),
+          var(--bg);
+        color: var(--text);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        letter-spacing: 0;
+      }
+
+      button,
+      input,
+      textarea,
+      select {
+        font: inherit;
+      }
+
+      button {
+        border: 0;
+        cursor: pointer;
+      }
+
+      .app-shell {
+        min-height: 100vh;
+      }
+
+      .login-screen {
+        display: grid;
+        min-height: 100vh;
+        grid-template-columns: minmax(0, 0.94fr) minmax(420px, 0.74fr);
+      }
+
+      .brand-panel {
+        display: flex;
+        min-height: 100vh;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 48px;
+        color: white;
+        background:
+          linear-gradient(135deg, rgba(14, 21, 34, 0.94), rgba(28, 40, 58, 0.9)),
+          url("https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=1600&q=80")
+            center/cover;
+      }
+
+      .brand-mark {
+        display: inline-flex;
+        width: fit-content;
+        align-items: center;
+        gap: 10px;
+        color: rgba(255, 255, 255, 0.92);
+        font-weight: 700;
+      }
+
+      .mark-dot {
+        display: grid;
+        width: 32px;
+        height: 32px;
+        place-items: center;
+        border-radius: 8px;
+        background: #ffffff;
+        color: var(--blue);
+        font-weight: 900;
+      }
+
+      .brand-copy {
+        max-width: 720px;
+      }
+
+      .brand-copy h1 {
+        margin: 0 0 18px;
+        font-size: clamp(42px, 6vw, 82px);
+        line-height: 0.95;
+        letter-spacing: 0;
+      }
+
+      .brand-copy p {
+        margin: 0;
+        max-width: 640px;
+        color: rgba(255, 255, 255, 0.78);
+        font-size: 18px;
+        line-height: 1.75;
+      }
+
+      .brand-metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+        max-width: 720px;
+      }
+
+      .metric-tile {
+        min-height: 92px;
+        padding: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+      }
+
+      .metric-tile strong {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 26px;
+      }
+
+      .metric-tile span {
+        color: rgba(255, 255, 255, 0.72);
+        font-size: 13px;
+      }
+
+      .login-panel {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 28px;
+      }
+
+      .login-card {
+        width: min(100%, 520px);
+        padding: 28px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.94);
+        box-shadow: var(--shadow);
+      }
+
+      .section-eyebrow {
+        margin: 0 0 8px;
+        color: var(--blue);
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .login-card h2,
+      .panel h2,
+      .workspace-title h1 {
+        margin: 0;
+        color: var(--ink);
+        letter-spacing: 0;
+      }
+
+      .login-card h2 {
+        font-size: 30px;
+      }
+
+      .subtle {
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .role-grid {
+        display: grid;
+        gap: 12px;
+        margin: 24px 0;
+      }
+
+      .role-option {
+        display: grid;
+        grid-template-columns: 42px 1fr auto;
+        gap: 12px;
+        align-items: center;
+        width: 100%;
+        min-height: 78px;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        text-align: left;
+        transition:
+          border-color 0.16s ease,
+          background 0.16s ease,
+          transform 0.16s ease;
+      }
+
+      .role-option:hover,
+      .role-option.active {
+        border-color: var(--blue);
+        background: var(--blue-soft);
+        transform: translateY(-1px);
+      }
+
+      .role-icon,
+      .nav-icon,
+      .tool-icon {
+        display: grid;
+        place-items: center;
+        border-radius: 8px;
+        background: #eef2f7;
+        color: var(--ink);
+        font-weight: 800;
+      }
+
+      .role-icon {
+        width: 42px;
+        height: 42px;
+      }
+
+      .role-copy strong {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--ink);
+      }
+
+      .role-copy span {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .chevron {
+        color: var(--muted);
+        font-size: 20px;
+      }
+
+      .form-row {
+        display: grid;
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+
+      .form-row label {
+        color: var(--ink);
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .input {
+        width: 100%;
+        min-height: 44px;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: white;
+        color: var(--text);
+        outline: 0;
+      }
+
+      .input:focus {
+        border-color: var(--blue);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+      }
+
+      .primary-btn,
+      .ghost-btn,
+      .icon-btn,
+      .segmented button {
+        min-height: 40px;
+        border-radius: 8px;
+        font-weight: 700;
+      }
+
+      .primary-btn {
+        width: 100%;
+        padding: 0 16px;
+        background: var(--blue);
+        color: white;
+      }
+
+      .ghost-btn {
+        padding: 0 14px;
+        border: 1px solid var(--line);
+        background: white;
+        color: var(--text);
+      }
+
+      .icon-btn {
+        display: inline-grid;
+        width: 40px;
+        place-items: center;
+        border: 1px solid var(--line);
+        background: white;
+        color: var(--text);
+      }
+
+      .dashboard {
+        display: grid;
+        min-height: 100vh;
+        grid-template-columns: 248px minmax(0, 1fr);
+      }
+
+      .sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        padding: 22px 16px;
+        border-right: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.88);
+        backdrop-filter: blur(18px);
+      }
+
+      .sidebar .brand-mark {
+        color: var(--ink);
+        margin-bottom: 22px;
+      }
+
+      .sidebar .mark-dot {
+        background: var(--blue);
+        color: white;
+      }
+
+      .nav-list {
+        display: grid;
+        gap: 6px;
+      }
+
+      .nav-item {
+        display: grid;
+        grid-template-columns: 32px 1fr;
+        gap: 10px;
+        align-items: center;
+        min-height: 42px;
+        padding: 6px 8px;
+        border-radius: 8px;
+        color: var(--muted);
+        font-weight: 700;
+      }
+
+      .nav-item.active {
+        background: var(--blue-soft);
+        color: var(--blue);
+      }
+
+      .nav-icon {
+        width: 32px;
+        height: 32px;
+        font-size: 13px;
+      }
+
+      .sidebar-footer {
+        position: absolute;
+        right: 16px;
+        bottom: 18px;
+        left: 16px;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel-soft);
+      }
+
+      .main {
+        min-width: 0;
+        padding: 24px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+
+      .workspace-title {
+        min-width: 0;
+      }
+
+      .workspace-title h1 {
+        font-size: 28px;
+      }
+
+      .workspace-title p {
+        margin: 8px 0 0;
+      }
+
+      .top-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: flex-end;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 0 9px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .badge.blue {
+        background: var(--blue-soft);
+        color: var(--blue);
+      }
+
+      .badge.green {
+        background: var(--green-soft);
+        color: var(--green);
+      }
+
+      .badge.amber {
+        background: var(--amber-soft);
+        color: var(--amber);
+      }
+
+      .badge.red {
+        background: var(--red-soft);
+        color: var(--red);
+      }
+
+      .grid {
+        display: grid;
+        gap: 16px;
+      }
+
+      .grid.metrics {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        margin-bottom: 16px;
+      }
+
+      .grid.two {
+        grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.8fr);
+      }
+
+      .grid.three {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .panel {
+        min-width: 0;
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: 0 12px 28px rgba(17, 24, 39, 0.05);
+      }
+
+      .panel-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 14px;
+      }
+
+      .panel h2 {
+        font-size: 18px;
+      }
+
+      .metric-card {
+        min-height: 128px;
+      }
+
+      .metric-card .number {
+        margin: 16px 0 6px;
+        color: var(--ink);
+        font-size: 34px;
+        font-weight: 850;
+      }
+
+      .progress-bar {
+        height: 8px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #edf0f5;
+      }
+
+      .progress-fill {
+        height: 100%;
+        border-radius: inherit;
+        background: var(--blue);
+      }
+
+      .table {
+        display: grid;
+        gap: 8px;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: minmax(160px, 1fr) 100px 120px 120px;
+        gap: 12px;
+        align-items: center;
+        min-height: 56px;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: white;
+      }
+
+      .row.header {
+        min-height: 34px;
+        border: 0;
+        background: transparent;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .stack {
+        display: grid;
+        gap: 10px;
+      }
+
+      .list-item {
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: white;
+      }
+
+      .list-item strong {
+        display: block;
+        margin-bottom: 5px;
+        color: var(--ink);
+      }
+
+      .kanban {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .kanban-column {
+        min-height: 320px;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel-soft);
+      }
+
+      .kanban-column h3 {
+        margin: 0 0 10px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .task-card {
+        margin-bottom: 10px;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: white;
+      }
+
+      .task-card strong {
+        display: block;
+        margin-bottom: 8px;
+      }
+
+      .meta-line {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .chat-box {
+        display: grid;
+        gap: 10px;
+      }
+
+      .message {
+        padding: 10px 12px;
+        border-radius: 8px;
+        background: var(--panel-soft);
+      }
+
+      .message.mine {
+        background: var(--blue-soft);
+      }
+
+      .message strong {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 13px;
+      }
+
+      .submit-box {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      .segmented {
+        display: inline-flex;
+        gap: 4px;
+        padding: 4px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: white;
+      }
+
+      .segmented button {
+        padding: 0 12px;
+        background: transparent;
+        color: var(--muted);
+      }
+
+      .segmented button.active {
+        background: var(--blue);
+        color: white;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      @media (max-width: 1040px) {
+        .login-screen,
+        .dashboard,
+        .grid.two {
+          grid-template-columns: 1fr;
+        }
+
+        .brand-panel {
+          min-height: auto;
+          gap: 42px;
+        }
+
+        .sidebar {
+          position: static;
+          height: auto;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        .sidebar-footer {
+          position: static;
+          margin-top: 18px;
+        }
+
+        .grid.metrics,
+        .grid.three,
+        .kanban {
+          grid-template-columns: 1fr;
+        }
+
+        .row,
+        .row.header {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .brand-panel,
+        .login-panel,
+        .main {
+          padding: 18px;
+        }
+
+        .brand-metrics {
+          grid-template-columns: 1fr;
+        }
+
+        .topbar {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .top-actions {
+          justify-content: flex-start;
+        }
+
+        .submit-box {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app" class="app-shell"></div>
+
+    <script>
+      const roleConfig = {
+        teacher: {
+          label: "老师",
+          icon: "T",
+          name: "陈老师",
+          title: "课程项目总览",
+          nav: ["看板", "小组", "待评价", "Rubric"],
+        },
+        student: {
+          label: "学生",
+          icon: "S",
+          name: "林同学",
+          title: "我的小组空间",
+          nav: ["任务", "讨论", "提交", "反馈"],
+        },
+        assistant: {
+          label: "助教",
+          icon: "A",
+          name: "周助教",
+          title: "助教检查台",
+          nav: ["待检查", "测试", "异常", "记录"],
+        },
+      };
+
+      const sampleGroups = [
+        { name: "一组 代码星图", progress: 78, status: "待评价", risk: "正常", activity: "活跃" },
+        { name: "二组 数据罗盘", progress: 52, status: "需修改", risk: "延期", activity: "一般" },
+        { name: "三组 交互工坊", progress: 34, status: "未提交", risk: "高风险", activity: "不活跃" },
+        { name: "四组 云端课表", progress: 86, status: "已通过", risk: "正常", activity: "活跃" },
+      ];
+
+      const tasks = {
+        todo: [
+          { title: "补充需求优先级", owner: "王同学", due: "明天" },
+          { title: "整理演示脚本", owner: "林同学", due: "周五" },
+        ],
+        doing: [
+          { title: "完成学生提交页", owner: "赵同学", due: "今天" },
+          { title: "连接 GitHub 仓库链接", owner: "陈同学", due: "周四" },
+        ],
+        done: [
+          { title: "确定课程项目选题", owner: "全组", due: "已完成" },
+          { title: "绘制首页低保真", owner: "李同学", due: "已完成" },
+        ],
+      };
+
+      const messages = [
+        { author: "林同学", text: "我把需求文档第一版传上来了，老师反馈后我们再改。", mine: true },
+        { author: "赵同学", text: "提交页我今晚补交互状态，先把文件和仓库链接跑通。", mine: false },
+        { author: "陈老师", text: "注意把每个人贡献写清楚，周五前提交需求分析阶段。", mine: false },
+      ];
+
+      const app = document.getElementById("app");
+      let selectedRole = localStorage.getItem("linksee_demo_role") || "teacher";
+
+      function renderLogin() {
+        app.innerHTML = `
+          <main class="login-screen">
+            <section class="brand-panel">
+              <div class="brand-mark"><span class="mark-dot">L</span><span>Linksee</span></div>
+              <div class="brand-copy">
+                <h1>让小组项目<br />过程可见</h1>
+                <p>学生在同一个空间拆任务、讨论、传文件、提交阶段成果；老师按课程视角追踪进度、发现风险、反馈评分。</p>
+              </div>
+              <div class="brand-metrics">
+                <div class="metric-tile"><strong>5</strong><span>阶段里程碑</span></div>
+                <div class="metric-tile"><strong>12</strong><span>待评价提交</span></div>
+                <div class="metric-tile"><strong>3</strong><span>风险小组</span></div>
+              </div>
+            </section>
+
+            <section class="login-panel">
+              <div class="login-card">
+                <p class="section-eyebrow">身份选择</p>
+                <h2>进入 Linksee 工作台</h2>
+                <p class="subtle">选择身份后进入对应主界面。当前为前端 Demo，使用模拟课程数据。</p>
+                <div class="role-grid">
+                  ${Object.entries(roleConfig)
+                    .map(
+                      ([role, config]) => `
+                        <button class="role-option ${selectedRole === role ? "active" : ""}" data-role="${role}" type="button">
+                          <span class="role-icon">${config.icon}</span>
+                          <span class="role-copy">
+                            <strong>${config.label}</strong>
+                            <span>${roleHint(role)}</span>
+                          </span>
+                          <span class="chevron">›</span>
+                        </button>
+                      `,
+                    )
+                    .join("")}
+                </div>
+                <div class="form-row">
+                  <label for="demoName">显示名称</label>
+                  <input id="demoName" class="input" value="${roleConfig[selectedRole].name}" />
+                </div>
+                <button id="loginBtn" class="primary-btn" type="button">进入工作台</button>
+              </div>
+            </section>
+          </main>
+        `;
+
+        document.querySelectorAll(".role-option").forEach((button) => {
+          button.addEventListener("click", () => {
+            selectedRole = button.dataset.role;
+            localStorage.setItem("linksee_demo_role", selectedRole);
+            const input = document.getElementById("demoName");
+            if (input) {
+              input.value = roleConfig[selectedRole].name;
+            }
+            renderLogin();
+          });
+        });
+
+        document.getElementById("loginBtn").addEventListener("click", () => {
+          const input = document.getElementById("demoName");
+          localStorage.setItem("linksee_demo_role", selectedRole);
+          localStorage.setItem("linksee_demo_name", input.value || roleConfig[selectedRole].name);
+          renderDashboard(selectedRole);
+        });
+      }
+
+      function roleHint(role) {
+        if (role === "teacher") return "追踪进度、查看风险、评价提交";
+        if (role === "student") return "小组协作、传文件、提交成果";
+        return "检查材料、核对测试、辅助评分";
+      }
+
+      function renderDashboard(role) {
+        const config = roleConfig[role];
+        const userName = localStorage.getItem("linksee_demo_name") || config.name;
+        app.innerHTML = `
+          <main class="dashboard">
+            <aside class="sidebar">
+              <div class="brand-mark"><span class="mark-dot">L</span><span>Linksee</span></div>
+              <nav class="nav-list">
+                ${config.nav
+                  .map(
+                    (item, index) => `
+                      <div class="nav-item ${index === 0 ? "active" : ""}">
+                        <span class="nav-icon">${item.slice(0, 1)}</span>
+                        <span>${item}</span>
+                      </div>
+                    `,
+                  )
+                  .join("")}
+              </nav>
+              <div class="sidebar-footer">
+                <span class="badge blue">${config.label}</span>
+                <p class="subtle" style="margin: 10px 0 0;">${userName}<br />软件工程课程设计</p>
+              </div>
+            </aside>
+            <section class="main">
+              <header class="topbar">
+                <div class="workspace-title">
+                  <h1>${config.title}</h1>
+                  <p class="subtle">${dashboardSubtitle(role)}</p>
+                </div>
+                <div class="top-actions">
+                  <button class="ghost-btn" type="button" id="switchRoleBtn">切换身份</button>
+                  <button class="icon-btn" type="button" title="通知">N</button>
+                </div>
+              </header>
+              ${role === "teacher" ? teacherView() : role === "student" ? studentView() : assistantView()}
+            </section>
+          </main>
+        `;
+
+        document.getElementById("switchRoleBtn").addEventListener("click", renderLogin);
+        bindDemoInteractions(role);
+      }
+
+      function dashboardSubtitle(role) {
+        if (role === "teacher") return "实时查看各小组进度、风险、提交状态和待评价事项。";
+        if (role === "student") return "围绕阶段任务协作推进，提交材料并查看老师反馈。";
+        return "辅助老师检查提交物、测试结果、异常小组和评分材料。";
+      }
+
+      function teacherView() {
+        return `
+          <section class="grid metrics">
+            ${metricCard("课程小组", "4", "本课程项目小组总数", "blue", 100)}
+            ${metricCard("平均进度", "63%", "较上周提升 12%", "green", 63)}
+            ${metricCard("待评价", "12", "阶段提交等待反馈", "amber", 74)}
+            ${metricCard("风险小组", "2", "延期或协作不活跃", "red", 42)}
+          </section>
+          <section class="grid two">
+            <div class="panel">
+              <div class="panel-head">
+                <div>
+                  <h2>班级追踪看板</h2>
+                  <p class="subtle" style="margin: 6px 0 0;">按小组汇总阶段状态、风险和协作活跃度。</p>
+                </div>
+                <span class="badge blue">实时</span>
+              </div>
+              <div class="table">
+                <div class="row header"><span>小组</span><span>进度</span><span>状态</span><span>风险</span></div>
+                ${sampleGroups
+                  .map(
+                    (group) => `
+                      <div class="row">
+                        <strong>${group.name}</strong>
+                        <div>
+                          <div class="progress-bar"><div class="progress-fill" style="width:${group.progress}%"></div></div>
+                          <div class="meta-line" style="margin-top: 6px;">${group.progress}%</div>
+                        </div>
+                        <span class="badge ${statusColor(group.status)}">${group.status}</span>
+                        <span class="badge ${riskColor(group.risk)}">${group.risk}</span>
+                      </div>
+                    `,
+                  )
+                  .join("")}
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-head">
+                <div>
+                  <h2>待处理事项</h2>
+                  <p class="subtle" style="margin: 6px 0 0;">优先处理延期、未提交和需修改。</p>
+                </div>
+              </div>
+              <div class="stack">
+                ${listItem("三组未提交需求分析", "截止时间已过 1 天，建议课堂前提醒。", "red")}
+                ${listItem("二组提交需修改", "缺少测试计划和个人贡献说明。", "amber")}
+                ${listItem("四组可进入下一阶段", "需求与原型均已通过。", "green")}
+              </div>
+            </div>
+          </section>
+          <section class="grid three" style="margin-top:16px;">
+            ${rubricCard("需求分析", "30%", "问题定义、用户角色、功能边界")}
+            ${rubricCard("协作过程", "30%", "任务推进、讨论记录、材料提交")}
+            ${rubricCard("阶段成果", "40%", "文档质量、演示完整度、验收状态")}
+          </section>
+        `;
+      }
+
+      function studentView() {
+        return `
+          <section class="grid two">
+            <div class="panel">
+              <div class="panel-head">
+                <div>
+                  <h2>小组任务看板</h2>
+                  <p class="subtle" style="margin: 6px 0 0;">需求分析阶段，本周五 18:00 截止。</p>
+                </div>
+                <span class="badge amber">进行中</span>
+              </div>
+              <div class="kanban">
+                ${kanbanColumn("待办", tasks.todo)}
+                ${kanbanColumn("进行中", tasks.doing)}
+                ${kanbanColumn("已完成", tasks.done)}
+              </div>
+            </div>
+            <div class="grid">
+              <div class="panel">
+                <div class="panel-head">
+                  <h2>小组讨论</h2>
+                  <span class="badge green">3 人在线</span>
+                </div>
+                <div id="chatBox" class="chat-box">
+                  ${messages.map((message) => messageItem(message.author, message.text, message.mine)).join("")}
+                </div>
+                <div class="submit-box">
+                  <input id="messageInput" class="input" placeholder="输入讨论内容" />
+                  <button id="sendMessageBtn" class="ghost-btn" type="button">发送</button>
+                </div>
+              </div>
+              <div class="panel">
+                <div class="panel-head">
+                  <h2>阶段提交</h2>
+                  <span class="badge blue">需求分析</span>
+                </div>
+                <div class="stack">
+                  ${listItem("需求文档 v1.pdf", "已上传，等待老师评价。", "blue")}
+                  ${listItem("GitHub 仓库链接", "https://github.com/team/course-project", "green")}
+                  ${listItem("个人贡献说明", "我负责提交页交互和文件上传说明。", "amber")}
+                </div>
+              </div>
+            </div>
+          </section>
+        `;
+      }
+
+      function assistantView() {
+        return `
+          <section class="grid metrics">
+            ${metricCard("待检查", "8", "文件与链接待核对", "amber", 68)}
+            ${metricCard("测试通过", "5", "软件包基础运行通过", "green", 56)}
+            ${metricCard("异常互评", "2", "贡献比例差异较大", "red", 36)}
+            ${metricCard("可归档", "6", "材料齐全可进入评分", "blue", 78)}
+          </section>
+          <section class="grid two">
+            <div class="panel">
+              <div class="panel-head">
+                <div>
+                  <h2>提交检查队列</h2>
+                  <p class="subtle" style="margin: 6px 0 0;">先核对材料完整性，再交给老师评分。</p>
+                </div>
+              </div>
+              <div class="stack">
+                ${listItem("二组 数据罗盘", "缺少个人贡献说明，测试报告未上传。", "amber")}
+                ${listItem("三组 交互工坊", "未提交阶段成果，需提醒。", "red")}
+                ${listItem("一组 代码星图", "材料完整，可进入教师评价。", "green")}
+                ${listItem("四组 云端课表", "仓库链接可访问，演示视频已归档。", "blue")}
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-head">
+                <h2>检查工具</h2>
+                <div class="segmented">
+                  <button class="active" type="button">材料</button>
+                  <button type="button">测试</button>
+                  <button type="button">互评</button>
+                </div>
+              </div>
+              <div class="stack">
+                ${toolItem("F", "文件完整性", "PDF、PPT、ZIP、视频和链接是否齐全")}
+                ${toolItem("R", "仓库链接", "验证仓库可访问，记录最近提交时间")}
+                ${toolItem("S", "评分材料", "整理给老师看的 Rubric 参考证据")}
+              </div>
+            </div>
+          </section>
+        `;
+      }
+
+      function metricCard(title, value, note, color, progress) {
+        return `
+          <div class="panel metric-card">
+            <span class="badge ${color}">${title}</span>
+            <div class="number">${value}</div>
+            <p class="subtle" style="margin:0 0 14px;">${note}</p>
+            <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
+          </div>
+        `;
+      }
+
+      function listItem(title, note, color) {
+        return `
+          <div class="list-item">
+            <strong>${title}</strong>
+            <p class="subtle" style="margin:0 0 8px;">${note}</p>
+            <span class="badge ${color}">${labelByColor(color)}</span>
+          </div>
+        `;
+      }
+
+      function rubricCard(title, weight, text) {
+        return `
+          <div class="panel">
+            <div class="panel-head">
+              <h2>${title}</h2>
+              <span class="badge blue">${weight}</span>
+            </div>
+            <p class="subtle" style="margin:0;">${text}</p>
+          </div>
+        `;
+      }
+
+      function kanbanColumn(title, items) {
+        return `
+          <div class="kanban-column">
+            <h3>${title}</h3>
+            ${items
+              .map(
+                (item) => `
+                  <div class="task-card">
+                    <strong>${item.title}</strong>
+                    <div class="meta-line"><span>${item.owner}</span><span>${item.due}</span></div>
+                  </div>
+                `,
+              )
+              .join("")}
+          </div>
+        `;
+      }
+
+      function messageItem(author, text, mine) {
+        return `
+          <div class="message ${mine ? "mine" : ""}">
+            <strong>${author}</strong>
+            <span>${text}</span>
+          </div>
+        `;
+      }
+
+      function toolItem(icon, title, note) {
+        return `
+          <div class="list-item" style="display:grid; grid-template-columns:42px 1fr; gap:12px; align-items:center;">
+            <span class="tool-icon" style="width:42px;height:42px;">${icon}</span>
+            <span><strong>${title}</strong><span class="subtle">${note}</span></span>
+          </div>
+        `;
+      }
+
+      function statusColor(status) {
+        if (status === "已通过") return "green";
+        if (status === "需修改" || status === "待评价") return "amber";
+        if (status === "未提交") return "red";
+        return "blue";
+      }
+
+      function riskColor(risk) {
+        if (risk === "正常") return "green";
+        if (risk === "延期") return "amber";
+        return "red";
+      }
+
+      function labelByColor(color) {
+        return {
+          blue: "记录",
+          green: "正常",
+          amber: "待处理",
+          red: "风险",
+        }[color];
+      }
+
+      function bindDemoInteractions(role) {
+        if (role !== "student") return;
+        const input = document.getElementById("messageInput");
+        const button = document.getElementById("sendMessageBtn");
+        const chatBox = document.getElementById("chatBox");
+        button.addEventListener("click", () => {
+          const value = input.value.trim();
+          if (!value) return;
+          chatBox.insertAdjacentHTML("beforeend", messageItem("我", value, true));
+          input.value = "";
+        });
+      }
+
+      if (localStorage.getItem("linksee_demo_role")) {
+        renderDashboard(localStorage.getItem("linksee_demo_role"));
+      } else {
+        renderLogin();
+      }
+    </script>
+  </body>
+</html>
