@@ -4,8 +4,8 @@
 
 必须区分。
 
-- 客户端（apps/web）：页面渲染、状态管理、Socket 订阅
-- 服务端（apps/api）：认证授权、业务处理、数据持久化、事件分发
+- 客户端（[apps/web](../../apps/web/)）：页面渲染、状态管理、Socket 订阅
+- 服务端（[apps/api](../../apps/api/)）：认证授权、业务处理、数据持久化、事件分发
 
 不区分会导致权限、日志、故障定位混乱。
 
@@ -16,7 +16,7 @@
 ## 3. 最小开发流程
 
 1. 需求评审：先写通信决策表。
-2. 契约先行：更新 docs/api/communication-contract-v1.md。
+2. 契约先行：更新 [docs/api/communication-contract-v1.md](../api/communication-contract-v1.md)。
 3. 后端实现：HTTP -> 业务 -> 事件发布。
 4. 前端实现：HTTP 调用 + Socket 订阅。
 5. 测试：unit + integration + 最小 e2e。
