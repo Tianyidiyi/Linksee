@@ -19,9 +19,7 @@
 - npm run demo:start
 
 3. 运行 Socket 烟雾测试（可选）
-- npm run test:socket-demo -w @clickdown/api
-
-说明：产品名已调整为 Linksee，但当前 workspace 包名暂沿用历史名称 `@clickdown/api`，所以此命令仍使用 `@clickdown/api`。
+- npm run test:socket-demo -w @linksee/api
 
 3.1 观察服务端终端日志（心跳）
 - 预期出现类似 `[demo][heartbeat] socket=... seq=... rttMs=...`

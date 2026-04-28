@@ -26,31 +26,32 @@
 - 使用 [release-readiness-checklist](release-readiness-checklist/) 完成发布前检查和发布后观测。
 - 输出：发版检查记录与回滚预案。
 
-## 一次完整示例（任务评论功能）
+## 一次完整示例（阶段提交与反馈功能）
 
-场景：新增任务评论功能（含评论列表、发送评论、权限控制）。
+场景：新增课程项目阶段提交功能（含提交材料、教师反馈、状态变更、权限控制）。
 
 1. 架构
-- 调用 [architecture-review](architecture-review/)，确认评论归属 `services/project-task`，禁止 chat 服务直接写评论表。
+- 调用 [architecture-review](architecture-review/)，确认阶段提交归属 `services/submission`，评分反馈归属 `services/grading`，禁止协作讨论模块直接写提交和评分表。
 
 2. 契约
 - 调用 [api-contract-first](api-contract-first/)，定义：
-  - POST /tasks/{taskId}/comments
-  - GET /tasks/{taskId}/comments
-  - 错误码：未登录、无权限、任务不存在
+  - POST /api/v1/stages/{stageId}/groups/{groupId}/submissions
+  - POST /api/v1/submissions/{submissionId}/reviews
+  - GET /api/v1/courses/{courseId}/dashboard
+  - 错误码：未登录、无权限、阶段不存在、小组不存在、重复提交
 
 3. UI
 - 调用 [design-md-ui-workflow](design-md-ui-workflow/)，选定 [Notion](../docs/UI设计参考/awesome-design-md/design-md/notion/) 与 [Vercel](../docs/UI设计参考/awesome-design-md/design-md/vercel/) 作为参考。
 - 把颜色、间距、输入框状态映射到 [apps/web](../apps/web/) 或 `packages/ui-kit` 主题层。
 
 4. 安全
-- 调用 [auth-permission-baseline](auth-permission-baseline/)，明确只有任务成员可读写评论。
+- 调用 [auth-permission-baseline](auth-permission-baseline/)，明确学生只能提交自己小组材料，老师和助教只能评价授权课程内的小组。
 
 5. 测试
 - 调用 [layered-testing-strategy](layered-testing-strategy/)，最小集合：
-  - unit：评论长度校验、分页参数校验
-  - integration：评论写入与任务权限联合校验
-  - e2e：用户在任务详情页发送并看到最新评论
+  - unit：提交材料字段校验、Rubric 分数边界校验
+  - integration：阶段提交、状态流转、教师反馈与课程权限联合校验
+  - e2e：学生提交阶段成果，老师在看板中查看并给出反馈
 
 6. 发布
 - 调用 [release-readiness-checklist](release-readiness-checklist/)，确认迁移脚本、回滚脚本、监控指标后上线。

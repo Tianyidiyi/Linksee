@@ -20,7 +20,7 @@
 - [通信治理硬规则与 PR 审查清单](architecture/communication-governance.md)
 - [需求开发前通信决策表模板](architecture/communication-decision-template.md)
 - [客户端/服务端、本地测试、构建打包流程](architecture/engineering-flow-mvp.md)
-- [HTTP + Socket + Worker 通信契约](api/communication-contract-v1.md)
+- [HTTP + Socket + Worker 通信契约](api/contracts/communication-contract-v1.md)
 - [通信需求的 skills 提问模板](architecture/skills-prompt-template-communication.md)
 - [新人首次安装与日常命令清单](architecture/首次安装步骤与日常命令清单.md)
 
