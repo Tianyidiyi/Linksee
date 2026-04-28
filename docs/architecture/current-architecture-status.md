@@ -6,7 +6,7 @@
 
 > Linksee 教学项目协作与过程评价平台
 
-新的核心场景是高校课程项目、小组作业、实训课程和毕业设计过程管理。平台重点支持老师实时追踪小组进度、学生阶段提交、教师反馈、自动测试、互评和 Rubric 评分。
+新的核心场景是高校课程项目、小组作业、实训课程和毕业设计过程管理。平台重点支持老师实时追踪小组进度、学生阶段提交、教师反馈、互评和 Rubric 评分。自动测试、GitHub 贡献统计和 AI 助教属于后续增强。
 
 产品大纲见：[docs/product/teaching-collaboration-outline.md](../product/teaching-collaboration-outline.md)。
 
@@ -17,6 +17,7 @@
 3. 根工作区已配置 workspaces 构建与打包脚本。
 4. 已补充最小构建/打包流程文档。
 5. 已完成教学协作平台的新产品定位与 MVP 大纲。
+6. 通信契约已从通用任务评论切换为课程、作业、阶段、小组、提交、反馈、评分等教学场景接口。
 
 ## 3. 当前形态
 
@@ -33,7 +34,7 @@
 | --- | --- |
 | Team | Course / Class |
 | Project | Assignment / Course Project |
-| Task | Stage Task / Group Task |
+| Task | Stage / MiniTask |
 | Chat | Group Discussion / Teacher Feedback |
 | Docs | Submissions / Course Materials |
 | Feed | Progress Timeline |
@@ -52,5 +53,5 @@
 1. 确认 [docs/product/teaching-collaboration-outline.md](../product/teaching-collaboration-outline.md) 是否作为组内统一方向。
 2. 初始化 [apps/api](../../apps/api/) 与 [apps/web](../../apps/web/) 可运行脚手架。
 3. 设计核心数据模型：Course、Group、Assignment、Stage、Submission、Review、Grade。
-4. 以“老师发布阶段任务 -> 小组提交 -> 老师评价反馈”作为第一条端到端功能链路。
-5. 将通信契约从通用任务评论逐步改为教学场景接口。
+4. 以“老师发布阶段要求 -> 小组提交 -> 老师评价反馈”作为第一条端到端功能链路。
+5. 围绕通信契约补齐真实业务模型与端到端实现。

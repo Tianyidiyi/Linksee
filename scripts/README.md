@@ -23,7 +23,7 @@
 ## 使用前准备
 
 1. 已安装 Docker Desktop，并能在终端执行 docker 命令。
-2. 已创建环境变量文件：[infra/docker/.env](../infra/docker/.env)。
+2. 已根据 [infra/docker/.env.example](../infra/docker/.env.example) 创建本地 `infra/docker/.env`。
 3. 已启动至少 mysql 服务（脚本也会尝试自动拉起）。
 
 ## 备份示例

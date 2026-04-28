@@ -1,5 +1,5 @@
 {
-  "name": "clickdown-monorepo",
+  "name": "linksee-monorepo",
   "version": "0.1.0",
   "private": true,
   "workspaces": [
@@ -11,7 +11,7 @@
     "build": "npm run build --workspaces --if-present",
     "pack:apps": "npm pack --workspaces --if-present",
     "verify:build": "npm run build && npm run pack:apps",
-    "demo:start": "npm run start:demo -w @clickdown/api",
+    "demo:start": "npm run start:demo -w @linksee/api",
     "dev:deps:up": "docker compose -f infra/docker/docker-compose.dev.yml --env-file infra/docker/.env up -d",
     "dev:deps:down": "docker compose -f infra/docker/docker-compose.dev.yml down"
   }

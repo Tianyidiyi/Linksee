@@ -9,7 +9,7 @@
 - auth：认证、角色与权限
 - course：课程空间与班级管理
 - group：小组与成员管理
-- assignment：课程项目与阶段任务
+- assignment：课程项目与 Stage 阶段要求
 - collaboration：小组任务、讨论、文件与动态流
 - submission：阶段提交与材料管理
 - grading：Rubric、互评、贡献与评分

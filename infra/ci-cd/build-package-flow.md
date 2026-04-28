@@ -26,8 +26,8 @@
 
 预期结果：
 
-- 当前包名暂沿用历史 workspace 名：`@clickdown/api`、`@clickdown/web`、`@clickdown/worker`
-- 产品对外名称为 Linksee；若后续重命名 package，需要同步更新根 [package.json](../../package.json) 与各应用 package.json
+- 当前 workspace 包名：`@linksee/api`、`@linksee/web`、`@linksee/worker`
+- 产品对外名称与包名统一为 Linksee；若后续重命名 package，需要同步更新根 [package.json](../../package.json) 与各应用 package.json
 
 ## 4. 一键验证
 
