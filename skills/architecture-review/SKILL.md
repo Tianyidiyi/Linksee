@@ -35,4 +35,4 @@ description: '评审服务边界与系统职责划分。用于新增服务、模
 
 - [references/service-boundary-checklist.md](references/service-boundary-checklist.md)
 - [references/fix-first-risk-report-template.md](references/fix-first-risk-report-template.md)
-- [docs/README.md](../../../docs/README.md)
+- [docs/README.md](../../docs/README.md)
