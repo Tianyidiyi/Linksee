@@ -1,0 +1,181 @@
+// ============================================================
+// Linksee — Prisma Schema（Auth 组，v1）
+// 对应设计文档：docs/api/auth/auth-tables-design.md
+//
+// 表：users / user_profiles / student_profiles /
+//     teacher_profiles / ta_bindings
+//
+// Refresh Token → Redis（不建表）
+// Audit Log     → winston 文件日志（不建表）
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ────────────────────────────────────────────────────────────
+// 枚举：账号角色
+// ────────────────────────────────────────────────────────────
+
+enum Role {
+  academic // 教务处
+  teacher  // 老师
+  ta       // 助教（老师创建的子账号，权限范围绑定到具体课程）
+  student  // 学生
+}
+
+// ────────────────────────────────────────────────────────────
+// users — 鉴权核心，只放每次鉴权都要查的字段
+// id = 一卡通号，纯10位数字，自然主键
+// ────────────────────────────────────────────────────────────
+
+model User {
+  /// 一卡通号，纯10位数字（如 2023010001），系统唯一登录标识
+  id                  String   @id @db.VarChar(10)
+
+  /// Argon2id 散列值（含内嵌 salt），原始密码不落库
+  passwordHash        String   @db.VarChar(128)
+
+  role                Role
+  isActive            Boolean  @default(true)
+
+  /// 批量导入时置 true，首次登录强制改密后置 false
+  forceChangePassword Boolean  @default(false)
+
+  createdAt           DateTime @default(now())
+
+  /// 最近一次登录成功时间（登录接口写入）
+  lastLoginAt         DateTime?
+
+  /// 最近活跃时间（Socket 心跳更新），用于展示在线状态
+  /// 实时 is_online 布尔值存 Redis key=online:{id}，不存 DB
+  lastSeenAt          DateTime?
+
+  // 关联
+  profile         UserProfile?
+  studentProfile  StudentProfile?
+  teacherProfile  TeacherProfile?
+
+  taBindingsAsTa      TaBinding[] @relation("TaUser")
+  taBindingsAsTeacher TaBinding[] @relation("TeacherUser")
+
+  @@map("users")
+}
+
+// ────────────────────────────────────────────────────────────
+// user_profiles — 通用展示信息，所有角色共用
+// ────────────────────────────────────────────────────────────
+
+model UserProfile {
+  /// FK → users.id（一卡通号）
+  userId    String  @id @db.VarChar(10)
+
+  realName  String  @db.VarChar(40)
+
+  /// 学号（学生）或工号（教师/教务），快速展示用
+  /// 详细学籍/职工信息在各自的 *_profiles 表中
+  accountNo String? @db.VarChar(20)
+
+  /// 头像文件存 MinIO，此处存访问 URL
+  avatarUrl String? @db.VarChar(255)
+
+  bio       String? @db.Text
+
+  location  String? @db.VarChar(100)
+
+  /// 选填，用于密码重置通知和系统消息推送
+  email     String? @unique @db.VarChar(100)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+// ────────────────────────────────────────────────────────────
+// student_profiles — 学生学籍扩展（仅 role=student）
+// ────────────────────────────────────────────────────────────
+
+model StudentProfile {
+  /// FK → users.id（一卡通号）
+  userId String @id @db.VarChar(10)
+
+  /// 教务学籍号（如 202301001）
+  /// ⚠️ 与一卡通号 users.id 是两套编号体系，不可混用
+  /// 一卡通号是校园卡物理编号，学号是教务系统学籍编号
+  stuNo String @unique @db.VarChar(20)
+
+  /// 入学年份（如 2023）
+  grade Int @db.SmallInt
+
+  /// 预计毕业年份（如 2027）
+  cohort Int @db.SmallInt
+
+  major      String @db.VarChar(60)
+
+  /// 行政班编号（如 软工2301）
+  adminClass String @db.VarChar(40)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("student_profiles")
+}
+
+// ────────────────────────────────────────────────────────────
+// teacher_profiles — 教师学术扩展（仅 role=teacher）
+// ────────────────────────────────────────────────────────────
+
+model TeacherProfile {
+  /// FK → users.id（一卡通号）
+  userId String @id @db.VarChar(10)
+
+  /// 学校人事编号（工号）
+  teacherNo String @unique @db.VarChar(20)
+
+  /// 职称（如 教授 / 副教授 / 讲师）
+  title String? @db.VarChar(30)
+
+  researchDirection String? @db.VarChar(200)
+
+  college String? @db.VarChar(60)
+
+  /// 学术成果简介
+  description String? @db.Text
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("teacher_profiles")
+}
+
+// ────────────────────────────────────────────────────────────
+// ta_bindings — 助教子账号与课程绑定
+//
+// 助教是 users 表中 role=ta 的完整账号记录，
+// 密码存在 users.passwordHash，本表只记绑定关系。
+// 助教权限范围 = 本表中该 ta_user_id 对应的 course_id 集合。
+// ────────────────────────────────────────────────────────────
+
+model TaBinding {
+  /// 助教的一卡通号，FK → users.id
+  taUserId      String @db.VarChar(10)
+
+  /// 创建该助教子账号的老师一卡通号，FK → users.id
+  teacherUserId String @db.VarChar(10)
+
+  /// 绑定的课程 ID（课程表建立后补充 FK）
+  /// 暂用 VarChar(36) 预留 UUID 格式
+  courseId      String @db.VarChar(36)
+
+  createdAt DateTime @default(now())
+
+  ta      User @relation("TaUser",      fields: [taUserId],      references: [id])
+  teacher User @relation("TeacherUser", fields: [teacherUserId], references: [id])
+
+  @@id([taUserId, courseId])
+  @@index([teacherUserId])
+  @@map("ta_bindings")
+}

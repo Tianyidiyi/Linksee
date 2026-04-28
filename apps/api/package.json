@@ -10,12 +10,21 @@
     "test:socket-demo": "node ./src/demo/socket-smoke.mjs"
   },
   "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "argon2": "^0.44.0",
     "express": "^4.19.2",
+    "ioredis": "^5.10.1",
+    "jsonwebtoken": "^9.0.3",
+    "prisma": "^6.19.3",
     "selfsigned": "^2.4.1",
     "socket.io": "^4.8.1",
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "^4.8.1",
+    "winston": "^3.19.0"
   },
   "files": [
     "dist"
-  ]
+  ],
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10"
+  }
 }
