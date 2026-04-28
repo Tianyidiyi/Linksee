@@ -182,31 +182,6 @@
         color: white;
       }
 
-      .demo-account-list {
-        display: grid;
-        gap: 8px;
-        margin: 16px 0 0;
-      }
-
-      .demo-account {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        min-height: 40px;
-        padding: 8px 10px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: white;
-        color: var(--muted);
-        font-size: 13px;
-        text-align: left;
-      }
-
-      .demo-account strong {
-        color: var(--ink);
-      }
-
       .role-grid {
         display: grid;
         gap: 12px;
@@ -836,7 +811,6 @@
                 </div>
                 ${authMessage ? `<p class="${authMessageType === "success" ? "auth-success" : "auth-error"}">${authMessage}</p>` : ""}
                 ${authMode === "login" ? loginForm() : registerForm()}
-                ${authMode === "login" ? demoAccountList() : ""}
               </div>
             </section>
           </main>
@@ -852,13 +826,6 @@
 
         if (authMode === "login") {
           document.getElementById("loginBtn").addEventListener("click", handleLogin);
-          document.querySelectorAll(".demo-account").forEach((button) => {
-            button.addEventListener("click", () => {
-              const account = button.dataset.account;
-              document.getElementById("loginAccount").value = account;
-              document.getElementById("loginPassword").value = "123456";
-            });
-          });
         } else {
           document.querySelectorAll(".role-option").forEach((button) => {
             button.addEventListener("click", () => {
@@ -920,23 +887,6 @@
         `;
       }
 
-      function demoAccountList() {
-        return `
-          <div class="demo-account-list" aria-label="演示账号">
-            ${defaultAccounts
-              .map(
-                (account) => `
-                  <button class="demo-account" data-account="${account.account}" type="button">
-                    <span><strong>${account.account}</strong> / 123456</span>
-                    <span>${roleConfig[account.role].label}</span>
-                  </button>
-                `,
-              )
-              .join("")}
-          </div>
-        `;
-      }
-
       function handleLogin() {
         const account = document.getElementById("loginAccount").value.trim();
         const password = document.getElementById("loginPassword").value;
@@ -945,7 +895,7 @@
         );
 
         if (!user) {
-          authMessage = "账号或密码不正确。可点击下方演示账号自动填入。";
+          authMessage = "账号或密码不正确。";
           authMessageType = "error";
           renderLogin();
           return;
@@ -990,6 +940,8 @@
       }
 
       function logout() {
+        const confirmed = window.confirm("确定要退出当前账号吗？");
+        if (!confirmed) return;
         localStorage.removeItem("linksee_demo_role");
         localStorage.removeItem("linksee_demo_name");
         localStorage.removeItem("linksee_demo_account");
@@ -1305,11 +1257,7 @@
         });
       }
 
-      if (localStorage.getItem("linksee_demo_role")) {
-        renderDashboard(localStorage.getItem("linksee_demo_role"));
-      } else {
-        renderLogin();
-      }
+      renderLogin();
     </script>
   </body>
 </html>
