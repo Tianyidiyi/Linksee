@@ -157,3 +157,76 @@ Linksee 的重点是：
 
 - 本地与 CI 构建打包流程：[infra/ci-cd/build-package-flow.md](infra/ci-cd/build-package-flow.md)
 - 根命令：npm run build / npm run pack:apps / npm run verify:build
+
+## 十二、通信规范
+
+> 完整规范见 [docs/architecture/communication-governance.md](docs/architecture/communication-governance.md)
+
+### 决策三原则
+
+| 场景 | 通道 |
+| --- | --- |
+| 改数据（写入、更新、删除） | HTTP |
+| 推变化（实时通知页面状态） | Socket |
+| 重任务（文件处理、AI、通知汇总） | Worker |
+
+若一个需求同时涉及三者，必须先填写通信决策表再实现。
+
+### 后端规范
+
+1. API 层负责输入校验、权限校验、调用业务层。
+2. 业务层写入成功后，生成事件并发布。
+3. Socket 层只分发事件，不写业务数据。
+4. Worker 层只消费异步事件，不回写跨模块私有表。
+5. 学生、老师、助教权限必须在业务层再次校验，不能只依赖前端隐藏入口。
+
+### 前端规范
+
+1. 写请求只调 HTTP。
+2. Socket 只用于增量更新页面状态。
+3. 本地状态合并顺序：HTTP 确认结果优先，Socket 增量补齐。
+4. 事件去重基于 `eventId`。
+5. 老师看板必须支持刷新兜底，不能完全依赖 Socket。
+
+### 事件命名
+
+- 格式：`entity.action`，例如 `submission.created`、`review.created`、`group.message.created`
+- 包结构必含：`id`、`name`、`occurredAt`、`producer`、`traceId`、`payload`
+
+### 降级策略
+
+- Socket 不可用 → 前端回退到手动刷新或短轮询
+- Worker 堵塞 → 任务状态保持 pending，前端显示"处理中"
+- 事件重复 → 按 `eventId` 幂等消费
+- 看板短暂不一致 → 以 HTTP 查询结果为准
+
+### PR 必过审查清单
+
+- [ ] 写操作未使用 Socket
+- [ ] Socket 网关未直接写库
+- [ ] 事件命名符合 `entity.action` 规范
+- [ ] 角色与权限校验明确
+- [ ] 失败重试与降级策略明确
+- [ ] 教学语义未退回旧的 team/project-task/feed 命名
+
+## 十三、工程 Skills
+
+> Skills 目录：[skills/](skills/)，使用流程：[skills/USAGE-FLOW.md](skills/USAGE-FLOW.md)
+
+项目内置六个工程 Skill，覆盖从设计到发布的完整链路，供 AI Agent 按需自动加载：
+
+| Skill | 用途 | 触发时机 |
+| --- | --- | --- |
+| [architecture-review](skills/architecture-review/) | 服务边界与职责审查，输出边界结论和风险清单 | 新增服务或跨模块调用时 |
+| [api-contract-first](skills/api-contract-first/) | 接口契约先行定义，兼容策略与错误码规范 | 设计阶段开始前 |
+| [design-md-ui-workflow](skills/design-md-ui-workflow/) | UI 设计参考映射，页面组件与主题层对齐 | 前端页面开发前 |
+| [auth-permission-baseline](skills/auth-permission-baseline/) | 权限模型校验基线，角色与资源授权自检 | 涉及权限逻辑时 |
+| [layered-testing-strategy](skills/layered-testing-strategy/) | 分层测试矩阵，unit/integration/e2e 覆盖规划 | 测试与回归阶段 |
+| [release-readiness-checklist](skills/release-readiness-checklist/) | 发布前检查与发布后观测，回滚预案 | 每次发版前 |
+
+### 核心工程规则
+
+- **修错优先**：发现错误接口或错误实现时，优先修正本身，不通过外围补丁长期绕过。
+- **最小重写**：仅重写错误最小闭环（函数 / 接口 / 模块边界），避免扩大变更面。
+- **风险先报**：若修主路径会带来联动风险，先提交影响报告再执行改造。
+- **兼容有期限**：确需兼容层时必须标注退役条件与截止时间，不允许无限期保留。

@@ -1,3 +1,16 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# 当前模式：阶段一「本地开发」
+#
+# 本文件只负责基础设施（MySQL / Redis / MinIO）。
+# API 和 Web 在本地 Node.js 进程中运行，通过 localhost 端口访问这里的容器。
+#
+# 启动命令：
+#   docker compose -f infra/docker/docker-compose.dev.yml --env-file infra/docker/.env up -d
+#
+# 阶段二（API 容器化）时在此文件追加 api / worker service，参考：
+#   docs/architecture/engineering-flow-mvp.md §7
+# ─────────────────────────────────────────────────────────────────────────────
+
 services:
   mysql:
     image: mysql:8.0
