@@ -12,7 +12,9 @@
 ## 推荐先读
 
 - [教学项目协作与过程评价平台产品大纲](product/teaching-collaboration-outline.md)
+- [课程场景与需求整理](product/course-scenario-requirements-v2.md)
 - [五人团队两个月开发分工与进度计划](product/two-month-team-plan.md)
+- [MVP P0 任务与后续跟进任务](product/mvp-p0-and-follow-up-tasks.md)
 - [当前架构状态与下一步落地建议](architecture/current-architecture-status.md)
 - [MVP 通信架构与 RAG 预留策略](architecture/communication-design-mvp.md)
 - [通信治理硬规则与 PR 审查清单](architecture/communication-governance.md)
