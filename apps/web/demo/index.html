@@ -118,33 +118,6 @@
         line-height: 1.75;
       }
 
-      .brand-metrics {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 14px;
-        max-width: 720px;
-      }
-
-      .metric-tile {
-        min-height: 92px;
-        padding: 16px;
-        border: 1px solid rgba(255, 255, 255, 0.22);
-        border-radius: 8px;
-        background: rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(10px);
-      }
-
-      .metric-tile strong {
-        display: block;
-        margin-bottom: 6px;
-        font-size: 26px;
-      }
-
-      .metric-tile span {
-        color: rgba(255, 255, 255, 0.72);
-        font-size: 13px;
-      }
-
       .login-panel {
         display: flex;
         align-items: center;
@@ -185,10 +158,59 @@
         line-height: 1.6;
       }
 
+      .auth-tabs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        margin: 22px 0;
+        padding: 4px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel-soft);
+      }
+
+      .auth-tab {
+        min-height: 38px;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--muted);
+        font-weight: 800;
+      }
+
+      .auth-tab.active {
+        background: var(--blue);
+        color: white;
+      }
+
+      .demo-account-list {
+        display: grid;
+        gap: 8px;
+        margin: 16px 0 0;
+      }
+
+      .demo-account {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        min-height: 40px;
+        padding: 8px 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: white;
+        color: var(--muted);
+        font-size: 13px;
+        text-align: left;
+      }
+
+      .demo-account strong {
+        color: var(--ink);
+      }
+
       .role-grid {
         display: grid;
         gap: 12px;
-        margin: 24px 0;
+        margin: 14px 0;
       }
 
       .role-option {
@@ -274,6 +296,28 @@
       .input:focus {
         border-color: var(--blue);
         box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+      }
+
+      .auth-error {
+        margin: 0 0 12px;
+        padding: 10px 12px;
+        border: 1px solid var(--red-soft);
+        border-radius: 8px;
+        background: var(--red-soft);
+        color: var(--red);
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .auth-success {
+        margin: 0 0 12px;
+        padding: 10px 12px;
+        border: 1px solid var(--green-soft);
+        border-radius: 8px;
+        background: var(--green-soft);
+        color: var(--green);
+        font-size: 13px;
+        font-weight: 700;
       }
 
       .primary-btn,
@@ -678,10 +722,6 @@
           padding: 18px;
         }
 
-        .brand-metrics {
-          grid-template-columns: 1fr;
-        }
-
         .topbar {
           align-items: stretch;
           flex-direction: column;
@@ -754,7 +794,25 @@
       ];
 
       const app = document.getElementById("app");
-      let selectedRole = localStorage.getItem("linksee_demo_role") || "teacher";
+      const defaultAccounts = [
+        { account: "teacher01", password: "123456", role: "teacher", name: "陈老师" },
+        { account: "student01", password: "123456", role: "student", name: "林同学" },
+        { account: "assistant01", password: "123456", role: "assistant", name: "周助教" },
+      ];
+      let authMode = "login";
+      let authMessage = "";
+      let authMessageType = "";
+
+      function getAccounts() {
+        const stored = JSON.parse(localStorage.getItem("linksee_demo_accounts") || "[]");
+        const merged = [...defaultAccounts];
+        stored.forEach((account) => {
+          if (!merged.some((item) => item.account === account.account)) {
+            merged.push(account);
+          }
+        });
+        return merged;
+      }
 
       function renderLogin() {
         app.innerHTML = `
@@ -765,62 +823,179 @@
                 <h1>让小组项目<br />过程可见</h1>
                 <p>学生在同一个空间拆任务、讨论、传文件、提交阶段成果；老师按课程视角追踪进度、发现风险、反馈评分。</p>
               </div>
-              <div class="brand-metrics">
-                <div class="metric-tile"><strong>5</strong><span>阶段里程碑</span></div>
-                <div class="metric-tile"><strong>12</strong><span>待评价提交</span></div>
-                <div class="metric-tile"><strong>3</strong><span>风险小组</span></div>
-              </div>
             </section>
 
             <section class="login-panel">
               <div class="login-card">
-                <p class="section-eyebrow">身份选择</p>
-                <h2>进入 Linksee 工作台</h2>
-                <p class="subtle">选择身份后进入对应主界面。当前为前端 Demo，使用模拟课程数据。</p>
-                <div class="role-grid">
-                  ${Object.entries(roleConfig)
-                    .map(
-                      ([role, config]) => `
-                        <button class="role-option ${selectedRole === role ? "active" : ""}" data-role="${role}" type="button">
-                          <span class="role-icon">${config.icon}</span>
-                          <span class="role-copy">
-                            <strong>${config.label}</strong>
-                            <span>${roleHint(role)}</span>
-                          </span>
-                          <span class="chevron">›</span>
-                        </button>
-                      `,
-                    )
-                    .join("")}
+                <p class="section-eyebrow">Linksee 账户</p>
+                <h2>${authMode === "login" ? "账号登录" : "注册新账号"}</h2>
+                <p class="subtle">${authMode === "login" ? "输入账号和密码进入工作台。用户身份由注册信息决定，登录时无需手动切换角色。" : "注册时选择身份，后续登录将自动进入对应角色主界面。"}</p>
+                <div class="auth-tabs">
+                  <button class="auth-tab ${authMode === "login" ? "active" : ""}" data-mode="login" type="button">登录</button>
+                  <button class="auth-tab ${authMode === "register" ? "active" : ""}" data-mode="register" type="button">注册</button>
                 </div>
-                <div class="form-row">
-                  <label for="demoName">显示名称</label>
-                  <input id="demoName" class="input" value="${roleConfig[selectedRole].name}" />
-                </div>
-                <button id="loginBtn" class="primary-btn" type="button">进入工作台</button>
+                ${authMessage ? `<p class="${authMessageType === "success" ? "auth-success" : "auth-error"}">${authMessage}</p>` : ""}
+                ${authMode === "login" ? loginForm() : registerForm()}
+                ${authMode === "login" ? demoAccountList() : ""}
               </div>
             </section>
           </main>
         `;
 
-        document.querySelectorAll(".role-option").forEach((button) => {
+        document.querySelectorAll(".auth-tab").forEach((button) => {
           button.addEventListener("click", () => {
-            selectedRole = button.dataset.role;
-            localStorage.setItem("linksee_demo_role", selectedRole);
-            const input = document.getElementById("demoName");
-            if (input) {
-              input.value = roleConfig[selectedRole].name;
-            }
+            authMode = button.dataset.mode;
+            authMessage = "";
             renderLogin();
           });
         });
 
-        document.getElementById("loginBtn").addEventListener("click", () => {
-          const input = document.getElementById("demoName");
-          localStorage.setItem("linksee_demo_role", selectedRole);
-          localStorage.setItem("linksee_demo_name", input.value || roleConfig[selectedRole].name);
-          renderDashboard(selectedRole);
-        });
+        if (authMode === "login") {
+          document.getElementById("loginBtn").addEventListener("click", handleLogin);
+          document.querySelectorAll(".demo-account").forEach((button) => {
+            button.addEventListener("click", () => {
+              const account = button.dataset.account;
+              document.getElementById("loginAccount").value = account;
+              document.getElementById("loginPassword").value = "123456";
+            });
+          });
+        } else {
+          document.querySelectorAll(".role-option").forEach((button) => {
+            button.addEventListener("click", () => {
+              document.getElementById("registerRole").value = button.dataset.role;
+              renderLogin();
+            });
+          });
+          document.getElementById("registerBtn").addEventListener("click", handleRegister);
+        }
+      }
+
+      function loginForm() {
+        return `
+          <div class="form-row">
+            <label for="loginAccount">账号</label>
+            <input id="loginAccount" class="input" autocomplete="username" placeholder="例如 teacher01" />
+          </div>
+          <div class="form-row">
+            <label for="loginPassword">密码</label>
+            <input id="loginPassword" class="input" type="password" autocomplete="current-password" placeholder="请输入密码" />
+          </div>
+          <button id="loginBtn" class="primary-btn" type="button">登录</button>
+        `;
+      }
+
+      function registerForm() {
+        const currentRole = document.getElementById("registerRole")?.value || "student";
+        return `
+          <input id="registerRole" type="hidden" value="${currentRole}" />
+          <div class="role-grid">
+            ${Object.entries(roleConfig)
+              .map(
+                ([role, config]) => `
+                  <button class="role-option ${currentRole === role ? "active" : ""}" data-role="${role}" type="button">
+                    <span class="role-icon">${config.icon}</span>
+                    <span class="role-copy">
+                      <strong>${config.label}</strong>
+                      <span>${roleHint(role)}</span>
+                    </span>
+                    <span class="chevron">›</span>
+                  </button>
+                `,
+              )
+              .join("")}
+          </div>
+          <div class="form-row">
+            <label for="registerName">姓名</label>
+            <input id="registerName" class="input" placeholder="请输入姓名" />
+          </div>
+          <div class="form-row">
+            <label for="registerAccount">账号</label>
+            <input id="registerAccount" class="input" autocomplete="username" placeholder="设置登录账号" />
+          </div>
+          <div class="form-row">
+            <label for="registerPassword">密码</label>
+            <input id="registerPassword" class="input" type="password" autocomplete="new-password" placeholder="至少 6 位" />
+          </div>
+          <button id="registerBtn" class="primary-btn" type="button">注册并进入工作台</button>
+        `;
+      }
+
+      function demoAccountList() {
+        return `
+          <div class="demo-account-list" aria-label="演示账号">
+            ${defaultAccounts
+              .map(
+                (account) => `
+                  <button class="demo-account" data-account="${account.account}" type="button">
+                    <span><strong>${account.account}</strong> / 123456</span>
+                    <span>${roleConfig[account.role].label}</span>
+                  </button>
+                `,
+              )
+              .join("")}
+          </div>
+        `;
+      }
+
+      function handleLogin() {
+        const account = document.getElementById("loginAccount").value.trim();
+        const password = document.getElementById("loginPassword").value;
+        const user = getAccounts().find(
+          (item) => item.account === account && item.password === password,
+        );
+
+        if (!user) {
+          authMessage = "账号或密码不正确。可点击下方演示账号自动填入。";
+          authMessageType = "error";
+          renderLogin();
+          return;
+        }
+
+        setSession(user);
+        renderDashboard(user.role);
+      }
+
+      function handleRegister() {
+        const role = document.getElementById("registerRole").value;
+        const name = document.getElementById("registerName").value.trim();
+        const account = document.getElementById("registerAccount").value.trim();
+        const password = document.getElementById("registerPassword").value;
+
+        if (!name || !account || password.length < 6) {
+          authMessage = "请填写姓名、账号，并设置至少 6 位密码。";
+          authMessageType = "error";
+          renderLogin();
+          return;
+        }
+
+        if (getAccounts().some((item) => item.account === account)) {
+          authMessage = "该账号已存在，请换一个账号。";
+          authMessageType = "error";
+          renderLogin();
+          return;
+        }
+
+        const user = { account, password, role, name };
+        const stored = JSON.parse(localStorage.getItem("linksee_demo_accounts") || "[]");
+        stored.push(user);
+        localStorage.setItem("linksee_demo_accounts", JSON.stringify(stored));
+        setSession(user);
+        renderDashboard(user.role);
+      }
+
+      function setSession(user) {
+        localStorage.setItem("linksee_demo_role", user.role);
+        localStorage.setItem("linksee_demo_name", user.name);
+        localStorage.setItem("linksee_demo_account", user.account);
+      }
+
+      function logout() {
+        localStorage.removeItem("linksee_demo_role");
+        localStorage.removeItem("linksee_demo_name");
+        localStorage.removeItem("linksee_demo_account");
+        authMode = "login";
+        authMessage = "";
+        renderLogin();
       }
 
       function roleHint(role) {
@@ -860,7 +1035,7 @@
                   <p class="subtle">${dashboardSubtitle(role)}</p>
                 </div>
                 <div class="top-actions">
-                  <button class="ghost-btn" type="button" id="switchRoleBtn">切换身份</button>
+                  <button class="ghost-btn" type="button" id="logoutBtn">退出登录</button>
                   <button class="icon-btn" type="button" title="通知">N</button>
                 </div>
               </header>
@@ -869,7 +1044,7 @@
           </main>
         `;
 
-        document.getElementById("switchRoleBtn").addEventListener("click", renderLogin);
+        document.getElementById("logoutBtn").addEventListener("click", logout);
         bindDemoInteractions(role);
       }
 
