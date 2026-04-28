@@ -4,12 +4,13 @@
 
 ## 子目录
 
-- auth：认证、授权、RBAC
-- team：团队与成员管理
-- project-task：项目与任务生命周期
-- chat：实时通信与频道管理
-- docs：文档中心与文件权限
-- feed：动态流与通知
+- auth：认证、授权、RBAC（规划中）
+- course：课程空间与班级管理（规划中）
+- group：小组与成员管理（规划中）
+- assignment：课程项目与阶段任务生命周期（规划中）
+- collaboration：小组任务、讨论、文件与动态流（规划中）
+- submission：阶段提交与材料管理（规划中）
+- grading：Rubric、互评、贡献与评分（规划中）
 - rag：检索增强问答（后续增强）
 
 ## 建议分层
