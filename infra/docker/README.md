@@ -41,8 +41,6 @@
 
 ## 5. 安全注意事项
 
-### 5.1 .env 文件不得提交到 Git
-
 - `.env` 含真实密码，必须在 `.gitignore` 中排除。
 - `.env.example` 是唯一可提交的模板，所有值都用占位符。
 - 团队成员启动前执行：`Copy-Item .env.example .env` 然后自行填写真实值。
