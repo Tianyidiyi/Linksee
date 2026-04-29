@@ -1,4 +1,4 @@
-import type { EventEnvelope } from "../shared/contracts";
+import type { EventEnvelope } from "../shared/contracts.js";
 
 export type SocketRoom = `team:${string}` | `project:${string}` | `channel:${string}`;
 

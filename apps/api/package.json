@@ -7,11 +7,14 @@
     "build": "node ./scripts/build.mjs",
     "pack": "npm pack",
     "start:demo": "node ./src/demo/server.mjs",
-    "test:socket-demo": "node ./src/demo/socket-smoke.mjs"
+    "test:socket-demo": "node ./src/demo/socket-smoke.mjs",
+    "start:auth": "tsx ./src/auth/server.ts",
+    "seed:auth-user": "tsx ./src/auth/seed-test-user.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
     "argon2": "^0.44.0",
+    "dotenv": "^16.6.1",
     "express": "^4.19.2",
     "ioredis": "^5.10.1",
     "jsonwebtoken": "^9.0.3",
@@ -25,6 +28,10 @@
     "dist"
   ],
   "devDependencies": {
-    "@types/jsonwebtoken": "^9.0.10"
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^25.6.0",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3"
   }
 }

@@ -1,5 +1,5 @@
 import type { Server, Socket } from "socket.io";
-import type { EventEnvelope } from "../shared/contracts";
+import type { EventEnvelope } from "../shared/contracts.js";
 import {
   CLIENT_SOCKET_EVENTS,
   SERVER_SOCKET_EVENTS,
@@ -8,7 +8,7 @@ import {
   type HeartbeatPingEvent,
   type HeartbeatPongEvent,
   type PresenceEvent,
-} from "./socket-events";
+} from "./socket-events.js";
 
 export interface SocketGateway {
   push(room: string, event: EventEnvelope): Promise<void>;

@@ -1,4 +1,4 @@
-import type { EventName } from "../shared/contracts";
+import type { EventName } from "../shared/contracts.js";
 
 export const eventCatalog: Record<EventName, { channel: "socket" | "worker"; description: string }> = {
   "task.created": {
