@@ -8,7 +8,7 @@
 ## 前置条件
 
 - 已有业务流程图或核心用例
-- 已识别主实体：Team、Project、Task
+- 已识别主实体：Course、Assignment、Stage、Group、MiniTask、Submission、Review、Grade
 
 ## 执行步骤
 
