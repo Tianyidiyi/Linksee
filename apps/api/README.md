@@ -12,7 +12,7 @@
 
 | 库 | 版本 | 用途 | 容器化注意 |
 |----|------|------|-----------|
-| `prisma` + `@prisma/client` | ^7.8.0 | ORM，管理 MySQL 表结构与查询 | 容器内需重新 `npm ci` |
+| `prisma` + `@prisma/client` | ^6.19.3 | ORM，管理 MySQL 表结构与查询 | 容器内需重新 `npm ci` |
 | `argon2` | ^0.44.0 | 密码散列（Argon2id 算法，OWASP 推荐） | **native 模块**，Alpine 镜像需加 `python3 make g++` |
 | `jsonwebtoken` | ^9.0.3 | 签发和验证 JWT access token | 无特殊要求 |
 | `ioredis` | ^5.10.1 | Redis 客户端，存 refresh token / 在线状态 / 限流计数 | 无特殊要求 |

@@ -1,4 +1,4 @@
-import type { EventEnvelope } from "../shared/contracts";
+import type { EventEnvelope } from "../shared/contracts.js";
 
 export interface EventPublisher {
   publishToSocket(event: EventEnvelope, room: string): Promise<void>;
