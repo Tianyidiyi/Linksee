@@ -12,16 +12,17 @@
 
 ## 执行步骤
 
-1. 在 [docs/api](../../../docs/api/) 定义接口路径、请求参数、响应体、错误码。
+1. 在 [docs/api](../../../docs/api/) 定义接口路径、请求参数、响应体、错误码，并同步维护 [OpenAPI schema](../../../docs/api/openapi/linksee-v1.yaml)。
 2. 标注字段约束：必填、默认值、枚举范围、空值语义。
 3. 明确兼容策略：新增字段默认向后兼容，删除字段必须走版本化。
 4. 后端按契约实现，并补充最小集成测试。
-5. 前端基于契约并行开发，联调时只处理实现偏差。
+5. 前端基于契约并行开发，联调时只处理实现偏差，并记录到 [前后端联调记录模板](../../../docs/api/frontend-backend-integration-record-template.md)。
 
 ## 检查清单
 
 - [ ] 每个接口有成功与失败示例
+- [ ] OpenAPI schema 与 Markdown 契约一致
 - [ ] 错误码有统一规范
 - [ ] 非兼容变更有版本说明
 - [ ] 契约与实现字段一致
-- [ ] 联调问题有记录并回写文档
+- [ ] 联调问题有记录并回写到 [前后端联调记录模板](../../../docs/api/frontend-backend-integration-record-template.md)

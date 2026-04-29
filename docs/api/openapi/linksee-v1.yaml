@@ -1,0 +1,729 @@
+openapi: 3.0.3
+info:
+  title: Linksee Teaching Collaboration API
+  version: 1.0.0
+  description: >
+    Linksee 教学项目协作与过程评价平台的 P0 API schema。
+    本文件与 docs/api/contracts/communication-contract-v1.md 保持一致，
+    优先覆盖课程项目、阶段要求、小组讨论、阶段提交、教师反馈和课程看板。
+servers:
+  - url: /api/v1
+    description: Linksee API v1
+
+tags:
+  - name: Assignments
+    description: 课程项目
+  - name: Stages
+    description: 阶段要求
+  - name: Groups
+    description: 小组协作
+  - name: Submissions
+    description: 阶段成果提交
+  - name: Reviews
+    description: 教师或助教反馈
+  - name: Dashboard
+    description: 教师课程看板
+
+paths:
+  /courses/{courseId}/assignments:
+    post:
+      tags:
+        - Assignments
+      summary: 创建 Assignment
+      operationId: createAssignment
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAssignmentRequest"
+            example:
+              title: 软件工程课程项目
+              description: 完成一个教学协作平台原型
+              dueAt: "2026-06-30T23:59:59+08:00"
+      responses:
+        "200":
+          description: Assignment 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Assignment"
+              example:
+                id: assignment_001
+                courseId: course_software_engineering
+                title: 软件工程课程项目
+                description: 完成一个教学协作平台原型
+                dueAt: "2026-06-30T23:59:59+08:00"
+                createdBy: teacher_001
+                createdAt: "2026-04-30T10:00:00+08:00"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+
+  /assignments/{assignmentId}/stages:
+    post:
+      tags:
+        - Stages
+      summary: 创建 Stage
+      operationId: createStage
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AssignmentId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateStageRequest"
+            example:
+              name: 需求分析提交
+              description: 提交需求说明书、用例图和原型链接
+              dueAt: "2026-05-15T23:59:59+08:00"
+              weight: 20
+      responses:
+        "200":
+          description: Stage 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Stage"
+              example:
+                id: stage_001
+                assignmentId: assignment_001
+                name: 需求分析提交
+                description: 提交需求说明书、用例图和原型链接
+                dueAt: "2026-05-15T23:59:59+08:00"
+                weight: 20
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+
+  /groups/{groupId}/messages:
+    post:
+      tags:
+        - Groups
+      summary: 创建小组讨论消息
+      operationId: createGroupMessage
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGroupMessageRequest"
+            example:
+              content: 我已经上传了需求分析初稿，请大家今晚前补充用例。
+      responses:
+        "200":
+          description: 小组讨论消息创建成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupMessage"
+              example:
+                id: message_001
+                groupId: group_001
+                content: 我已经上传了需求分析初稿，请大家今晚前补充用例。
+                creatorId: student_001
+                createdAt: "2026-04-30T11:20:00+08:00"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+
+  /stages/{stageId}/groups/{groupId}/submissions:
+    post:
+      tags:
+        - Submissions
+      summary: 创建阶段成果提交
+      operationId: createSubmission
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/StageId"
+        - $ref: "#/components/parameters/GroupId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSubmissionRequest"
+            example:
+              title: 需求分析阶段提交
+              description: 提交需求说明书、用例图和原型链接
+              fileIds:
+                - file_001
+              links:
+                - https://example.com/prototype
+              repositoryUrl: https://github.com/example/linksee-demo
+              contributionNote: 张三负责需求文档，李四负责原型，王五负责接口草案。
+      responses:
+        "200":
+          description: 阶段成果提交创建成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Submission"
+              example:
+                id: submission_001
+                stageId: stage_001
+                groupId: group_001
+                status: submitted
+                submittedBy: student_001
+                submittedAt: "2026-05-15T21:30:00+08:00"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+
+  /submissions/{submissionId}/reviews:
+    post:
+      tags:
+        - Reviews
+      summary: 创建教师或助教反馈
+      operationId: createReview
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/SubmissionId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReviewRequest"
+            example:
+              status: needs_changes
+              comment: 需求说明较完整，但需要补充异常流程和验收标准。
+              rubricScores:
+                - item: 需求完整性
+                  score: 42
+                  maxScore: 50
+                - item: 表达清晰度
+                  score: 40
+                  maxScore: 50
+      responses:
+        "200":
+          description: Review 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Review"
+              example:
+                id: review_001
+                submissionId: submission_001
+                status: needs_changes
+                score: 82
+                reviewerId: teacher_001
+                createdAt: "2026-05-16T09:30:00+08:00"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+
+  /courses/{courseId}/dashboard:
+    get:
+      tags:
+        - Dashboard
+      summary: 获取教师课程看板
+      operationId: getCourseDashboard
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+      responses:
+        "200":
+          description: 课程看板获取成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourseDashboard"
+              example:
+                courseId: course_software_engineering
+                groups:
+                  - groupId: group_001
+                    name: 第 1 小组
+                    progress: 60
+                    pendingReviewCount: 1
+                    overdueCount: 0
+                    inactive: false
+                  - groupId: group_002
+                    name: 第 2 小组
+                    progress: 30
+                    pendingReviewCount: 0
+                    overdueCount: 1
+                    inactive: true
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    CourseId:
+      name: courseId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: 课程 ID。
+    AssignmentId:
+      name: assignmentId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Assignment ID。
+    StageId:
+      name: stageId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Stage ID。
+    GroupId:
+      name: groupId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Group ID。
+    SubmissionId:
+      name: submissionId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Submission ID。
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 128
+      description: 写操作幂等键，建议使用 UUID。
+
+  responses:
+    Unauthenticated:
+      description: 未认证或 token 无效
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: UNAUTHENTICATED
+              message: Authentication token is missing or invalid.
+              traceId: trace_20260430_001
+    Forbidden:
+      description: 当前用户无权访问该资源或执行该操作
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: FORBIDDEN
+              message: Current user is not allowed to perform this operation.
+              traceId: trace_20260430_002
+    NotFound:
+      description: 资源不存在
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: NOT_FOUND
+              message: Requested resource was not found.
+              traceId: trace_20260430_003
+    Conflict:
+      description: 当前资源状态与请求操作冲突
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: CONFLICT
+              message: Resource state conflicts with this operation.
+              traceId: trace_20260430_004
+    ValidationFailed:
+      description: 请求字段校验失败
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: VALIDATION_FAILED
+              message: Request payload validation failed.
+              traceId: trace_20260430_005
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+            - traceId
+          properties:
+            code:
+              type: string
+              enum:
+                - UNAUTHENTICATED
+                - FORBIDDEN
+                - NOT_FOUND
+                - CONFLICT
+                - VALIDATION_FAILED
+                - INTERNAL_ERROR
+            message:
+              type: string
+            traceId:
+              type: string
+
+    CreateAssignmentRequest:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 80
+        description:
+          type: string
+          maxLength: 2000
+        dueAt:
+          type: string
+          format: date-time
+
+    Assignment:
+      type: object
+      required:
+        - id
+        - courseId
+        - title
+        - createdBy
+        - createdAt
+      properties:
+        id:
+          type: string
+        courseId:
+          type: string
+        title:
+          type: string
+          minLength: 1
+          maxLength: 80
+        description:
+          type: string
+          maxLength: 2000
+        dueAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateStageRequest:
+      type: object
+      required:
+        - name
+        - dueAt
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 60
+        description:
+          type: string
+          maxLength: 2000
+        dueAt:
+          type: string
+          format: date-time
+        weight:
+          type: number
+          minimum: 0
+          maximum: 100
+
+    Stage:
+      type: object
+      required:
+        - id
+        - assignmentId
+        - name
+        - dueAt
+      properties:
+        id:
+          type: string
+        assignmentId:
+          type: string
+        name:
+          type: string
+          minLength: 1
+          maxLength: 60
+        description:
+          type: string
+          maxLength: 2000
+        dueAt:
+          type: string
+          format: date-time
+        weight:
+          type: number
+          minimum: 0
+          maximum: 100
+
+    CreateGroupMessageRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          minLength: 1
+          maxLength: 2000
+
+    GroupMessage:
+      type: object
+      required:
+        - id
+        - groupId
+        - content
+        - creatorId
+        - createdAt
+      properties:
+        id:
+          type: string
+        groupId:
+          type: string
+        content:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        creatorId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateSubmissionRequest:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 3000
+        fileIds:
+          type: array
+          maxItems: 20
+          items:
+            type: string
+        links:
+          type: array
+          maxItems: 10
+          items:
+            type: string
+            format: uri
+        repositoryUrl:
+          type: string
+          format: uri
+        contributionNote:
+          type: string
+          maxLength: 3000
+
+    SubmissionStatus:
+      type: string
+      enum:
+        - not_submitted
+        - submitted
+        - needs_changes
+        - resubmitted
+        - approved
+
+    Submission:
+      type: object
+      required:
+        - id
+        - stageId
+        - groupId
+        - status
+        - submittedBy
+        - submittedAt
+      properties:
+        id:
+          type: string
+        stageId:
+          type: string
+        groupId:
+          type: string
+        status:
+          $ref: "#/components/schemas/SubmissionStatus"
+        submittedBy:
+          type: string
+        submittedAt:
+          type: string
+          format: date-time
+
+    CreateReviewRequest:
+      type: object
+      required:
+        - status
+        - comment
+      properties:
+        status:
+          type: string
+          enum:
+            - needs_changes
+            - approved
+        comment:
+          type: string
+          minLength: 1
+          maxLength: 3000
+        rubricScores:
+          type: array
+          maxItems: 10
+          items:
+            $ref: "#/components/schemas/RubricScore"
+
+    RubricScore:
+      type: object
+      required:
+        - item
+        - score
+        - maxScore
+      properties:
+        item:
+          type: string
+          minLength: 1
+          maxLength: 80
+        score:
+          type: number
+          minimum: 0
+        maxScore:
+          type: number
+          exclusiveMinimum: true
+          minimum: 0
+          maximum: 100
+
+    Review:
+      type: object
+      required:
+        - id
+        - submissionId
+        - status
+        - reviewerId
+        - createdAt
+      properties:
+        id:
+          type: string
+        submissionId:
+          type: string
+        status:
+          type: string
+          enum:
+            - needs_changes
+            - approved
+        score:
+          type: number
+          minimum: 0
+          maximum: 100
+        reviewerId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    CourseDashboard:
+      type: object
+      required:
+        - courseId
+        - groups
+      properties:
+        courseId:
+          type: string
+        groups:
+          type: array
+          items:
+            $ref: "#/components/schemas/DashboardGroup"
+
+    DashboardGroup:
+      type: object
+      required:
+        - groupId
+        - name
+        - progress
+        - pendingReviewCount
+        - overdueCount
+        - inactive
+      properties:
+        groupId:
+          type: string
+        name:
+          type: string
+          minLength: 1
+          maxLength: 60
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+        pendingReviewCount:
+          type: integer
+          minimum: 0
+        overdueCount:
+          type: integer
+          minimum: 0
+        inactive:
+          type: boolean
