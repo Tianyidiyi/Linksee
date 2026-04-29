@@ -16,7 +16,7 @@
 ## 3. 最小开发流程
 
 1. 需求评审：先写通信决策表。
-2. 契约先行：更新 [docs/api/communication-contract-v1.md](../api/communication-contract-v1.md)。
+2. 契约先行：更新 [docs/api/contracts/communication-contract-v1.md](../api/contracts/communication-contract-v1.md)。
 3. 后端实现：HTTP -> 业务 -> 事件发布。
 4. 前端实现：HTTP 调用 + Socket 订阅。
 5. 测试：unit + integration + 最小 e2e。
