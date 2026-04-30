@@ -2,21 +2,41 @@ export type HttpRoute = {
   method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   path: string;
   authRequired: boolean;
-  module: "auth" | "team" | "project-task" | "chat" | "docs" | "feed" | "rag";
+  module:
+    | "auth"
+    | "course"
+    | "assignment"
+    | "group"
+    | "collaboration"
+    | "submission"
+    | "grading"
+    | "rag";
 };
 
-// MVP 路由清单占位，后续可按模块扩展。
+// MVP 路由清单占位，按教学协作主线扩展。
 export const mvpRoutes: HttpRoute[] = [
   {
     method: "POST",
-    path: "/api/v1/tasks/:taskId/comments",
+    path: "/api/v1/courses/:courseId/assignments",
     authRequired: true,
-    module: "project-task",
+    module: "assignment",
   },
   {
-    method: "GET",
-    path: "/api/v1/channels/:channelId/messages",
+    method: "POST",
+    path: "/api/v1/groups/:groupId/messages",
     authRequired: true,
-    module: "chat",
+    module: "collaboration",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/stages/:stageId/submissions",
+    authRequired: true,
+    module: "submission",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/submissions/:submissionId/reviews",
+    authRequired: true,
+    module: "grading",
   },
 ];

@@ -16,7 +16,7 @@ export interface SocketGateway {
 }
 
 export interface RealtimeGatewayOptions {
-  authenticate(token: string): Promise<{ userId: string; teamIds: string[] }>;
+  authenticate(token: string): Promise<{ userId: string; courseIds: string[]; groupIds?: string[] }>;
   heartbeatIntervalMs?: number;
   heartbeatTimeoutMs?: number;
   logger?: Pick<Console, "info" | "warn" | "error">;
@@ -38,7 +38,7 @@ export function setupRealtimeGateway(
       (typeof socket.handshake.auth?.token === "string" && socket.handshake.auth.token) ||
       (typeof socket.handshake.query?.token === "string" ? socket.handshake.query.token : "");
 
-    let authContext: { userId: string; teamIds: string[] } | null = null;
+    let authContext: { userId: string; courseIds: string[]; groupIds?: string[] } | null = null;
     try {
       authContext = await options.authenticate(token);
     } catch (error) {
@@ -54,8 +54,11 @@ export function setupRealtimeGateway(
       return;
     }
 
-    for (const teamId of authContext.teamIds) {
-      socket.join(`team:${teamId}`);
+    for (const courseId of authContext.courseIds) {
+      socket.join(`course:${courseId}`);
+    }
+    for (const groupId of authContext.groupIds ?? []) {
+      socket.join(`group:${groupId}`);
     }
 
     socket.emit(SERVER_SOCKET_EVENTS.heartbeatConfig, heartbeatConfig);
@@ -130,5 +133,5 @@ export function setupRealtimeGateway(
 
 // 约束：网关只负责连接管理与事件分发，不执行业务写库。
 export function validateRealtimeRoom(room: string): boolean {
-  return /^team:[\w-]+$|^project:[\w-]+$|^channel:[\w-]+$/.test(room);
+  return /^(course|assignment|group|stage|submission):[\w-]+$/.test(room);
 }

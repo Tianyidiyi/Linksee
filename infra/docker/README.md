@@ -63,7 +63,7 @@ Dockerfile 中必须执行 `npm install`（或 `npm ci`），不能只 COPY node
 
 登录暴力破解防护使用 Redis 计数器，Key 格式：
 - `rate:login:ip:{ip}`   → 同一 IP 连续失败计数，TTL 15 分钟
-- `rate:login:user:{username}` → 同一账号连续失败计数，TTL 15 分钟
+- `rate:login:user:{userId}` → 同一账号连续失败计数，TTL 15 分钟
 超过 5 次后接口直接返回 429，不再验证密码。
 
 ### 5.5 MySQL init 脚本执行顺序

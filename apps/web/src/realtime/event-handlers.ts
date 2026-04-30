@@ -1,10 +1,13 @@
 export type RealtimeEventName =
-  | "task.created"
-  | "task.updated"
-  | "task.comment.created"
-  | "chat.message.created"
-  | "chat.read.updated"
-  | "feed.notice.created";
+  | "assignment.created"
+  | "stage.created"
+  | "group.message.created"
+  | "group.minitask.updated"
+  | "submission.created"
+  | "submission.status.updated"
+  | "review.created"
+  | "grade.published"
+  | "course.dashboard.updated";
 
 export interface RealtimeEventEnvelope<T = unknown> {
   id: string;

@@ -1,9 +1,9 @@
 // ============================================================
-// Linksee — Prisma Schema（Auth 组，v1）
-// 对应设计文档：docs/api/auth/auth-tables-design.md
+// Linksee — Prisma Schema（Auth 组，v2）
+// 对应设计文档：docs/api/auth/auth-tables-design-v2.md
 //
 // 表：users / user_profiles / student_profiles /
-//     teacher_profiles / ta_bindings
+//     teacher_profiles / assistant_bindings
 //
 // Refresh Token → Redis（不建表）
 // Audit Log     → winston 文件日志（不建表）
@@ -23,10 +23,10 @@ datasource db {
 // ────────────────────────────────────────────────────────────
 
 enum Role {
-  academic // 教务处
-  teacher  // 老师
-  ta       // 助教（老师创建的子账号，权限范围绑定到具体课程）
-  student  // 学生
+  academic  // 教务处
+  teacher   // 老师
+  assistant // 助教（老师创建的子账号，权限范围绑定到具体课程）
+  student   // 学生
 }
 
 // ────────────────────────────────────────────────────────────
@@ -61,8 +61,8 @@ model User {
   studentProfile  StudentProfile?
   teacherProfile  TeacherProfile?
 
-  taBindingsAsTa      TaBinding[] @relation("TaUser")
-  taBindingsAsTeacher TaBinding[] @relation("TeacherUser")
+  assistantBindingsAsAssistant AssistantBinding[] @relation("AssistantUser")
+  assistantBindingsAsTeacher   AssistantBinding[] @relation("TeacherUser")
 
   @@map("users")
 }
@@ -152,16 +152,16 @@ model TeacherProfile {
 }
 
 // ────────────────────────────────────────────────────────────
-// ta_bindings — 助教子账号与课程绑定
+// assistant_bindings — 助教子账号与课程绑定
 //
-// 助教是 users 表中 role=ta 的完整账号记录，
+// 助教是 users 表中 role=assistant 的完整账号记录，
 // 密码存在 users.passwordHash，本表只记绑定关系。
-// 助教权限范围 = 本表中该 ta_user_id 对应的 course_id 集合。
+// 助教权限范围 = 本表中该 assistant_user_id 对应的 course_id 集合。
 // ────────────────────────────────────────────────────────────
 
-model TaBinding {
+model AssistantBinding {
   /// 助教的一卡通号，FK → users.id
-  taUserId      String @db.VarChar(10)
+  assistantUserId String @db.VarChar(10)
 
   /// 创建该助教子账号的老师一卡通号，FK → users.id
   teacherUserId String @db.VarChar(10)
@@ -172,10 +172,10 @@ model TaBinding {
 
   createdAt DateTime @default(now())
 
-  ta      User @relation("TaUser",      fields: [taUserId],      references: [id])
-  teacher User @relation("TeacherUser", fields: [teacherUserId], references: [id])
+  assistant User @relation("AssistantUser", fields: [assistantUserId], references: [id])
+  teacher   User @relation("TeacherUser",   fields: [teacherUserId],   references: [id])
 
-  @@id([taUserId, courseId])
+  @@id([assistantUserId, courseId])
   @@index([teacherUserId])
-  @@map("ta_bindings")
+  @@map("assistant_bindings")
 }

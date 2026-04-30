@@ -1,40 +1,52 @@
 import type { EventName } from "../shared/contracts.js";
 
 export const eventCatalog: Record<EventName, { channel: "socket" | "worker"; description: string }> = {
-  "task.created": {
+  "assignment.created": {
     channel: "socket",
-    description: "任务创建后推送给项目成员",
+    description: "课程项目创建后推送给课程成员",
   },
-  "task.updated": {
+  "stage.created": {
     channel: "socket",
-    description: "任务更新后推送列表刷新",
+    description: "阶段要求创建后推送给相关小组",
   },
-  "task.comment.created": {
+  "group.message.created": {
     channel: "socket",
-    description: "任务评论新增后推送",
+    description: "小组讨论消息新增后推送给小组成员",
   },
-  "chat.message.created": {
+  "group.minitask.updated": {
     channel: "socket",
-    description: "聊天新消息推送",
+    description: "小组 MiniTask 更新后推送给小组成员和课程管理者",
   },
-  "chat.read.updated": {
+  "submission.created": {
     channel: "socket",
-    description: "已读状态更新推送",
+    description: "阶段提交创建后推送给老师和助教",
   },
-  "feed.notice.created": {
+  "submission.status.updated": {
     channel: "socket",
-    description: "动态通知推送",
+    description: "提交状态因反馈、重交或通过而变化后推送给相关角色",
   },
-  "doc.uploaded": {
+  "review.created": {
+    channel: "socket",
+    description: "老师或助教反馈创建后推送给对应小组",
+  },
+  "grade.published": {
+    channel: "socket",
+    description: "老师发布最终成绩后推送给对应小组",
+  },
+  "course.dashboard.updated": {
+    channel: "socket",
+    description: "课程看板聚合数据更新后推送给老师和助教",
+  },
+  "material.uploaded": {
     channel: "worker",
-    description: "文档上传后触发异步处理",
+    description: "课程或小组材料上传后触发异步处理",
   },
-  "doc.process.requested": {
+  "material.process.requested": {
     channel: "worker",
-    description: "文档处理任务入队",
+    description: "材料处理任务入队",
   },
-  "doc.process.completed": {
+  "material.process.completed": {
     channel: "worker",
-    description: "文档处理完成回调",
+    description: "材料处理完成回调",
   },
 };

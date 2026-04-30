@@ -1,4 +1,6 @@
-# Auth 表结构设计草稿
+# Auth 表结构设计 v2
+
+> 本文件由原 `auth-tables-design.md` 同步修订而来。由于本轮修改统一了助教角色命名、表名和 Prisma schema 映射，文件名升级为 v2，避免与早期 auth 表设计混淆。
 
 > 本文件记录表结构设计决策，先于 SQL / Prisma schema 落地。
 > 最终以此为准写入 schema.prisma。
@@ -13,7 +15,7 @@
 | `user_profiles` | 通用展示信息 | 所有角色 |
 | `student_profiles` | 学生学籍扩展信息 | student |
 | `teacher_profiles` | 教师学术扩展信息 | teacher |
-| `ta_bindings` | 助教子账号与课程绑定关系 | ta |
+| `assistant_bindings` | 助教子账号与课程绑定关系 | assistant |
 
 > 教务处（academic）无单独 profile 表，通用信息存 `user_profiles` 即可。
 
@@ -40,7 +42,7 @@
 |------|------|------|
 | `id` | VARCHAR(10) PK | **一卡通号**，纯10位数字，系统唯一登录标识，自然主键，不用 UUID |
 | `password_hash` | VARCHAR(128) | Argon2id 散列，含内嵌 salt |
-| `role` | ENUM | `academic` / `teacher` / `ta` / `student` |
+| `role` | ENUM | `academic` / `teacher` / `assistant` / `student` |
 | `is_active` | BOOLEAN | 账号是否允许登录（软停用，不删记录）|
 | `force_change_password` | BOOLEAN | 批量导入后首次登录强制改密，改完置 false |
 | `created_at` | DATETIME | 账号创建时间 |
@@ -107,22 +109,22 @@
 
 ---
 
-## 五、`ta_bindings`（助教子账号绑定）
+## 五、`assistant_bindings`（助教子账号绑定）
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `ta_user_id` | VARCHAR(10) | **子账号 ID**，FK → `users.id`（助教本身是一个完整的 users 记录）|
+| `assistant_user_id` | VARCHAR(10) | **子账号 ID**，FK → `users.id`（助教本身是一个完整的 users 记录）|
 | `teacher_user_id` | VARCHAR(10) | 创建该助教子账号的老师 ID，FK → `users.id` |
 | `course_id` | CHAR(36) | 绑定的课程 ID，FK → `courses.id` |
 | `created_at` | DATETIME | 绑定时间 |
 
 **关于"子账号密码"**：
-- 助教账号是 `users` 表中一条 `role=ta` 的记录，密码存在 `users.password_hash`
-- `ta_bindings` 不重复存密码，避免两处维护
-- 老师创建助教账号时：在 `users` 插入一条 ta 记录 + 在 `ta_bindings` 插入绑定关系
-- 子账号 ID 即 `ta_user_id`，就是 `users.id`（一卡通号）
+- 助教账号是 `users` 表中一条 `role=assistant` 的记录，密码存在 `users.password_hash`
+- `assistant_bindings` 不重复存密码，避免两处维护
+- 老师创建助教账号时：在 `users` 插入一条 assistant 记录 + 在 `assistant_bindings` 插入绑定关系
+- 子账号 ID 即 `assistant_user_id`，就是 `users.id`（一卡通号）
 
-**主键**：`(ta_user_id, course_id)` 联合主键，同一助教可绑定多门课程
+**主键**：`(assistant_user_id, course_id)` 联合主键，同一助教可绑定多门课程
 
 ---
 
@@ -149,15 +151,4 @@ SET rt:{SHA-256(token原始值)}  "{userId}"  EX 604800
 | `user_profiles.account_no` 保留？ | 是，保留作为快速展示字段 |
 | Refresh Token 存哪里 | Redis（不建 MySQL 表），TTL 7天自动过期 |
 | Audit Log 现阶段如何处理 | winston 文件日志，不建表，后续有界面查询需求再补 |
-| `ta_bindings` 备注/昵称 | 暂不加，保持最简 |
-
----
-
-## 决策记录
-
-| 问题 | 决策 |
-|------|------|
-| `users.id` 格式 | 纯10位数字，VARCHAR(10)，如 `2023010001` |
-| `user_profiles.account_no` 保留？ | 是，保留作为快速展示字段 |
-| `audit_logs.actor_id` 类型 | 暂保持原设计，后续 migration 时统一对齐 |
-| `ta_bindings` 备注/昵称 | 暂不加，保持最简 |
+| `assistant_bindings` 备注/昵称 | 暂不加，保持最简 |
