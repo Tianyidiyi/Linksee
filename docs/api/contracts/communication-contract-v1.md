@@ -460,6 +460,7 @@ not_submitted -> submitted -> needs_changes -> resubmitted -> approved
 - assignment:{assignmentId}
 - group:{groupId}
 - stage:{stageId}
+- submission:{submissionId}
 
 ### 4.3 推送事件
 
@@ -479,8 +480,8 @@ not_submitted -> submitted -> needs_changes -> resubmitted -> approved
 3. submission.created
 4. submission.status.updated
 5. review.created
-6. grade.updated
-7. dashboard.group-risk.updated
+6. grade.published
+7. course.dashboard.updated
 
 ## 5. Worker 事件契约（预留增强）
 

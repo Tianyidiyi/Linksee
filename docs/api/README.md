@@ -8,7 +8,7 @@
 
 ## 当前入口
 
-- [认证与鉴权设计 v1](auth/auth-design-v1.md)
+- [认证与鉴权设计 v2](auth/auth-design-v2.md)
 - [HTTP + Socket + Worker 通信契约 v1](contracts/communication-contract-v1.md)
 - [OpenAPI schema v1](openapi/linksee-v1.yaml)
 - [前后端联调记录模板](frontend-backend-integration-record-template.md)
@@ -17,5 +17,5 @@
 
 ```
 {模块}-{类型}-v{版本}.md
-例：auth-design-v1.md / assignment-contract-v1.md / review-contract-v1.md
+例：auth-design-v2.md / assignment-contract-v1.md / review-contract-v1.md
 ```

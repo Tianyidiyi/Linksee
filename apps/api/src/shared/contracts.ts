@@ -7,15 +7,18 @@ export type HttpErrorCode =
   | "INTERNAL_ERROR";
 
 export type EventName =
-  | "task.created"
-  | "task.updated"
-  | "task.comment.created"
-  | "chat.message.created"
-  | "chat.read.updated"
-  | "feed.notice.created"
-  | "doc.uploaded"
-  | "doc.process.requested"
-  | "doc.process.completed";
+  | "assignment.created"
+  | "stage.created"
+  | "group.message.created"
+  | "group.minitask.updated"
+  | "submission.created"
+  | "submission.status.updated"
+  | "review.created"
+  | "grade.published"
+  | "course.dashboard.updated"
+  | "material.uploaded"
+  | "material.process.requested"
+  | "material.process.completed";
 
 export interface EventEnvelope<T = unknown> {
   id: string;

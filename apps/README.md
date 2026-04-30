@@ -16,5 +16,5 @@
 
 ## 当前骨架进度
 
-- [api](api/)：已建立 [src/http](api/src/http/)、[src/socket](api/src/socket/)、[src/events](api/src/events/)、[src/shared](api/src/shared/) 通信骨架；`src/auth` 为规划目录
-- [web](web/)：已建立 [src/api](web/src/api/)、[src/realtime](web/src/realtime/) 客户端通信骨架；`src/state` 为规划目录
+- [api](api/)：已建立 [src/http](api/src/http/)、[src/socket](api/src/socket/)、[src/events](api/src/events/)、[src/shared](api/src/shared/) 通信骨架；[src/auth](api/src/auth/) 已建立基础登录、token、限流和测试账号种子骨架
+- [web](web/)：已建立 [src/api](web/src/api/)、[src/realtime](web/src/realtime/) 客户端通信骨架；[src/state](web/src/state/) 预留页面状态组织边界

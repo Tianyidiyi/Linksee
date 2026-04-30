@@ -1,6 +1,11 @@
 import type { EventEnvelope } from "../shared/contracts.js";
 
-export type SocketRoom = `team:${string}` | `project:${string}` | `channel:${string}`;
+export type SocketRoom =
+  | `course:${string}`
+  | `assignment:${string}`
+  | `group:${string}`
+  | `stage:${string}`
+  | `submission:${string}`;
 
 export interface SocketPushInput {
   room: SocketRoom;
