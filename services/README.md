@@ -4,14 +4,14 @@
 
 ## 子目录
 
-- auth：认证、授权、RBAC（规划中）
-- course：课程空间与班级管理（规划中）
-- group：小组与成员管理（规划中）
-- assignment：课程项目与阶段任务生命周期（规划中）
-- collaboration：小组任务、讨论、文件与动态流（规划中）
-- submission：阶段提交与材料管理（规划中）
-- grading：Rubric、互评、贡献与评分（规划中）
-- rag：检索增强问答（后续增强）
+- [auth](auth/)：认证、授权、RBAC 占位
+- [course](course/)：课程空间与班级管理占位
+- [group](group/)：小组与成员管理占位
+- [assignment](assignment/)：课程项目与阶段生命周期占位
+- [collaboration](collaboration/)：小组任务、讨论、文件与动态流占位
+- [submission](submission/)：阶段提交与材料管理占位
+- [grading](grading/)：Rubric、互评、贡献与评分占位
+- [rag](rag/)：检索增强问答后续增强占位
 
 ## 建议分层
 

@@ -4,9 +4,9 @@
 
 ## 子目录
 
-- shared-types：前后端共享类型定义（规划中）
-- shared-utils：无状态工具函数（规划中）
-- ui-kit：可复用 UI 组件与样式规范（规划中）
+- [shared-types](shared-types/)：前后端共享类型定义占位
+- [shared-utils](shared-utils/)：无状态工具函数占位
+- [ui-kit](ui-kit/)：可复用 UI 组件与样式规范占位
 
 ## 设计原则
 

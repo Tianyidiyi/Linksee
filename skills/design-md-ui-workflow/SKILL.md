@@ -21,15 +21,15 @@ description: '基于 DESIGN.md 快速落地一致的 UI 风格。用于新页面
 1. 在 [docs/UI设计参考/awesome-design-md/design-md](../../docs/UI设计参考/awesome-design-md/design-md/) 选择 1 到 2 个风格基线。
 2. 提取色板、字体、间距、圆角、阴影与动效节奏。
 3. 映射到 [apps/web](../../apps/web/) 或 `packages/ui-kit` 的主题层。
-4. 优先复用组件，不在业务页面散落样式。
-5. 检查移动端可用性并完成 PR 说明。
+4. 对齐 Linksee 关键页面：登录/注册、老师看板、学生小组空间、提交台、批改台、助教检查台。
+5. 优先复用组件，不在业务页面散落样式。
+6. 检查移动端可用性并完成 PR 说明。
 
 ## Suggested Design References
 
-- [IBM](../../docs/UI设计参考/awesome-design-md/design-md/ibm/README.md)
-- [Notion](../../docs/UI设计参考/awesome-design-md/design-md/notion/README.md)
-- [Vercel](../../docs/UI设计参考/awesome-design-md/design-md/vercel/README.md)
-- [Spotify](../../docs/UI设计参考/awesome-design-md/design-md/spotify/README.md)
+- 首选组合：[Notion](../../docs/UI设计参考/awesome-design-md/design-md/notion/README.md) + [Vercel](../../docs/UI设计参考/awesome-design-md/design-md/vercel/README.md)
+- 备选企业专业型：[IBM](../../docs/UI设计参考/awesome-design-md/design-md/ibm/README.md)
+- 备选活力型：[Spotify](../../docs/UI设计参考/awesome-design-md/design-md/spotify/README.md)
 
 ## References
 

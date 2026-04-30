@@ -10,8 +10,9 @@
 
 2. 方案设计阶段
 - 使用 [api-contract-first](api-contract-first/) 定义接口契约与兼容策略。
+- 同步维护 [OpenAPI schema](../docs/api/openapi/linksee-v1.yaml)，并在联调后填写 [前后端联调记录模板](../docs/api/frontend-backend-integration-record-template.md)。
 - 使用 [design-md-ui-workflow](design-md-ui-workflow/) 统一页面视觉与组件映射。
-- 输出：接口契约文档、UI 变量映射说明。
+- 输出：接口契约文档、OpenAPI schema、联调记录、UI 变量映射说明。
 
 3. 开发实施阶段
 - 按契约编码，优先复用组件。
@@ -39,6 +40,8 @@
   - POST /api/v1/submissions/{submissionId}/reviews
   - GET /api/v1/courses/{courseId}/dashboard
   - 错误码：未登录、无权限、阶段不存在、小组不存在、重复提交
+- 同步更新 [OpenAPI schema](../docs/api/openapi/linksee-v1.yaml)。
+- 联调后填写 [前后端联调记录模板](../docs/api/frontend-backend-integration-record-template.md)，记录成功路径、失败路径、字段偏差和权限验证结论。
 
 3. UI
 - 调用 [design-md-ui-workflow](design-md-ui-workflow/)，选定 [Notion](../docs/UI设计参考/awesome-design-md/design-md/notion/) 与 [Vercel](../docs/UI设计参考/awesome-design-md/design-md/vercel/) 作为参考。
@@ -46,12 +49,14 @@
 
 4. 安全
 - 调用 [auth-permission-baseline](auth-permission-baseline/)，明确学生只能提交自己小组材料，老师和助教只能评价授权课程内的小组。
+- 对齐 [API 权限矩阵](../docs/api/contracts/communication-contract-v1.md#7-权限约定)，覆盖 teacher / assistant / student 的正反路径。
 
 5. 测试
 - 调用 [layered-testing-strategy](layered-testing-strategy/)，最小集合：
   - unit：提交材料字段校验、Rubric 分数边界校验
   - integration：阶段提交、状态流转、教师反馈与课程权限联合校验
   - e2e：学生提交阶段成果，老师在看板中查看并给出反馈
+  - 阻断规则：学生越权提交其他小组成果、学生创建 Review / Grade、助教最终发布 Grade 均必须被拒绝
 
 6. 发布
 - 调用 [release-readiness-checklist](release-readiness-checklist/)，确认迁移脚本、回滚脚本、监控指标后上线。

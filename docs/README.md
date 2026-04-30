@@ -7,7 +7,7 @@
 - [product](product/)：产品定位、用户场景、MVP 范围、商业说明
 - [architecture](architecture/)：架构图、模块边界、演进计划
 - [api](api/)：接口契约、错误码、版本说明
-- sprints：Sprint 计划、评审与复盘记录（待创建）
+- [sprints](sprints/)：Sprint 计划、评审与复盘记录
 
 ## 推荐先读
 
