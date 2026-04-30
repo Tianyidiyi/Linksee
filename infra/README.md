@@ -6,7 +6,7 @@
 
 - [docker](docker/)：本地开发与部署容器配置
 - [ci-cd](ci-cd/)：持续集成与持续发布流水线
-- monitoring：日志、指标、告警配置（规划中）
+- [monitoring](monitoring/)：日志、指标、告警配置占位
 
 ## 目标
 
