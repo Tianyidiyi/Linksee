@@ -24,7 +24,7 @@ app.get("/health", (_req, res) => {
 let server;
 if (useHttps) {
   const attrs = [{ name: "commonName", value: "localhost" }];
-  const pems = selfsigned.generate(attrs, { days: 7 });
+  const pems = selfsigned.generate(attrs, { days: 7, keySize: 2048 });
   server = https.createServer({ key: pems.private, cert: pems.cert }, app);
 } else {
   server = http.createServer(app);
