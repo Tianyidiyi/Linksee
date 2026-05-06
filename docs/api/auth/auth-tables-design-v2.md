@@ -7,7 +7,7 @@
 
 ---
 
-## 表清单（Auth 组共 5 张，MySQL）
+## 表清单（Auth 组共 6 张，MySQL）
 
 | 表名 | 作用 | 对应角色 |
 |------|------|---------|
@@ -15,7 +15,8 @@
 | `user_profiles` | 通用展示信息 | 所有角色 |
 | `student_profiles` | 学生学籍扩展信息 | student |
 | `teacher_profiles` | 教师学术扩展信息 | teacher |
-| `assistant_bindings` | 助教子账号与课程绑定关系 | assistant |
+| `teacher_assistants` | 助教账号归属关系（属于哪位老师） | teacher / assistant |
+| `assistant_bindings` | 助教与具体课程的分配关系 | assistant |
 
 > 教务处（academic）无单独 profile 表，通用信息存 `user_profiles` 即可。
 
@@ -109,26 +110,49 @@
 
 ---
 
-## 五、`assistant_bindings`（助教子账号绑定）
+## 五、`teacher_assistants`（助教归属关系）
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `assistant_user_id` | VARCHAR(10) | **子账号 ID**，FK → `users.id`（助教本身是一个完整的 users 记录）|
-| `teacher_user_id` | VARCHAR(10) | 创建该助教子账号的老师 ID，FK → `users.id` |
-| `course_id` | CHAR(36) | 绑定的课程 ID，FK → `courses.id` |
-| `created_at` | DATETIME | 绑定时间 |
+| `assistant_user_id` | VARCHAR(10) PK | FK → `users.id`（role=assistant），PK 保证一个助教只属于一个老师 |
+| `teacher_user_id` | VARCHAR(10) | FK → `users.id`（role=teacher），记录创建者 |
+| `created_at` | DATETIME | 记录创建时间 |
 
-**关于"子账号密码"**：
-- 助教账号是 `users` 表中一条 `role=assistant` 的记录，密码存在 `users.password_hash`
-- `assistant_bindings` 不重复存密码，避免两处维护
-- 老师创建助教账号时：在 `users` 插入一条 assistant 记录 + 在 `assistant_bindings` 插入绑定关系
-- 子账号 ID 即 `assistant_user_id`，就是 `users.id`（一卡通号）
-
-**主键**：`(assistant_user_id, course_id)` 联合主键，同一助教可绑定多门课程
+**设计说明**：
+- 老师调用 `POST /users/assistants` 创建助教时，同事务写入本表
+- 权限检查（老师重置助教密码）通过查本表确认归属，无需课程上下文
+- 一个助教账号只能属于一个老师（`assistant_user_id` 为 PK）
 
 ---
 
-## 六、Refresh Token（存 Redis，不建表）
+## 六、`assistant_bindings`（助教课程分配关系）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `assistant_user_id` | VARCHAR(10) | FK → `users.id`（role=assistant） |
+| `teacher_user_id` | VARCHAR(10) | 执行分配操作的老师（审计用，无 FK 约束） |
+| `course_id` | VARCHAR(36) | 绑定的课程 ID，FK → `courses.id`（课程表建立后补充） |
+| `created_at` | DATETIME | 分配时间 |
+
+**两步独立操作**：
+- Step 1：老师创建助教账号 → `users` + `teacher_assistants` 同事务写入
+- Step 2：老师将助教分配到课程 → `assistant_bindings` 写入（分配前校验助教归属）
+
+助教账号存在但无分配记录时，登录后不显示任何课程内容（前端处理）。
+
+**业务约束**（业务层校验，不在 DB 层约束）：
+- 每门课程最多绑定 3 个助教
+- 分配时须验证助教确实属于该老师（查 `teacher_assistants`）
+
+**主键**：`(assistant_user_id, course_id)` 联合主键，防止同一助教重复分配同一课程
+
+**与旧设计的区别**：
+- 旧设计：`assistant_bindings` 同时承担"归属"和"分配"两个语义，主键含 `course_id` 导致账号创建阶段无法写入
+- 新设计：职责分离，`teacher_assistants` 管归属，`assistant_bindings` 管分配
+
+---
+
+## 七、Refresh Token（存 Redis，不建表）
 
 **存储方式**：
 
@@ -152,3 +176,7 @@ SET rt:{SHA-256(token原始值)}  "{userId}"  EX 604800
 | Refresh Token 存哪里 | Redis（不建 MySQL 表），TTL 7天自动过期 |
 | Audit Log 现阶段如何处理 | winston 文件日志，不建表，后续有界面查询需求再补 |
 | `assistant_bindings` 备注/昵称 | 暂不加，保持最简 |
+| 助教账号来源 | 由老师创建（role=assistant），无自助注册入口 |
+| 助教与课程绑定时机 | 创建账号和分配课程是两步独立操作，账号可以先存在再后分配课程 |
+| 助教归属表独立拆出 | `teacher_assistants` 管归属，`assistant_bindings` 管课程分配，职责解耦 |
+| 每课程助教数量上限 | 最多 3 个，业务层校验，不在 DB 层约束 |
