@@ -1,0 +1,41 @@
+【声明栏】时间 | 操作者 | 事件内容
+2026-05-06 15:30 | zkx | 补充：Prisma 使用要点——以 schema.prisma 作为结构单一事实源；先执行 db push 或 migrate 再联调接口；生产优先 migrate 并保留回滚脚本；敏感信息只放环境变量并确保 DATABASE_URL 正确。
+2026-05-06 15:36 | zkx | 规范：每次 push、合并、发起 PR 时，必须基于 git 实际变更写简洁更新说明，仅保留关键改动、影响范围与风险点。
+2026-05-06 20:00 | zkx | feat(auth+users): Auth 模块全量实现，包含以下变更：
+  [新增接口]
+  - POST   /api/v1/auth/login                    登录，返回 AT+RT，forceChangePassword 标志
+  - POST   /api/v1/auth/refresh                  滚动刷新 Access Token（RT 一次性消费）
+  - POST   /api/v1/auth/logout                   登出，撤销 RT
+  - POST   /api/v1/auth/change-password          自主改密（改后吊销所有旧 RT，返回新 AT+RT）
+  - POST   /api/v1/auth/admin/reset-password     管理员/教师重置单用户密码
+  - POST   /api/v1/auth/admin/batch-reset-password  教务批量重置密码（支持 userIds / 学生条件筛选）
+  - GET    /api/v1/users/me                      获取当前用户 profile
+  - PATCH  /api/v1/users/me                      更新个人 bio/location/email/avatarUrl
+  - POST   /api/v1/users                         教务创建单个学生或教师账号
+  - POST   /api/v1/users/batch/students          教务批量创建学生（逐条校验，成功/失败分开返回）
+  - POST   /api/v1/users/batch/teachers          教务批量创建教师
+  - PATCH  /api/v1/users/:id                     教务更新账号状态（isActive/realName）
+  - POST   /api/v1/users/assistants              教师创建助教账号（同步写 teacher_assistants 归属）
+
+  [数据库变更]
+  - 新增 teacher_assistants 表：记录助教账号的归属老师（账号创建时写入，PK=assistantUserId 保证唯一归属）
+  - 修改 assistant_bindings 表：去掉 teacher FK relation，teacherUserId 保留为审计字段
+  - 原 assistant_bindings 的双重语义（归属+分配）已拆分为两张表，职责清晰
+  参考：docs/api/auth/auth-tables-design-v2.md
+
+  [基础设施]
+  - JWT 中间件：requireAuth / optionalAuth / forceChangeGuard（首次登录门卫）
+  - Redis 登录频率限制：15 分钟内 5 次失败则锁定，423 ACCOUNT_LOCKED
+  - MinIO 默认灰色头像：defaultAvatarUrl 注入所有新建账号
+  - Argon2id 密码散列（含内嵌 salt）
+  - 密码强度工具：generatePassword() / isStrongPassword()
+
+  [测试]
+  - 集成测试：tests/integration/auth/smoke.ps1，36 PASS / 0 FAIL
+  - 覆盖场景：登录 / forceChange 门卫 / 改密 / profile 读写 / token 刷新 / 角色越权 / 教务增删 / 教师助教全流程
+
+  [文档]
+  - 新增 docs/api/auth/users-api-v1.md          Users 模块 API 契约（所有接口的入参/响应/错误码）
+  - 更新 docs/api/auth/auth-tables-design-v2.md  表清单从 5 张→6 张，拆表决策记录
+  - 更新 docs/architecture/current-architecture-status.md  当前状态日期 + Auth 完成情况 + 风险列表
+  - 更新 docs/api/README.md                      补充 users-api-v1.md 和 auth-tables-design-v2.md 链接

@@ -11,6 +11,10 @@ servers:
     description: Linksee API v1
 
 tags:
+  - name: Auth
+    description: 登录、改密、Token 管理
+  - name: Users
+    description: 用户信息与 profile
   - name: Assignments
     description: 课程项目
   - name: Stages
@@ -290,6 +294,620 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+
+  /auth/change-password:
+    post:
+      tags:
+        - Auth
+      summary: 修改密码
+      operationId: changePassword
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword]
+              properties:
+                currentPassword:
+                  type: string
+                newPassword:
+                  type: string
+                  minLength: 8
+                  maxLength: 72
+                  description: 必须包含大写字母、小写字母、数字
+            example:
+              currentPassword: "OldPass1"
+              newPassword: "NewPass1"
+      responses:
+        "200":
+          description: 密码修改成功，同时签发新 token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      accessToken:
+                        type: string
+                      refreshToken:
+                        type: string
+                      expiresIn:
+                        type: string
+              example:
+                ok: true
+                data:
+                  accessToken: "eyJ..."
+                  refreshToken: "abc123"
+                  expiresIn: "30m"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+
+  /users/me:
+    get:
+      tags:
+        - Users
+      summary: 获取当前用户信息
+      operationId: getMe
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: 用户信息
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      role:
+                        type: string
+                        enum: [academic, teacher, assistant, student]
+                      forceChangePassword:
+                        type: boolean
+                      lastLoginAt:
+                        type: string
+                        format: date-time
+                        nullable: true
+                      profile:
+                        type: object
+                        properties:
+                          realName:
+                            type: string
+                          accountNo:
+                            type: string
+                          avatarUrl:
+                            type: string
+                            nullable: true
+                          bio:
+                            type: string
+                            nullable: true
+                          location:
+                            type: string
+                            nullable: true
+                          email:
+                            type: string
+                            nullable: true
+              example:
+                ok: true
+                data:
+                  id: "2024001001"
+                  role: student
+                  forceChangePassword: false
+                  lastLoginAt: "2026-05-06T08:00:00+08:00"
+                  profile:
+                    realName: 张三
+                    accountNo: "2024001001"
+                    avatarUrl: "http://localhost:3001/demo/default-avatar-gray.svg"
+                    bio: null
+                    location: null
+                    email: null
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags:
+        - Users
+      summary: 更新当前用户 profile
+      operationId: updateMe
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                realName:
+                  type: string
+                bio:
+                  type: string
+                location:
+                  type: string
+                email:
+                  type: string
+                  format: email
+            example:
+              realName: 张三
+              bio: 软工大三
+              location: 一教A区
+              email: zhangsan@example.edu.cn
+      responses:
+        "200":
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+              example:
+                ok: true
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
+  /users/me/avatar:
+    post:
+      tags:
+        - Users
+      summary: 上传并更新当前用户头像
+      operationId: uploadMyAvatar
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [avatar]
+              properties:
+                avatar:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: 上传成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      avatarUrl:
+                        type: string
+              example:
+                ok: true
+                data:
+                  avatarUrl: "http://localhost:9000/avatars/2024001001/f84e7d9a.jpg"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
+  /users/assistants:
+    post:
+      tags:
+        - Users
+      summary: 老师创建助教账号
+      operationId: createAssistantUser
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id, realName]
+              properties:
+                id:
+                  type: string
+                  description: 10位一卡通号
+                realName:
+                  type: string
+                defaultPassword:
+                  type: string
+                  description: 不传则系统自动生成
+            example:
+              id: "2024002001"
+              realName: 李助教
+      responses:
+        "201":
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      temporaryPassword:
+                        type: string
+                      forceChangePassword:
+                        type: boolean
+              example:
+                ok: true
+                data:
+                  id: "2024002001"
+                  temporaryPassword: "Ab2X9kLm"
+                  forceChangePassword: true
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          description: 用户ID已存在
+
+  /users:
+    post:
+      tags:
+        - Users
+      summary: 教务手动创建单个老师或学生账号
+      operationId: createOneUserByAcademic
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id, role, realName]
+              properties:
+                id:
+                  type: string
+                  description: 10位一卡通号
+                role:
+                  type: string
+                  enum: [teacher, student]
+                realName:
+                  type: string
+                defaultPassword:
+                  type: string
+                  description: 不传则系统自动生成
+                stuNo:
+                  type: string
+                grade:
+                  type: integer
+                cohort:
+                  type: integer
+                major:
+                  type: string
+                adminClass:
+                  type: string
+                teacherNo:
+                  type: string
+                title:
+                  type: string
+                college:
+                  type: string
+                researchDirection:
+                  type: string
+      responses:
+        "201":
+          description: 创建成功
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          description: 用户ID或唯一字段冲突
+
+  /users/batch/students:
+    post:
+      tags:
+        - Users
+      summary: 教务批量导入学生账号与 student_profile
+      operationId: batchCreateStudents
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [students]
+              properties:
+                defaultPassword:
+                  type: string
+                students:
+                  type: array
+                  items:
+                    type: object
+                    required: [id, realName, stuNo, grade, cohort, major, adminClass]
+                    properties:
+                      id:
+                        type: string
+                      realName:
+                        type: string
+                      stuNo:
+                        type: string
+                      grade:
+                        type: integer
+                      cohort:
+                        type: integer
+                      major:
+                        type: string
+                      adminClass:
+                        type: string
+      responses:
+        "200":
+          description: 导入执行完成
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /users/batch/teachers:
+    post:
+      tags:
+        - Users
+      summary: 教务批量导入老师账号与 teacher_profile
+      operationId: batchCreateTeachers
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [teachers]
+              properties:
+                defaultPassword:
+                  type: string
+                teachers:
+                  type: array
+                  items:
+                    type: object
+                    required: [id, realName, teacherNo, title, college]
+                    properties:
+                      id:
+                        type: string
+                      realName:
+                        type: string
+                      teacherNo:
+                        type: string
+                      title:
+                        type: string
+                      college:
+                        type: string
+                      researchDirection:
+                        type: string
+      responses:
+        "200":
+          description: 导入执行完成
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /users/{id}:
+    patch:
+      tags:
+        - Users
+      summary: 教务修改账号信息（禁止修改id/role）
+      operationId: updateUserByAcademic
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                isActive:
+                  type: boolean
+                realName:
+                  type: string
+                bio:
+                  type: string
+                location:
+                  type: string
+                email:
+                  type: string
+                accountNo:
+                  type: string
+                stuNo:
+                  type: string
+                grade:
+                  type: integer
+                cohort:
+                  type: integer
+                major:
+                  type: string
+                adminClass:
+                  type: string
+                teacherNo:
+                  type: string
+                title:
+                  type: string
+                college:
+                  type: string
+                researchDirection:
+                  type: string
+                description:
+                  type: string
+      responses:
+        "200":
+          description: 更新成功
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /auth/admin/reset-password:
+    post:
+      tags:
+        - Auth
+      summary: 管理员或老师重置单个用户密码
+      operationId: adminResetPassword
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [targetUserId]
+              properties:
+                targetUserId:
+                  type: string
+                newPassword:
+                  type: string
+                  description: 不传则系统随机生成
+            example:
+              targetUserId: "2024001001"
+      responses:
+        "200":
+          description: 重置成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      temporaryPassword:
+                        type: string
+                      forceChangePassword:
+                        type: boolean
+              example:
+                ok: true
+                data:
+                  temporaryPassword: "Ax8mPq29"
+                  forceChangePassword: true
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /auth/admin/batch-reset-password:
+    post:
+      tags:
+        - Auth
+      summary: 教务按条件批量重置密码
+      operationId: adminBatchResetPassword
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                newPassword:
+                  type: string
+                  description: 不传则系统随机生成
+                userIds:
+                  type: array
+                  items:
+                    type: string
+                grade:
+                  type: integer
+                cohort:
+                  type: integer
+                adminClass:
+                  type: string
+                major:
+                  type: string
+            example:
+              grade: 2023
+              adminClass: 软工2301
+      responses:
+        "200":
+          description: 批量重置成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      defaultPassword:
+                        type: string
+                        nullable: true
+                      affectedCount:
+                        type: integer
+                      forceChangePassword:
+                        type: boolean
+              example:
+                ok: true
+                data:
+                  defaultPassword: "Nx3Qm27A"
+                  affectedCount: 56
+                  forceChangePassword: true
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
 components:
   securitySchemes:

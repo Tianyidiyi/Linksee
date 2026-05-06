@@ -4,6 +4,7 @@ export type HttpRoute = {
   authRequired: boolean;
   module:
     | "auth"
+    | "users"
     | "course"
     | "assignment"
     | "group"
@@ -15,6 +16,23 @@ export type HttpRoute = {
 
 // MVP 路由清单占位，按教学协作主线扩展。
 export const mvpRoutes: HttpRoute[] = [
+  // ── Auth ──────────────────────────────────
+  { method: "POST",  path: "/api/v1/auth/login",                      authRequired: false, module: "auth" },
+  { method: "POST",  path: "/api/v1/auth/refresh",                    authRequired: false, module: "auth" },
+  { method: "POST",  path: "/api/v1/auth/logout",                     authRequired: false, module: "auth" },
+  { method: "POST",  path: "/api/v1/auth/change-password",            authRequired: true,  module: "auth" },
+  { method: "POST",  path: "/api/v1/auth/admin/reset-password",       authRequired: true,  module: "auth" },
+  { method: "POST",  path: "/api/v1/auth/admin/batch-reset-password", authRequired: true,  module: "auth" },
+  // ── Users ─────────────────────────────────
+  { method: "GET",   path: "/api/v1/users/me",             authRequired: true,  module: "users" },
+  { method: "PATCH", path: "/api/v1/users/me",             authRequired: true,  module: "users" },
+  { method: "POST",  path: "/api/v1/users/me/avatar",      authRequired: true,  module: "users" },
+  { method: "POST",  path: "/api/v1/users/assistants",     authRequired: true,  module: "users" },
+  { method: "POST",  path: "/api/v1/users",                authRequired: true,  module: "users" },
+  { method: "POST",  path: "/api/v1/users/batch/students", authRequired: true,  module: "users" },
+  { method: "POST",  path: "/api/v1/users/batch/teachers", authRequired: true,  module: "users" },
+  { method: "PATCH", path: "/api/v1/users/:id",            authRequired: true,  module: "users" },
+  // ── Assignment ────────────────────────────
   {
     method: "POST",
     path: "/api/v1/courses/:courseId/assignments",

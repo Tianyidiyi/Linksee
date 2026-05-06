@@ -3,7 +3,7 @@
 // 对应设计文档：docs/api/auth/auth-tables-design-v2.md
 //
 // 表：users / user_profiles / student_profiles /
-//     teacher_profiles / assistant_bindings
+//     teacher_profiles / teacher_assistants / assistant_bindings
 //
 // Refresh Token → Redis（不建表）
 // Audit Log     → winston 文件日志（不建表）
@@ -62,7 +62,10 @@ model User {
   teacherProfile  TeacherProfile?
 
   assistantBindingsAsAssistant AssistantBinding[] @relation("AssistantUser")
-  assistantBindingsAsTeacher   AssistantBinding[] @relation("TeacherUser")
+
+  // 归属关系：老师名下的助教（teacher 侧）；助教归属的老师（assistant 侧）
+  teacherAssistantsAsTeacher   TeacherAssistant[] @relation("TeacherOwner")
+  teacherAssistantsAsAssistant TeacherAssistant[] @relation("AssistantOwned")
 
   @@map("users")
 }
@@ -152,30 +155,59 @@ model TeacherProfile {
 }
 
 // ────────────────────────────────────────────────────────────
-// assistant_bindings — 助教子账号与课程绑定
+// teacher_assistants — 老师与助教的归属关系
 //
-// 助教是 users 表中 role=assistant 的完整账号记录，
-// 密码存在 users.passwordHash，本表只记绑定关系。
-// 助教权限范围 = 本表中该 assistant_user_id 对应的 course_id 集合。
+// 老师创建助教账号时写入，记录"这个助教账号属于哪位老师"。
+// assistantUserId 是 PK，保证一个助教只能属于一个老师。
+// 用途：
+//   - 老师重置助教密码时的权限边界校验（查此表）
+//   - 老师查看自己名下所有助教
+// ────────────────────────────────────────────────────────────
+
+model TeacherAssistant {
+  /// 助教的一卡通号（PK = 唯一归属保证），FK → users.id（role=assistant）
+  assistantUserId String   @id @db.VarChar(10)
+
+  /// 创建该助教账号的老师，FK → users.id（role=teacher）
+  teacherUserId   String   @db.VarChar(10)
+
+  createdAt       DateTime @default(now())
+
+  teacher   User @relation("TeacherOwner",   fields: [teacherUserId],   references: [id])
+  assistant User @relation("AssistantOwned", fields: [assistantUserId], references: [id])
+
+  @@index([teacherUserId])
+  @@map("teacher_assistants")
+}
+
+// ────────────────────────────────────────────────────────────
+// assistant_bindings — 助教与具体课程的分配关系
+//
+// 与 teacher_assistants 解耦：
+//   teacher_assistants  → "这个助教账号属于哪位老师"（账号创建时写入）
+//   assistant_bindings  → "这个助教被分配到了哪门课程"（分配时写入）
+//
+// 分配前须校验助教确实属于该老师（查 teacher_assistants）。
+// 助教账号存在但无分配记录时，登录后不显示任何课程内容（前端处理）。
+// 每门课程最多绑定 3 个助教，由业务层校验，不在 DB 层约束。
 // ────────────────────────────────────────────────────────────
 
 model AssistantBinding {
-  /// 助教的一卡通号，FK → users.id
+  /// 助教的一卡通号，FK → users.id（role=assistant）
   assistantUserId String @db.VarChar(10)
 
-  /// 创建该助教子账号的老师一卡通号，FK → users.id
-  teacherUserId String @db.VarChar(10)
+  /// 执行分配操作的老师一卡通号（审计用，无 Prisma relation）
+  teacherUserId   String @db.VarChar(10)
 
-  /// 绑定的课程 ID（课程表建立后补充 FK）
-  /// 暂用 VarChar(36) 预留 UUID 格式
-  courseId      String @db.VarChar(36)
+  /// 绑定的课程 ID（课程表建立后补充 FK，暂用 VarChar(36) 预留 UUID）
+  courseId        String @db.VarChar(36)
 
   createdAt DateTime @default(now())
 
   assistant User @relation("AssistantUser", fields: [assistantUserId], references: [id])
-  teacher   User @relation("TeacherUser",   fields: [teacherUserId],   references: [id])
 
   @@id([assistantUserId, courseId])
   @@index([teacherUserId])
+  @@index([courseId])
   @@map("assistant_bindings")
 }
