@@ -10,7 +10,9 @@ app.use(express.json());
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const webAppDir = path.resolve(__dirname, "../../../web/app");
 const webDemoDir = path.resolve(__dirname, "../../../web/demo");
+app.use("/app", express.static(webAppDir));
 app.use("/demo", express.static(webDemoDir));
 
 app.get("/health", (_req, res) => {
