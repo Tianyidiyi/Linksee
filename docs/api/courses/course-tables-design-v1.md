@@ -657,7 +657,7 @@ users (id)
 | `scope_id`       | BIGINT UNSIGNED NOT NULL           | 业务对象主键：`course` 对应 `courses.id`，`group` 对应 `groups.id`  |
 | `room_key`       | VARCHAR(64) NOT NULL UNIQUE        | Socket 房间键：`course:{courseId}` 或 `group:{groupId}`            |
 | `status`         | ENUM NOT NULL DEFAULT 'active'     | `active` / `archived`                                                |
-| `created_by`     | VARCHAR(10) NOT NULL               | FK → `users.id`                                                      |
+| `created_by`     | VARCHAR(10) NULL                   | FK → `users.id`；课程群自动创建时为 NULL，小组群为创建者学生 ID     |
 | `created_at`     | DATETIME NOT NULL                  | 创建时间                                                             |
 | `updated_at`     | DATETIME NOT NULL                  | 最近更新时间                                                         |
 
@@ -692,6 +692,7 @@ users (id)
 | `event_id`        | VARCHAR(64) NOT NULL UNIQUE        | 对应 `EventEnvelope.id`，用于幂等与排查                                                                   |
 | `trace_id`        | VARCHAR(64) NOT NULL               | 对应链路追踪 ID                                                                                            |
 | `created_at`      | DATETIME NOT NULL                  | 消息创建时间                                                                                                |
+| `updated_at`      | DATETIME NOT NULL                  | 最近更新时间（预留字段，P0 消息不可编辑）                                                                 |
 | `deleted_at`      | DATETIME NULL                      | 撤回时间（可空；P0 可先不开放撤回能力）                                                                   |
 
 **索引**：

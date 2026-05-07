@@ -38,3 +38,43 @@
   - 更新 docs/api/auth/auth-tables-design-v2.md  表清单从 5 张→6 张，拆表决策记录
   - 更新 docs/architecture/current-architecture-status.md  当前状态日期 + Auth 完成情况 + 风险列表
   - 更新 docs/api/README.md                      补充 users-api-v1.md 和 auth-tables-design-v2.md 链接
+
+2026-05-07 | zkx | feat(courses)+fix(schema): Phase 1-4 表结构落库 + courses API 实现 + 类型修复
+  [数据库变更]
+  - 新增 Phase 1-4 共 11 张表（courses / course_teachers / course_members /
+    assignments / assignment_group_configs / assignment_stages /
+    groups / group_members / mini_tasks / chat_conversations / chat_messages）
+  - 修正 assistant_bindings.courseId：从 VarChar(36) 改为 BigInt FK → courses.id
+  - 以上变更通过 prisma db push 已同步至本地 collab 数据库
+
+  [新增接口]
+  - GET    /api/v1/courses                课程列表（按角色过滤：academic/teacher/assistant/student）
+  - POST   /api/v1/courses                创建课程（academic only）
+  - GET    /api/v1/courses/:id            课程详情（权限校验：课程成员/老师/助教/academic）
+  - PATCH  /api/v1/courses/:id            更新课程名/描述/状态（academic only）
+  - GET    /api/v1/courses/:id/teachers   列出课程老师
+  - POST   /api/v1/courses/:id/teachers   指派老师（academic only）
+  - DELETE /api/v1/courses/:id/teachers/:userId  移除老师（academic only）
+  - GET    /api/v1/courses/:id/members    列出课程成员（支持 status 筛选）
+  - POST   /api/v1/courses/:id/members/batch     批量导入学生（最大 500，upsert 语义）
+  - DELETE /api/v1/courses/:id/members/:userId   移除成员（软删除 status=withdrawn）
+
+  [修复]
+  - apps/api/tsconfig.json：补充 "types": ["node"]
+  - apps/api 本地安装 @types/node（根 workspace 未实际安装导致 node:crypto 类型缺失）
+  - apps/api/src/infra/jwt-middleware.ts：req.headers.authorization 改为 req.header("authorization")
+    （Express 推荐写法，兼容 header 名大小写不敏感）
+
+  [文档]
+  - 新增 docs/architecture/socket-risks-and-errors.md
+    · 3 个已知错误（Phase 4 代码写入前必须修复）：
+      1. course.message.created 事件名三处缺失（contracts.ts / event-catalog.ts / event-handlers.ts）
+      2. chat_conversations.created_by 原为 NOT NULL → 应改为可空（课程群为系统自动创建）
+      3. chat_messages 缺 updated_at 列
+    · 3 个风险（实现时主动规避）：
+      风险2：HTTP 写库后 Socket 推送失败 → 客户端补拉兜底
+      风险3：gateway.ts authenticate() 老师/助教应返回空 groupIds
+      风险4：客户端内存 Set 去重刷新失效 → 改用消息 DB id 去重
+  - 更新 docs/api/courses/course-tables-design-v1.md：
+    · chat_conversations.created_by 改为 VARCHAR(10) NULL
+    · chat_messages 补充 updated_at DATETIME NOT NULL

@@ -19,7 +19,7 @@ declare global {
 
 /** 尝试解析 Bearer Token，成功则挂 req.user，失败/缺失则跳过（不拒绝请求） */
 export function optionalAuth(req: Request, _res: Response, next: NextFunction): void {
-  const header = req.headers.authorization;
+  const header = req.header("authorization");
   if (!header?.startsWith("Bearer ")) return next();
 
   try {
@@ -50,7 +50,7 @@ export function forceChangeGuard(req: Request, res: Response, next: NextFunction
 
 /** Bearer Token 鉴权中间件，验证失败直接返回 401 */
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {
-  const header = req.headers.authorization;
+  const header = req.header("authorization");
   if (!header?.startsWith("Bearer ")) {
     res.status(401).json({ ok: false, code: "UNAUTHENTICATED", message: "Missing or malformed token" });
     return;
