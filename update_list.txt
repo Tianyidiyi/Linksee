@@ -64,6 +64,7 @@
   - apps/api 本地安装 @types/node（根 workspace 未实际安装导致 node:crypto 类型缺失）
   - apps/api/src/infra/jwt-middleware.ts：req.headers.authorization 改为 req.header("authorization")
     （Express 推荐写法，兼容 header 名大小写不敏感）
+  - src/courses/courses-router.ts GET /courses/:id：删除重复的 semester 字段声明
 
   [文档]
   - 新增 docs/architecture/socket-risks-and-errors.md
@@ -75,6 +76,11 @@
       风险2：HTTP 写库后 Socket 推送失败 → 客户端补拉兜底
       风险3：gateway.ts authenticate() 老师/助教应返回空 groupIds
       风险4：客户端内存 Set 去重刷新失效 → 改用消息 DB id 去重
+  - 新增 docs/architecture/courses-api-review.md
+    · Courses API v1 审查报告：10 个端点接口完整性审查（10/10）
+    · 权限设置分析：9/10 正确，缺 lead 唯一性业务约束（设计文档要求）
+    · 发现 4 处改进点：semester 重复（P0 已修）/ lead 唯一性检查（P1）/ 课程存在性检查（P1）
+    · 提供修复代码片段与后续扩展建议
   - 更新 docs/api/courses/course-tables-design-v1.md：
     · chat_conversations.created_by 改为 VARCHAR(10) NULL
     · chat_messages 补充 updated_at DATETIME NOT NULL

@@ -176,7 +176,6 @@ coursesRouter.get("/:id", requireAuth, async (req: Request, res: Response) => {
       name: true,
       academicYear: true,
       semester: true,
-      semester: true,
       description: true,
       status: true,
       createdAt: true,
