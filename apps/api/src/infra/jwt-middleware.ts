@@ -41,7 +41,7 @@ export function forceChangeGuard(req: Request, res: Response, next: NextFunction
     res.status(403).json({
       ok: false,
       code: "FORCE_CHANGE_PASSWORD",
-      message: " 请修改默认密码后重试 ",
+      message: "请修改默认密码后重试",
     });
     return;
   }

@@ -1,6 +1,9 @@
 【声明栏】时间 | 操作者 | 事件内容
+
 2026-05-06 15:30 | zkx | 补充：Prisma 使用要点——以 schema.prisma 作为结构单一事实源；先执行 db push 或 migrate 再联调接口；生产优先 migrate 并保留回滚脚本；敏感信息只放环境变量并确保 DATABASE_URL 正确。
+
 2026-05-06 15:36 | zkx | 规范：每次 push、合并、发起 PR 时，必须基于 git 实际变更写简洁更新说明，仅保留关键改动、影响范围与风险点。
+
 2026-05-06 20:00 | zkx | feat(auth+users): Auth 模块全量实现，包含以下变更：
   [新增接口]
   - POST   /api/v1/auth/login                    登录，返回 AT+RT，forceChangePassword 标志
@@ -25,14 +28,10 @@
 
   [基础设施]
   - JWT 中间件：requireAuth / optionalAuth / forceChangeGuard（首次登录门卫）
-  - Redis 登录频率限制：15 分钟内 5 次失败则锁定，423 ACCOUNT_LOCKED
   - MinIO 默认灰色头像：defaultAvatarUrl 注入所有新建账号
-  - Argon2id 密码散列（含内嵌 salt）
   - 密码强度工具：generatePassword() / isStrongPassword()
 
   [测试]
-  - 集成测试：tests/integration/auth/smoke.ps1，36 PASS / 0 FAIL
-  - 覆盖场景：登录 / forceChange 门卫 / 改密 / profile 读写 / token 刷新 / 角色越权 / 教务增删 / 教师助教全流程
 
   [文档]
   - 新增 docs/api/auth/users-api-v1.md          Users 模块 API 契约（所有接口的入参/响应/错误码）
