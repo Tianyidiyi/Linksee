@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Linksee 教务工作台</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f7f3ee;
+            --bg-deep: #efe7dd;
+            --card: #ffffff;
+            --ink: #1f1f1f;
+            --muted: #6c6c6c;
+            --accent: #0f766e;
+            --accent-strong: #0b4f49;
+            --accent-bright: #14b8a6;
+            --accent-soft: rgba(15, 118, 110, 0.12);
+            --border: rgba(31, 31, 31, 0.1);
+            --shadow: 0 24px 60px rgba(17, 24, 39, 0.14);
+            --shadow-soft: 0 12px 32px rgba(15, 23, 42, 0.1);
+            --radius-lg: 22px;
+            --radius-md: 14px;
+            --radius-sm: 10px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Space Grotesk", "IBM Plex Sans", "Noto Sans SC", "Segoe UI", sans-serif;
+            background: radial-gradient(1200px 600px at 10% -10%, #fdf7ef 0%, transparent 60%),
+                radial-gradient(800px 400px at 95% 15%, #e4f4f1 0%, transparent 60%),
+                linear-gradient(180deg, var(--bg), var(--bg-deep));
+            color: var(--ink);
+            min-height: 100vh;
+        }
+
+        .page {
+            min-height: 100vh;
+            padding: 72px 7vw 64px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+        }
+
+        .brand-mark {
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            background: linear-gradient(140deg, var(--accent), var(--accent-bright));
+            box-shadow: 0 10px 20px rgba(15, 118, 110, 0.35);
+            position: relative;
+        }
+
+        .brand-mark::after {
+            content: "";
+            position: absolute;
+            inset: 9px;
+            border-radius: 9px;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+        }
+
+        .top-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: var(--radius-lg);
+            padding: 20px 22px;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(31, 31, 31, 0.06);
+            display: grid;
+            gap: 14px;
+        }
+
+        .card-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .badge {
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: var(--accent-soft);
+            color: var(--accent-strong);
+        }
+
+        .meta {
+            padding: 10px 12px;
+            border-radius: var(--radius-md);
+            background: var(--accent-soft);
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .stat {
+            padding: 12px 14px;
+            border-radius: var(--radius-md);
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(31, 31, 31, 0.08);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .stat strong {
+            display: block;
+            font-size: 18px;
+        }
+
+        .stat span {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.75);
+        }
+
+        .list-main {
+            display: grid;
+            gap: 4px;
+        }
+
+        .list-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .muted {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .tag {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: rgba(15, 118, 110, 0.1);
+            color: var(--accent-strong);
+        }
+
+        .tag--muted {
+            background: rgba(15, 118, 110, 0.06);
+            color: var(--muted);
+        }
+
+        .tag--warn {
+            background: rgba(234, 88, 12, 0.12);
+            color: #c2410c;
+        }
+
+        .tag--quiet {
+            background: rgba(148, 163, 184, 0.18);
+            color: #475569;
+        }
+
+        .chip {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            color: var(--muted);
+        }
+
+        button {
+            border: none;
+            font: inherit;
+            padding: 10px 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .ghost {
+            background: var(--accent-soft);
+            color: var(--accent-strong);
+        }
+
+        @media (max-width: 980px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <style>
+        @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@400;500;600&display=swap");
+    </style>
+</head>
+
+<body>
+    <main class="page">
+        <header class="topbar">
+            <div class="brand">
+                <span class="brand-mark" aria-hidden="true"></span>
+                教务工作台
+            </div>
+            <div class="top-actions">
+                <button id="toRole" class="ghost">切换角色</button>
+                <button id="logoutBtn">退出登录</button>
+            </div>
+        </header>
+
+        <section class="card">
+            <h1 class="card-title">教务总览 <span class="badge">academic</span></h1>
+            <div class="meta" id="metaInfo">正在加载登录信息...</div>
+            <div class="stat-grid">
+                <div class="stat">
+                    <strong>6</strong>
+                    <span>本学期课程</span>
+                </div>
+                <div class="stat">
+                    <strong>4</strong>
+                    <span>待指派老师</span>
+                </div>
+                <div class="stat">
+                    <strong>2</strong>
+                    <span>待导入名单</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="layout">
+            <div class="card">
+                <h2 class="card-title">课程基础信息 <span class="badge">courses</span></h2>
+                <div class="list">
+                    <div class="list-item">
+                        <div class="list-main">
+                            <div class="list-row">
+                                <strong>软件工程实践</strong>
+                                <span class="chip">BSJ084-2026-1-01</span>
+                            </div>
+                            <div class="muted">2026 学年 · 春季学期 · created_by=2022000001</div>
+                        </div>
+                        <span class="tag">active</span>
+                    </div>
+                    <div class="list-item">
+                        <div class="list-main">
+                            <div class="list-row">
+                                <strong>数据库系统</strong>
+                                <span class="chip">DBS102-2026-1-02</span>
+                            </div>
+                            <div class="muted">2026 学年 · 春季学期 · created_by=2022000001</div>
+                        </div>
+                        <span class="tag--warn">draft</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">老师指派 <span class="badge">course_teachers</span></h2>
+                <div class="list">
+                    <div class="list-item">
+                        <div class="list-main">
+                            <div class="list-row">
+                                <strong>软件工程实践</strong>
+                                <span class="tag">lead</span>
+                            </div>
+                            <div class="muted">teacher=2023000001 · assigned_by=2022000001</div>
+                        </div>
+                        <span class="tag">active</span>
+                    </div>
+                    <div class="list-item">
+                        <div class="list-main">
+                            <div class="list-row">
+                                <strong>数据库系统</strong>
+                                <span class="tag">co</span>
+                            </div>
+                            <div class="muted">teacher=2023000012 · assigned_by=2022000001</div>
+                        </div>
+                        <span class="tag--quiet">draft</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">学生名单导入 <span class="badge">course_members</span></h2>
+                <div class="list">
+                    <div class="list-item">
+                        <div class="list-main">
+                            <div class="list-row">
+                                <strong>软件工程实践</strong>
+                                <span class="chip">student=2023010001</span>
+                            </div>
+                            <div class="muted">status=active · imported_by=2022000001</div>
+                        </div>
+                        <span class="tag">active</span>
+                    </div>
+                    <div class="list-item">
+                        <div class="list-main">
+                            <div class="list-row">
+                                <strong>数据库系统</strong>
+                                <span class="chip">student=2023010012</span>
+                            </div>
+                            <div class="muted">status=withdrawn · imported_by=2022000001</div>
+                        </div>
+                        <span class="tag--quiet">withdrawn</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">助教分配 <span class="badge">assistant_bindings</span></h2>
+                <div class="list">
+                    <div class="list-item">
+                        <div class="list-main">
+                            <div class="list-row">
+                                <strong>软件工程实践</strong>
+                                <span class="chip">assistant=2023019001</span>
+                            </div>
+                            <div class="muted">teacher=2023000001 · course_id=12</div>
+                        </div>
+                        <span class="tag">active</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const appOrigin = window.location.origin && window.location.origin !== "null"
+            ? window.location.origin
+            : "http://localhost:3001";
+        const appBasePath = window.location.pathname.includes("/app/") ? "/app" : "";
+        const metaInfo = document.getElementById("metaInfo");
+        const logoutBtn = document.getElementById("logoutBtn");
+        const toRole = document.getElementById("toRole");
+
+        const userId = localStorage.getItem("auth_user_id");
+        const token = localStorage.getItem("auth_access_token");
+
+        if (userId && token) {
+            metaInfo.textContent = `当前登录账号：${userId}`;
+        } else {
+            metaInfo.textContent = "未检测到登录信息，请返回登录页。";
+        }
+
+        logoutBtn.addEventListener("click", () => {
+            localStorage.removeItem("auth_access_token");
+            localStorage.removeItem("auth_refresh_token");
+            localStorage.removeItem("auth_user_id");
+            window.location.href = `${appOrigin}${appBasePath}/login.html`;
+        });
+
+        toRole.addEventListener("click", () => {
+            window.location.href = `${appOrigin}${appBasePath}/dashboard.html`;
+        });
+    </script>
+</body>
+
+</html>

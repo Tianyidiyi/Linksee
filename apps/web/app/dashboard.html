@@ -4,82 +4,140 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Linksee 工作台</title>
-    <style>
-        :root {
-            color-scheme: light;
-            --bg: #f7f3ee;
-            --ink: #1f1f1f;
-            --muted: #6c6c6c;
-            --accent: #0f766e;
-            --accent-soft: rgba(15, 118, 110, 0.12);
-            --radius-md: 14px;
-        }
+    <!doctype html>
+    <html lang="zh-CN">
 
-        body {
-            margin: 0;
-            font-family: "Space Grotesk", "IBM Plex Sans", "Noto Sans SC", "Segoe UI", sans-serif;
-            background: linear-gradient(180deg, #f8f4ee, #efe7dd);
-            color: var(--ink);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 64px 7vw;
-        }
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Linksee 角色入口</title>
+        <style>
+            :root {
+                color-scheme: light;
+                --bg: #f7f3ee;
+                --bg-deep: #efe7dd;
+                --card: #ffffff;
+                --ink: #1f1f1f;
+                --muted: #6c6c6c;
+                --accent: #0f766e;
+                --accent-strong: #0b4f49;
+                --accent-bright: #14b8a6;
+                --accent-soft: rgba(15, 118, 110, 0.12);
+                --border: rgba(31, 31, 31, 0.1);
+                --shadow: 0 24px 60px rgba(17, 24, 39, 0.14);
+                --radius-lg: 22px;
+                --radius-md: 14px;
+                --radius-sm: 10px;
+            }
 
-        .panel {
-            width: min(640px, 100%);
-            background: #fff;
-            border-radius: 20px;
-            padding: 28px;
-            box-shadow: 0 20px 50px rgba(17, 24, 39, 0.16);
-            display: grid;
-            gap: 16px;
-        }
+            * {
+                box-sizing: border-box;
+            }
 
-        .meta {
-            padding: 12px 14px;
-            border-radius: var(--radius-md);
-            background: var(--accent-soft);
-            color: var(--muted);
-            font-size: 13px;
-        }
+            body {
+                margin: 0;
+                font-family: "Space Grotesk", "IBM Plex Sans", "Noto Sans SC", "Segoe UI", sans-serif;
+                background: radial-gradient(1200px 600px at 10% -10%, #fdf7ef 0%, transparent 60%),
+                    radial-gradient(800px 400px at 95% 15%, #e4f4f1 0%, transparent 60%),
+                    linear-gradient(180deg, var(--bg), var(--bg-deep));
+                color: var(--ink);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 72px 7vw;
+            }
 
-        .actions {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
+            .card {
+                width: min(640px, 100%);
+                background: var(--card);
+                border-radius: var(--radius-lg);
+                padding: 28px;
+                box-shadow: var(--shadow);
+                border: 1px solid rgba(31, 31, 31, 0.06);
+                display: grid;
+                gap: 16px;
+            }
 
-        button {
-            border: none;
-            font: inherit;
-            padding: 12px 16px;
-            border-radius: 10px;
-            cursor: pointer;
-            background: var(--accent);
-            color: #fff;
-        }
+            .brand {
+                display: inline-flex;
+                align-items: center;
+                gap: 12px;
+                font-weight: 600;
+            }
 
-        .ghost {
-            background: var(--accent-soft);
-            color: var(--accent);
-        }
-    </style>
-    <style>
-        @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@400;500;600&display=swap");
-    </style>
-</head>
+            .brand-mark {
+                width: 38px;
+                height: 38px;
+                border-radius: 12px;
+                background: linear-gradient(140deg, var(--accent), var(--accent-bright));
+                box-shadow: 0 10px 20px rgba(15, 118, 110, 0.35);
+                position: relative;
+            }
+
+            .brand-mark::after {
+                content: "";
+                position: absolute;
+                inset: 9px;
+                border-radius: 9px;
+                border: 2px solid rgba(255, 255, 255, 0.8);
+            }
+
+            .role-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+                gap: 12px;
+            }
+
+            .role-btn {
+                border: 1px solid var(--border);
+                border-radius: var(--radius-md);
+                padding: 12px 14px;
+                background: rgba(255, 255, 255, 0.8);
+                cursor: pointer;
+                font: inherit;
+                display: grid;
+                gap: 6px;
+            }
+
+            .role-btn strong {
+                font-size: 14px;
+            }
+
+            .muted {
+                font-size: 12px;
+                color: var(--muted);
+            }
+        </style>
+        <style>
+            @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@400;500;600&display=swap");
+        </style>
+    </head>
 
 <body>
-    <main class="panel">
-        <h1>登录成功</h1>
-        <p>欢迎进入 Linksee 工作台占位页。</p>
-        <div class="meta" id="metaInfo">正在加载登录信息...</div>
-        <div class="actions">
-            <button id="logoutBtn">退出登录</button>
-            <button id="toLogin" class="ghost">返回登录页</button>
+    <main class="card">
+        <div class="brand">
+            <span class="brand-mark" aria-hidden="true"></span>
+            Linksee 角色入口
+        </div>
+        <div class="muted">请选择要查看的角色工作台。</div>
+        <div class="role-grid">
+            <button class="role-btn" data-role="academic">
+                <strong>教务</strong>
+                <span class="muted">课程创建与指派</span>
+            </button>
+            <button class="role-btn" data-role="teacher">
+                <strong>老师</strong>
+                <span class="muted">项目发布与批改</span>
+            </button>
+            <button class="role-btn" data-role="assistant">
+                <strong>助教</strong>
+                <span class="muted">检查与复核</span>
+            </button>
+            <button class="role-btn" data-role="student">
+                <strong>学生</strong>
+                <span class="muted">课程与提交</span>
+            </button>
         </div>
     </main>
 
@@ -88,30 +146,91 @@
             ? window.location.origin
             : "http://localhost:3001";
         const appBasePath = window.location.pathname.includes("/app/") ? "/app" : "";
-        const metaInfo = document.getElementById("metaInfo");
-        const logoutBtn = document.getElementById("logoutBtn");
-        const toLogin = document.getElementById("toLogin");
+        const roleToPage = {
+            academic: "academic-dashboard.html",
+            teacher: "teacher-dashboard.html",
+            assistant: "assistant-dashboard.html",
+            student: "student-dashboard.html",
+        };
+        const roleByUserId = {
+            "2022000001": "academic",
+            "2023000001": "teacher",
+            "2023019001": "assistant",
+            "2023010001": "student",
+        };
+        const storedRole = localStorage.getItem("auth_role");
+        const storedUserId = localStorage.getItem("auth_user_id");
+        const resolvedRole = storedRole || roleByUserId[storedUserId] || "";
 
-        const userId = localStorage.getItem("auth_user_id");
-        const token = localStorage.getItem("auth_access_token");
-
-        if (userId && token) {
-            metaInfo.textContent = `当前登录账号：${userId}`;
-        } else {
-            metaInfo.textContent = "未检测到登录信息，请返回登录页。";
+        if (resolvedRole && roleToPage[resolvedRole]) {
+            localStorage.setItem("auth_role", resolvedRole);
+            window.location.href = `${appOrigin}${appBasePath}/${roleToPage[resolvedRole]}`;
         }
 
-        logoutBtn.addEventListener("click", () => {
-            localStorage.removeItem("auth_access_token");
-            localStorage.removeItem("auth_refresh_token");
-            localStorage.removeItem("auth_user_id");
-            window.location.href = `${appOrigin}${appBasePath}/login.html`;
-        });
-
-        toLogin.addEventListener("click", () => {
-            window.location.href = `${appOrigin}${appBasePath}/login.html`;
+        document.querySelectorAll(".role-btn").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                const role = btn.getAttribute("data-role");
+                if (!role || !roleToPage[role]) {
+                    return;
+                }
+                localStorage.setItem("auth_role", role);
+                window.location.href = `${appOrigin}${appBasePath}/${roleToPage[role]}`;
+            });
         });
     </script>
+</body>
+
+</html>
+<span class="chip">reviewer=2023000001</span>
+</div>
+<div class="muted">评分 86 · 反馈已发送</div>
+</div>
+<span class="tag">approved</span>
+</div>
+<div class="list-item">
+    <div class="list-main">
+        <div class="list-row">
+            <strong>原型评审材料</strong>
+            <span class="chip">reviewer=2023000012</span>
+        </div>
+        <div class="muted">待修改 · 需补充验收说明</div>
+    </div>
+    <span class="tag--warn">needs_changes</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+
+<script>
+    const appOrigin = window.location.origin && window.location.origin !== "null"
+        ? window.location.origin
+        : "http://localhost:3001";
+    const appBasePath = window.location.pathname.includes("/app/") ? "/app" : "";
+    const metaInfo = document.getElementById("metaInfo");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const toLogin = document.getElementById("toLogin");
+
+    const userId = localStorage.getItem("auth_user_id");
+    const token = localStorage.getItem("auth_access_token");
+
+    if (userId && token) {
+        metaInfo.textContent = `当前登录账号：${userId}`;
+    } else {
+        metaInfo.textContent = "未检测到登录信息，请返回登录页。";
+    }
+
+    logoutBtn.addEventListener("click", () => {
+        localStorage.removeItem("auth_access_token");
+        localStorage.removeItem("auth_refresh_token");
+        localStorage.removeItem("auth_user_id");
+        window.location.href = `${appOrigin}${appBasePath}/login.html`;
+    });
+
+    toLogin.addEventListener("click", () => {
+        window.location.href = `${appOrigin}${appBasePath}/login.html`;
+    });
+</script>
 </body>
 
 </html>
