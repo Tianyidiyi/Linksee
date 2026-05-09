@@ -13,7 +13,7 @@
 - [Users 模块 API 契约 v1](auth/users-api-v1.md)
 - [HTTP + Socket + Worker 通信契约 v1](contracts/communication-contract-v1.md)
 - [OpenAPI schema v1](openapi/linksee-v1.yaml)
-- [前后端联调记录模板](frontend-backend-integration-record-template.md)
+- [前后端联调记录模板](前后端联调记录模板.md)
 
 ## 新增文档命名规范
 

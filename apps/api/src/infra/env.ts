@@ -23,4 +23,5 @@ export const env = {
   minioAccessKey: readEnv("MINIO_ACCESS_KEY"),
   minioSecretKey: readEnv("MINIO_SECRET_KEY"),
   minioBucketAvatars: readEnv("MINIO_BUCKET_AVATARS", "avatars"),
+  minioBucketCourseMaterials: readEnv("MINIO_BUCKET_COURSE_MATERIALS", "course-materials"),
 };

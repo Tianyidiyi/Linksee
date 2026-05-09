@@ -12,6 +12,7 @@ import {
 import {
   createRefreshToken,
   revokeRefreshToken,
+  revokeAllRefreshTokensForUsers,
   revokeAllUserRefreshTokens,
   signAccessToken,
   storeRefreshToken,
@@ -33,6 +34,10 @@ function invalidCredentials(res: Response): void {
 
 function isValidUserId(value: string): boolean {
   return /^\d{10}$/.test(value);
+}
+
+async function revokeRefreshTokensForUsers(userIds: string[]): Promise<void> {
+  await revokeAllRefreshTokensForUsers([...new Set(userIds)]);
 }
 
 export const authRouter = Router();
@@ -361,6 +366,8 @@ authRouter.post(
       where: { id: { in: targetIds }, role: { in: batchAllowedRoles }, isActive: true },
       data: { passwordHash, forceChangePassword: true },
     });
+
+    await revokeRefreshTokensForUsers(targetIds);
 
     return res.json({
       ok: true,

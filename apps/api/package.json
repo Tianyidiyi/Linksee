@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node ./scripts/build.mjs",
+    "build": "node --preserve-symlinks-main ./scripts/build.mjs",
     "pack": "npm pack",
     "start:demo": "node ./src/demo/server.mjs",
     "test:socket-demo": "node ./src/demo/socket-smoke.mjs",

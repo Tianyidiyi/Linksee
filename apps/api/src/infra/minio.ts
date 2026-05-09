@@ -1,7 +1,6 @@
 import { Client } from "minio";
 import { env } from "./env.js";
 
-/** MinIO 客户端单例（S3 兼容，对应 docker-compose 中的 minio 服务，端口 9000） */
 export const minioClient = new Client({
   endPoint: env.minioEndpoint,
   port: env.minioPort,
@@ -10,18 +9,13 @@ export const minioClient = new Client({
   secretKey: env.minioSecretKey,
 });
 
-/**
- * 确保 bucket 存在并设置公开读策略。
- * 服务启动时调用一次，幂等操作。
- */
-export async function ensureBuckets(): Promise<void> {
-  const bucket = env.minioBucketAvatars;
+async function ensureBucketReady(bucket: string): Promise<void> {
   const exists = await minioClient.bucketExists(bucket);
   if (!exists) {
     await minioClient.makeBucket(bucket, "");
     console.log(`[minio] bucket "${bucket}" created`);
   }
-  // 设置公开读策略（s3:GetObject 对所有人开放）
+
   const policy = JSON.stringify({
     Version: "2012-10-17",
     Statement: [
@@ -36,20 +30,20 @@ export async function ensureBuckets(): Promise<void> {
   await minioClient.setBucketPolicy(bucket, policy);
 }
 
-/** 构造头像公开访问 URL（不过期，依赖 bucket 公开读策略） */
-export function buildPublicUrl(objectName: string): string {
-  const protocol = env.minioUseSsl ? "https" : "http";
-  return `${protocol}://${env.minioEndpoint}:${env.minioPort}/${env.minioBucketAvatars}/${objectName}`;
+export async function ensureBuckets(): Promise<void> {
+  await ensureBucketReady(env.minioBucketAvatars);
+  await ensureBucketReady(env.minioBucketCourseMaterials);
 }
 
-/**
- * 从公开 URL 中提取 objectName。
- * URL 格式：http://host:port/bucket/objectName
- */
-export function extractObjectName(publicUrl: string): string | null {
+export function buildBucketPublicUrl(bucket: string, objectName: string): string {
+  const protocol = env.minioUseSsl ? "https" : "http";
+  return `${protocol}://${env.minioEndpoint}:${env.minioPort}/${bucket}/${objectName}`;
+}
+
+export function extractBucketObjectName(publicUrl: string, bucket: string): string | null {
   try {
-    const pathname = new URL(publicUrl).pathname; // /avatars/userId/uuid.jpg
-    const prefix = `/${env.minioBucketAvatars}/`;
+    const pathname = new URL(publicUrl).pathname;
+    const prefix = `/${bucket}/`;
     if (!pathname.startsWith(prefix)) return null;
     return pathname.slice(prefix.length);
   } catch {
@@ -57,3 +51,10 @@ export function extractObjectName(publicUrl: string): string | null {
   }
 }
 
+export function buildPublicUrl(objectName: string): string {
+  return buildBucketPublicUrl(env.minioBucketAvatars, objectName);
+}
+
+export function extractObjectName(publicUrl: string): string | null {
+  return extractBucketObjectName(publicUrl, env.minioBucketAvatars);
+}
