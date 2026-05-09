@@ -4,6 +4,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { authRouter } from "./auth-router.js";
 import { usersRouter } from "../users/users-router.js";
+import { assignmentsRouter } from "../assignments/assignments-router.js";
+import { assignmentStagesRouter } from "../assignments/assignment-stages-router.js";
 import { coursesRouter } from "../courses/courses-router.js";
 import { optionalAuth, forceChangeGuard } from "../infra/jwt-middleware.js";
 import { ensureBuckets } from "../infra/minio.js";
@@ -28,6 +30,8 @@ app.get("/health", (_req, res) => {
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/users", usersRouter);
 app.use("/api/v1/courses", coursesRouter);
+app.use("/api/v1", assignmentsRouter);
+app.use("/api/v1", assignmentStagesRouter);
 
 async function bootstrap(): Promise<void> {
   await ensureBuckets();

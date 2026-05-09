@@ -2,6 +2,11 @@ import { Router, type Request, type Response } from "express";
 import { Role, CourseStatus, CourseTeacherRole, CourseMemberStatus } from "@prisma/client";
 import { prisma } from "../infra/prisma.js";
 import { requireAuth } from "../infra/jwt-middleware.js";
+import {
+  ensureCourseExists as ensureCourseExistsShared,
+  ensureCourseReadable as ensureCourseReadableShared,
+  getCourseTeacherRecord as getCourseTeacherRecordShared,
+} from "./course-access.js";
 
 export const coursesRouter = Router();
 
@@ -18,6 +23,38 @@ function forbidden(res: Response): void {
   res.status(403).json({ ok: false, code: "FORBIDDEN", message: "Insufficient permissions" });
 }
 
+function validationFailed(res: Response, message: string): void {
+  res.status(400).json({ ok: false, code: "VALIDATION_FAILED", message });
+}
+
+function parseCourseId(rawValue: string | string[] | undefined, res: Response): bigint | null {
+  if (Array.isArray(rawValue) || typeof rawValue !== "string") {
+    validationFailed(res, "courseId must be a positive integer string");
+    return null;
+  }
+
+  if (!/^\d+$/.test(rawValue)) {
+    validationFailed(res, "courseId must be a positive integer string");
+    return null;
+  }
+
+  try {
+    return BigInt(rawValue);
+  } catch {
+    validationFailed(res, "courseId is invalid");
+    return null;
+  }
+}
+
+function parseRequiredParam(rawValue: string | string[] | undefined, fieldName: string, res: Response): string | null {
+  if (Array.isArray(rawValue) || typeof rawValue !== "string" || rawValue.length === 0) {
+    validationFailed(res, `${fieldName} must be a non-empty string`);
+    return null;
+  }
+
+  return rawValue;
+}
+
 // 验证调用方是否能访问该课程（is a member / teacher / assistant / academic）
 async function getCourseWithAccessCheck(
   courseId: bigint,
@@ -25,38 +62,42 @@ async function getCourseWithAccessCheck(
   role: Role,
   res: Response
 ): Promise<{ id: bigint } | null> {
-  const course = await prisma.course.findUnique({ where: { id: courseId } });
-  if (!course) {
-    notFound(res);
-    return null;
-  }
-  if (role === Role.academic) return course;
+  return ensureCourseReadableShared(courseId, userId, role, res);
+}
 
-  if (role === Role.teacher || role === Role.assistant) {
-    const isTeacher = await prisma.courseTeacher.findUnique({
-      where: { courseId_userId: { courseId, userId } },
-    });
-    const isAssistant = isTeacher
-      ? null
-      : await prisma.assistantBinding.findUnique({
-          where: { assistantUserId_courseId: { assistantUserId: userId, courseId } },
-        });
-    if (!isTeacher && !isAssistant) {
-      forbidden(res);
-      return null;
-    }
-    return course;
+async function getCourseTeacherRecord(courseId: bigint, userId: string) {
+  return getCourseTeacherRecordShared(courseId, userId);
+}
+
+async function ensureCourseExists(courseId: bigint, res: Response): Promise<boolean> {
+  return ensureCourseExistsShared(courseId, res);
+}
+
+async function ensureLeadTeacherConflict(courseId: bigint, userId: string, role: CourseTeacherRole, res: Response): Promise<boolean> {
+  if (role !== CourseTeacherRole.lead) {
+    return false;
   }
 
-  // student：必须是课程成员
-  const membership = await prisma.courseMember.findUnique({
-    where: { courseId_userId: { courseId, userId } },
+  const existingLead = await prisma.courseTeacher.findFirst({
+    where: { courseId, role: CourseTeacherRole.lead },
+    select: { userId: true },
   });
-  if (!membership || membership.status === CourseMemberStatus.withdrawn) {
-    forbidden(res);
-    return null;
+  if (existingLead && existingLead.userId !== userId) {
+    res.status(409).json({ ok: false, code: "CONFLICT", message: "Course already has a lead teacher" });
+    return true;
   }
-  return course;
+
+  return false;
+}
+
+async function ensureAssistantBelongsToTeacher(
+  teacherUserId: string,
+  assistantUserId: string,
+): Promise<boolean> {
+  const binding = await prisma.teacherAssistant.findUnique({
+    where: { assistantUserId: assistantUserId },
+  });
+  return binding?.teacherUserId === teacherUserId;
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -162,8 +203,10 @@ coursesRouter.post("/", requireAuth, async (req: Request, res: Response) => {
 // 获取课程详情（需有访问权限）
 // ──────────────────────────────────────────────────────────────
 coursesRouter.get("/:id", requireAuth, async (req: Request, res: Response) => {
-  const courseId = BigInt(req.params.id);
-  const { id: userId, role } = req.user!;
+  const courseId = parseCourseId(req.params.id, res);
+  if (courseId === null) return;
+  const userId = req.user!.id;
+  const role = req.user!.role as Role;
 
   const access = await getCourseWithAccessCheck(courseId, userId, role, res);
   if (!access) return;
@@ -194,7 +237,8 @@ coursesRouter.get("/:id", requireAuth, async (req: Request, res: Response) => {
 coursesRouter.patch("/:id", requireAuth, async (req: Request, res: Response) => {
   if (req.user!.role !== Role.academic) return forbidden(res);
 
-  const courseId = BigInt(req.params.id);
+  const courseId = parseCourseId(req.params.id, res);
+  if (courseId === null) return;
   const existing = await prisma.course.findUnique({ where: { id: courseId } });
   if (!existing) return notFound(res);
 
@@ -223,8 +267,10 @@ coursesRouter.patch("/:id", requireAuth, async (req: Request, res: Response) => 
 // 列出课程老师（需有访问权限）
 // ──────────────────────────────────────────────────────────────
 coursesRouter.get("/:id/teachers", requireAuth, async (req: Request, res: Response) => {
-  const courseId = BigInt(req.params.id);
-  const { id: userId, role } = req.user!;
+  const courseId = parseCourseId(req.params.id, res);
+  if (courseId === null) return;
+  const userId = req.user!.id;
+  const role = req.user!.role as Role;
 
   const access = await getCourseWithAccessCheck(courseId, userId, role, res);
   if (!access) return;
@@ -248,12 +294,12 @@ coursesRouter.get("/:id/teachers", requireAuth, async (req: Request, res: Respon
 coursesRouter.post("/:id/teachers", requireAuth, async (req: Request, res: Response) => {
   if (req.user!.role !== Role.academic) return forbidden(res);
 
-  const courseId = BigInt(req.params.id);
-  const existing = await prisma.course.findUnique({ where: { id: courseId } });
-  if (!existing) return notFound(res);
+  const courseId = parseCourseId(req.params.id, res);
+  if (courseId === null) return;
+  if (!(await ensureCourseExists(courseId, res))) return;
 
   const { userId, role: teacherRole } = req.body ?? {};
-  if (!userId) {
+  if (typeof userId !== "string" || userId.length === 0) {
     return res.status(400).json({ ok: false, code: "VALIDATION_FAILED", message: "userId is required" });
   }
 
@@ -265,6 +311,8 @@ coursesRouter.post("/:id/teachers", requireAuth, async (req: Request, res: Respo
 
   const roleValue: CourseTeacherRole =
     teacherRole === CourseTeacherRole.co ? CourseTeacherRole.co : CourseTeacherRole.lead;
+
+  if (await ensureLeadTeacherConflict(courseId, userId, roleValue, res)) return;
 
   const record = await prisma.courseTeacher.upsert({
     where: { courseId_userId: { courseId, userId } },
@@ -283,8 +331,11 @@ coursesRouter.post("/:id/teachers", requireAuth, async (req: Request, res: Respo
 coursesRouter.delete("/:id/teachers/:userId", requireAuth, async (req: Request, res: Response) => {
   if (req.user!.role !== Role.academic) return forbidden(res);
 
-  const courseId = BigInt(req.params.id);
-  const { userId } = req.params;
+  const courseId = parseCourseId(req.params.id, res);
+  if (courseId === null) return;
+  const userId = parseRequiredParam(req.params.userId, "userId", res);
+  if (userId === null) return;
+  if (!(await ensureCourseExists(courseId, res))) return;
 
   const record = await prisma.courseTeacher.findUnique({
     where: { courseId_userId: { courseId, userId } },
@@ -298,12 +349,219 @@ coursesRouter.delete("/:id/teachers/:userId", requireAuth, async (req: Request, 
 });
 
 // ──────────────────────────────────────────────────────────────
+// GET /api/v1/courses/:id/assistants
+// 列出课程助教（academic 或课程老师）
+// ──────────────────────────────────────────────────────────────
+coursesRouter.get("/:id/assistants", requireAuth, async (req: Request, res: Response) => {
+  const courseId = parseCourseId(req.params.id, res);
+  if (courseId === null) return;
+
+  const { id: userId, role } = req.user!;
+  if (role !== Role.academic) {
+    const teacherRecord = await getCourseTeacherRecord(courseId, userId);
+    if (!teacherRecord) {
+      return forbidden(res);
+    }
+  }
+
+  const assistants = await prisma.assistantBinding.findMany({
+    where: { courseId },
+    select: {
+      assistantUserId: true,
+      teacherUserId: true,
+      createdAt: true,
+      assistant: {
+        select: {
+          id: true,
+          profile: {
+            select: {
+              realName: true,
+              avatarUrl: true,
+              accountNo: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: [{ createdAt: "asc" }],
+  });
+
+  res.json({ ok: true, data: serializeBigInt(assistants) });
+});
+
+// ──────────────────────────────────────────────────────────────
+// POST /api/v1/courses/:id/assistants
+// 课程老师为自己的课程绑定助教
+// ──────────────────────────────────────────────────────────────
+coursesRouter.post("/:id/assistants", requireAuth, async (req: Request, res: Response) => {
+  const courseId = parseCourseId(req.params.id, res);
+  if (courseId === null) return;
+
+  if (req.user!.role !== Role.teacher) {
+    return res.status(403).json({
+      ok: false,
+      code: "FORBIDDEN",
+      message: "Only course teachers can bind assistants",
+    });
+  }
+
+  const teacherUserId = req.user!.id;
+  const teacherRecord = await getCourseTeacherRecord(courseId, teacherUserId);
+  if (!teacherRecord) {
+    return forbidden(res);
+  }
+
+  const { assistantUserId } = req.body ?? {};
+  if (!assistantUserId || typeof assistantUserId !== "string" || !/^\d{10}$/.test(assistantUserId)) {
+    return validationFailed(res, "assistantUserId must be a 10-digit string");
+  }
+
+  const assistant = await prisma.user.findUnique({
+    where: { id: assistantUserId },
+    select: { id: true, role: true, isActive: true },
+  });
+  if (!assistant || !assistant.isActive || assistant.role !== Role.assistant) {
+    return validationFailed(res, "Target user is not an active assistant");
+  }
+
+  const belongsToTeacher = await ensureAssistantBelongsToTeacher(teacherUserId, assistantUserId);
+  if (!belongsToTeacher) {
+    return res.status(403).json({
+      ok: false,
+      code: "FORBIDDEN",
+      message: "Assistant does not belong to current teacher",
+    });
+  }
+
+  const currentCount = await prisma.assistantBinding.count({ where: { courseId } });
+  const exists = await prisma.assistantBinding.findUnique({
+    where: { assistantUserId_courseId: { assistantUserId, courseId } },
+  });
+
+  if (!exists && currentCount >= 3) {
+    return res.status(409).json({
+      ok: false,
+      code: "CONFLICT",
+      message: "A course can bind at most 3 assistants",
+    });
+  }
+
+  const record = await prisma.assistantBinding.upsert({
+    where: { assistantUserId_courseId: { assistantUserId, courseId } },
+    create: {
+      assistantUserId,
+      teacherUserId,
+      courseId,
+    },
+    update: {
+      teacherUserId,
+    },
+    select: {
+      assistantUserId: true,
+      teacherUserId: true,
+      courseId: true,
+      createdAt: true,
+      assistant: {
+        select: {
+          id: true,
+          profile: {
+            select: {
+              realName: true,
+              avatarUrl: true,
+              accountNo: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  res.status(201).json({ ok: true, data: serializeBigInt(record) });
+});
+
+coursesRouter.delete("/:id/assistants/:assistantUserId", requireAuth, async (req: Request, res: Response) => {
+  const courseId = parseCourseId(req.params.id, res);
+  if (courseId === null) return;
+
+  if (req.user!.role !== Role.teacher) {
+    return res.status(403).json({
+      ok: false,
+      code: "FORBIDDEN",
+      message: "Only course teachers can unbind assistants",
+    });
+  }
+
+  const assistantUserId = parseRequiredParam(req.params.assistantUserId, "assistantUserId", res);
+  if (assistantUserId === null) return;
+  if (!(await ensureCourseExists(courseId, res))) return;
+
+  const teacherUserId = req.user!.id;
+  const teacherRecord = await getCourseTeacherRecord(courseId, teacherUserId);
+  if (!teacherRecord) {
+    return forbidden(res);
+  }
+
+  const binding = await prisma.assistantBinding.findUnique({
+    where: { assistantUserId_courseId: { assistantUserId, courseId } },
+    select: { assistantUserId: true, teacherUserId: true },
+  });
+  if (!binding) {
+    return res.status(404).json({ ok: false, code: "NOT_FOUND", message: "Assistant not bound to this course" });
+  }
+  if (binding.teacherUserId !== teacherUserId) {
+    return forbidden(res);
+  }
+
+  await prisma.assistantBinding.delete({
+    where: { assistantUserId_courseId: { assistantUserId, courseId } },
+  });
+
+  res.json({ ok: true });
+});
+
+coursesRouter.patch("/:id/teachers/:userId", requireAuth, async (req: Request, res: Response) => {
+  if (req.user!.role !== Role.academic) return forbidden(res);
+
+  const courseId = parseCourseId(req.params.id, res);
+  if (courseId === null) return;
+  const userId = parseRequiredParam(req.params.userId, "userId", res);
+  if (userId === null) return;
+  if (!(await ensureCourseExists(courseId, res))) return;
+
+  const record = await prisma.courseTeacher.findUnique({
+    where: { courseId_userId: { courseId, userId } },
+    select: { courseId: true, userId: true },
+  });
+  if (!record) {
+    return res.status(404).json({ ok: false, code: "NOT_FOUND", message: "Teacher not in this course" });
+  }
+
+  const roleValue =
+    req.body?.role === CourseTeacherRole.co ? CourseTeacherRole.co : req.body?.role === CourseTeacherRole.lead ? CourseTeacherRole.lead : null;
+  if (!roleValue) {
+    return validationFailed(res, "role must be lead or co");
+  }
+
+  if (await ensureLeadTeacherConflict(courseId, userId, roleValue, res)) return;
+
+  const updated = await prisma.courseTeacher.update({
+    where: { courseId_userId: { courseId, userId } },
+    data: { role: roleValue },
+    select: { courseId: true, userId: true, role: true, assignedAt: true },
+  });
+
+  res.json({ ok: true, data: serializeBigInt(updated) });
+});
+
+// ──────────────────────────────────────────────────────────────
 // GET /api/v1/courses/:id/members
 // 列出课程成员（需有访问权限，支持 status 筛选）
 // ──────────────────────────────────────────────────────────────
 coursesRouter.get("/:id/members", requireAuth, async (req: Request, res: Response) => {
-  const courseId = BigInt(req.params.id);
-  const { id: userId, role } = req.user!;
+  const courseId = parseCourseId(req.params.id, res);
+  if (courseId === null) return;
+  const userId = req.user!.id;
+  const role = req.user!.role as Role;
 
   const access = await getCourseWithAccessCheck(courseId, userId, role, res);
   if (!access) return;
@@ -338,7 +596,8 @@ coursesRouter.get("/:id/members", requireAuth, async (req: Request, res: Respons
 coursesRouter.post("/:id/members/batch", requireAuth, async (req: Request, res: Response) => {
   if (req.user!.role !== Role.academic) return forbidden(res);
 
-  const courseId = BigInt(req.params.id);
+  const courseId = parseCourseId(req.params.id, res);
+  if (courseId === null) return;
   const existing = await prisma.course.findUnique({ where: { id: courseId } });
   if (!existing) return notFound(res);
 
@@ -380,6 +639,36 @@ coursesRouter.post("/:id/members/batch", requireAuth, async (req: Request, res: 
   res.status(201).json({ ok: true, data: { imported: userIds.length } });
 });
 
+coursesRouter.post("/:id/members", requireAuth, async (req: Request, res: Response) => {
+  if (req.user!.role !== Role.academic) return forbidden(res);
+
+  const courseId = parseCourseId(req.params.id, res);
+  if (courseId === null) return;
+  if (!(await ensureCourseExists(courseId, res))) return;
+
+  const { userId } = req.body ?? {};
+  if (typeof userId !== "string" || userId.length === 0) {
+    return validationFailed(res, "userId is required");
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, role: true, isActive: true },
+  });
+  if (!user || !user.isActive || user.role !== Role.student) {
+    return validationFailed(res, "User is not an active student");
+  }
+
+  const member = await prisma.courseMember.upsert({
+    where: { courseId_userId: { courseId, userId } },
+    create: { courseId, userId },
+    update: { status: CourseMemberStatus.active },
+    select: { id: true, courseId: true, userId: true, status: true, joinedAt: true },
+  });
+
+  res.status(201).json({ ok: true, data: serializeBigInt(member) });
+});
+
 // ──────────────────────────────────────────────────────────────
 // DELETE /api/v1/courses/:id/members/:userId
 // 移除课程成员（academic only，软删除 status=withdrawn）
@@ -387,8 +676,11 @@ coursesRouter.post("/:id/members/batch", requireAuth, async (req: Request, res: 
 coursesRouter.delete("/:id/members/:userId", requireAuth, async (req: Request, res: Response) => {
   if (req.user!.role !== Role.academic) return forbidden(res);
 
-  const courseId = BigInt(req.params.id);
-  const { userId } = req.params;
+  const courseId = parseCourseId(req.params.id, res);
+  if (courseId === null) return;
+  const userId = parseRequiredParam(req.params.userId, "userId", res);
+  if (userId === null) return;
+  if (!(await ensureCourseExists(courseId, res))) return;
 
   const member = await prisma.courseMember.findUnique({
     where: { courseId_userId: { courseId, userId } },

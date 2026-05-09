@@ -15,6 +15,8 @@ tags:
     description: 登录、改密、Token 管理
   - name: Users
     description: 用户信息与 profile
+  - name: Courses
+    description: 课程基础信息与访问范围
   - name: Assignments
     description: 课程项目
   - name: Stages
@@ -29,7 +31,219 @@ tags:
     description: 教师课程看板
 
 paths:
+  /courses:
+    get:
+      tags:
+        - Courses
+      summary: 获取当前用户可访问的课程列表
+      operationId: listCourses
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: 课程列表获取成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Course"
+              example:
+                ok: true
+                data:
+                  - id: "1"
+                    courseNo: SE2026-01
+                    name: 软件工程
+                    academicYear: 2026
+                    semester: 2
+                    status: active
+                    description: 软件工程课程项目实践
+                    createdAt: "2026-05-08T10:00:00+08:00"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+    post:
+      tags:
+        - Courses
+      summary: 创建课程
+      operationId: createCourse
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [courseNo, name, academicYear, semester]
+              properties:
+                courseNo:
+                  type: string
+                name:
+                  type: string
+                academicYear:
+                  type: integer
+                semester:
+                  type: integer
+                description:
+                  type: string
+                  nullable: true
+            example:
+              courseNo: SE2026-01
+              name: 软件工程
+              academicYear: 2026
+              semester: 2
+              description: 软件工程课程项目实践
+      responses:
+        "201":
+          description: 课程创建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    $ref: "#/components/schemas/Course"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /courses/{courseId}:
+    get:
+      tags:
+        - Courses
+      summary: 获取课程详情
+      operationId: getCourse
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+      responses:
+        "200":
+          description: 课程详情获取成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    $ref: "#/components/schemas/CourseDetail"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags:
+        - Courses
+      summary: 更新课程
+      operationId: updateCourse
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                  nullable: true
+                status:
+                  $ref: "#/components/schemas/CourseStatus"
+            example:
+              name: 软件工程（实验班）
+              description: 更新后的课程说明
+              status: active
+      responses:
+        "200":
+          description: 课程更新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      courseNo:
+                        type: string
+                      name:
+                        type: string
+                      status:
+                        $ref: "#/components/schemas/CourseStatus"
+                      updatedAt:
+                        type: string
+                        format: date-time
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /courses/{courseId}/assignments:
+    get:
+      tags:
+        - Assignments
+      summary: 列出课程下 Assignment
+      operationId: listAssignments
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/AssignmentStatus"
+      responses:
+        "200":
+          description: Assignment 列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Assignment"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
     post:
       tags:
         - Assignments
@@ -39,7 +253,6 @@ paths:
         - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/CourseId"
-        - $ref: "#/components/parameters/IdempotencyKey"
       requestBody:
         required: true
         content:
@@ -49,30 +262,240 @@ paths:
             example:
               title: 软件工程课程项目
               description: 完成一个教学协作平台原型
-              dueAt: "2026-06-30T23:59:59+08:00"
+              status: draft
       responses:
-        "200":
+        "201":
           description: Assignment 创建成功
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Assignment"
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    $ref: "#/components/schemas/Assignment"
               example:
-                id: assignment_001
-                courseId: course_software_engineering
-                title: 软件工程课程项目
-                description: 完成一个教学协作平台原型
-                dueAt: "2026-06-30T23:59:59+08:00"
-                createdBy: teacher_001
-                createdAt: "2026-04-30T10:00:00+08:00"
+                ok: true
+                data:
+                  id: "1001"
+                  courseId: "2001"
+                  title: 软件工程课程项目
+                  description: 完成一个教学协作平台原型
+                  descriptionFiles: []
+                  status: draft
+                  createdBy: "2024000001"
+                  createdAt: "2026-05-09T10:00:00.000Z"
+                  updatedAt: "2026-05-09T10:00:00.000Z"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
         "401":
           $ref: "#/components/responses/Unauthenticated"
         "403":
           $ref: "#/components/responses/Forbidden"
-        "422":
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /assignments/{assignmentId}:
+    get:
+      tags:
+        - Assignments
+      summary: 获取 Assignment 详情
+      operationId: getAssignment
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AssignmentId"
+      responses:
+        "200":
+          description: Assignment 详情
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    $ref: "#/components/schemas/Assignment"
+        "400":
           $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags:
+        - Assignments
+      summary: 更新 Assignment
+      operationId: updateAssignment
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AssignmentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAssignmentRequest"
+      responses:
+        "200":
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    $ref: "#/components/schemas/Assignment"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    delete:
+      tags:
+        - Assignments
+      summary: 删除 Assignment（无下游数据时）
+      operationId: deleteAssignment
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AssignmentId"
+      responses:
+        "200":
+          description: 删除成功
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /assignments/{assignmentId}/materials:
+    post:
+      tags:
+        - Assignments
+      summary: 上传 Assignment 说明附件
+      operationId: uploadAssignmentMaterials
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AssignmentId"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - files
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        "201":
+          description: 上传成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MaterialUploadResult"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    delete:
+      tags:
+        - Assignments
+      summary: 删除 Assignment 说明附件
+      operationId: deleteAssignmentMaterial
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AssignmentId"
+        - name: objectKey
+          in: query
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                objectKey:
+                  type: string
+      responses:
+        "200":
+          description: 删除成功
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
 
   /assignments/{assignmentId}/stages:
+    get:
+      tags:
+        - Stages
+      summary: 列出 Assignment 下 Stage
+      operationId: listStages
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AssignmentId"
+      responses:
+        "200":
+          description: Stage 列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Stage"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
     post:
       tags:
         - Stages
@@ -82,7 +505,6 @@ paths:
         - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/AssignmentId"
-        - $ref: "#/components/parameters/IdempotencyKey"
       requestBody:
         required: true
         content:
@@ -90,32 +512,222 @@ paths:
             schema:
               $ref: "#/components/schemas/CreateStageRequest"
             example:
-              name: 需求分析提交
+              title: 需求分析提交
               description: 提交需求说明书、用例图和原型链接
+              startAt: "2026-05-10T00:00:00+08:00"
               dueAt: "2026-05-15T23:59:59+08:00"
               weight: 20
+              submissionDesc: 提交 PDF 与仓库链接
+              acceptCriteria: 需求完整、结构清晰、可追踪
+              status: planned
       responses:
-        "200":
+        "201":
           description: Stage 创建成功
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Stage"
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    $ref: "#/components/schemas/Stage"
               example:
-                id: stage_001
-                assignmentId: assignment_001
-                name: 需求分析提交
-                description: 提交需求说明书、用例图和原型链接
-                dueAt: "2026-05-15T23:59:59+08:00"
-                weight: 20
+                ok: true
+                data:
+                  id: "3001"
+                  assignmentId: "1001"
+                  stageNo: 1
+                  title: 需求分析提交
+                  description: 提交需求说明书、用例图和原型链接
+                  startAt: "2026-05-10T00:00:00.000Z"
+                  dueAt: "2026-05-15T23:59:59.000Z"
+                  weight: 20
+                  submissionDesc: 提交 PDF 与仓库链接
+                  requirementFiles: []
+                  acceptCriteria: 需求完整、结构清晰、可追踪
+                  status: planned
+                  createdBy: "2024000001"
+                  createdAt: "2026-05-09T10:00:00.000Z"
+                  updatedAt: "2026-05-09T10:00:00.000Z"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
         "401":
           $ref: "#/components/responses/Unauthenticated"
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
-        "422":
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /stages/{stageId}:
+    get:
+      tags:
+        - Stages
+      summary: 获取 Stage 详情
+      operationId: getStage
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "200":
+          description: Stage 详情
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    $ref: "#/components/schemas/Stage"
+        "400":
           $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags:
+        - Stages
+      summary: 更新 Stage
+      operationId: updateStage
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/StageId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateStageRequest"
+      responses:
+        "200":
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    $ref: "#/components/schemas/Stage"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    delete:
+      tags:
+        - Stages
+      summary: 归档 Stage（status=archived）
+      operationId: archiveStage
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "200":
+          description: 归档成功
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /stages/{stageId}/materials:
+    post:
+      tags:
+        - Stages
+      summary: 上传 Stage 要求附件
+      operationId: uploadStageMaterials
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/StageId"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - files
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        "201":
+          description: 上传成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MaterialUploadResult"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    delete:
+      tags:
+        - Stages
+      summary: 删除 Stage 要求附件
+      operationId: deleteStageMaterial
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/StageId"
+        - name: objectKey
+          in: query
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                objectKey:
+                  type: string
+      responses:
+        "200":
+          description: 删除成功
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
 
   /groups/{groupId}/messages:
     post:
@@ -466,6 +1078,8 @@ paths:
                 ok: true
         "400":
           $ref: "#/components/responses/ValidationFailed"
+        "409":
+          $ref: "#/components/responses/Conflict"
         "401":
           $ref: "#/components/responses/Unauthenticated"
 
@@ -509,6 +1123,8 @@ paths:
                   avatarUrl: "http://localhost:9000/avatars/2024001001/f84e7d9a.jpg"
         "400":
           $ref: "#/components/responses/ValidationFailed"
+        "409":
+          $ref: "#/components/responses/Conflict"
         "401":
           $ref: "#/components/responses/Unauthenticated"
 
@@ -1057,10 +1673,31 @@ components:
           maxLength: 80
         description:
           type: string
+          nullable: true
           maxLength: 2000
-        dueAt:
+        status:
+          $ref: "#/components/schemas/AssignmentStatus"
+
+    UpdateAssignmentRequest:
+      type: object
+      properties:
+        title:
           type: string
-          format: date-time
+          minLength: 1
+          maxLength: 80
+        description:
+          type: string
+          nullable: true
+          maxLength: 2000
+        status:
+          $ref: "#/components/schemas/AssignmentStatus"
+
+    AssignmentStatus:
+      type: string
+      enum:
+        - draft
+        - active
+        - archived
 
     Assignment:
       type: object
@@ -1068,8 +1705,10 @@ components:
         - id
         - courseId
         - title
+        - status
         - createdBy
         - createdAt
+        - updatedAt
       properties:
         id:
           type: string
@@ -1081,29 +1720,102 @@ components:
           maxLength: 80
         description:
           type: string
+          nullable: true
           maxLength: 2000
-        dueAt:
-          type: string
-          format: date-time
+        descriptionFiles:
+          type: array
+          items:
+            $ref: "#/components/schemas/StoredFile"
+        status:
+          $ref: "#/components/schemas/AssignmentStatus"
         createdBy:
           type: string
         createdAt:
           type: string
           format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CourseStatus:
+      type: string
+      enum:
+        - draft
+        - active
+        - archived
+
+    Course:
+      type: object
+      required:
+        - id
+        - courseNo
+        - name
+        - academicYear
+        - semester
+        - status
+        - createdAt
+      properties:
+        id:
+          type: string
+        courseNo:
+          type: string
+        name:
+          type: string
+        academicYear:
+          type: integer
+        semester:
+          type: integer
+        status:
+          $ref: "#/components/schemas/CourseStatus"
+        description:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    CourseDetail:
+      allOf:
+        - $ref: "#/components/schemas/Course"
+        - type: object
+          required:
+            - updatedAt
+            - _count
+          properties:
+            updatedAt:
+              type: string
+              format: date-time
+            _count:
+              type: object
+              required:
+                - members
+                - teachers
+              properties:
+                members:
+                  type: integer
+                  minimum: 0
+                teachers:
+                  type: integer
+                  minimum: 0
 
     CreateStageRequest:
       type: object
       required:
-        - name
+        - title
         - dueAt
       properties:
-        name:
+        title:
           type: string
           minLength: 1
           maxLength: 60
         description:
           type: string
+          nullable: true
           maxLength: 2000
+        startAt:
+          type: string
+          format: date-time
+          nullable: true
         dueAt:
           type: string
           format: date-time
@@ -1111,33 +1823,164 @@ components:
           type: number
           minimum: 0
           maximum: 100
+          nullable: true
+        submissionDesc:
+          type: string
+          nullable: true
+          maxLength: 2000
+        acceptCriteria:
+          type: string
+          nullable: true
+          maxLength: 2000
+        status:
+          $ref: "#/components/schemas/StageStatus"
+
+    UpdateStageRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 60
+        description:
+          type: string
+          nullable: true
+        startAt:
+          type: string
+          format: date-time
+          nullable: true
+        dueAt:
+          type: string
+          format: date-time
+          nullable: true
+        weight:
+          type: number
+          minimum: 0
+          maximum: 100
+          nullable: true
+        submissionDesc:
+          type: string
+          nullable: true
+        acceptCriteria:
+          type: string
+          nullable: true
+        status:
+          $ref: "#/components/schemas/StageStatus"
+
+    StageStatus:
+      type: string
+      enum:
+        - planned
+        - open
+        - closed
+        - archived
 
     Stage:
       type: object
       required:
         - id
         - assignmentId
-        - name
-        - dueAt
+        - stageNo
+        - title
+        - status
+        - createdBy
+        - createdAt
+        - updatedAt
       properties:
         id:
           type: string
         assignmentId:
           type: string
-        name:
+        stageNo:
+          type: integer
+          minimum: 1
+        title:
           type: string
           minLength: 1
           maxLength: 60
         description:
           type: string
+          nullable: true
           maxLength: 2000
+        startAt:
+          type: string
+          format: date-time
+          nullable: true
         dueAt:
           type: string
           format: date-time
+          nullable: true
         weight:
           type: number
           minimum: 0
           maximum: 100
+          nullable: true
+        submissionDesc:
+          type: string
+          nullable: true
+        requirementFiles:
+          type: array
+          items:
+            $ref: "#/components/schemas/StoredFile"
+        acceptCriteria:
+          type: string
+          nullable: true
+        status:
+          $ref: "#/components/schemas/StageStatus"
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    StoredFile:
+      type: object
+      required:
+        - name
+        - objectKey
+        - size
+        - mimeType
+        - uploadedAt
+        - url
+      properties:
+        name:
+          type: string
+        objectKey:
+          type: string
+        size:
+          type: integer
+        mimeType:
+          type: string
+        uploadedAt:
+          type: string
+          format: date-time
+        url:
+          type: string
+
+    MaterialUploadResult:
+      type: object
+      required:
+        - ok
+        - data
+      properties:
+        ok:
+          type: boolean
+        data:
+          type: object
+          required:
+            - uploaded
+            - total
+          properties:
+            uploaded:
+              type: array
+              items:
+                $ref: "#/components/schemas/StoredFile"
+            total:
+              type: integer
+              minimum: 0
 
     CreateGroupMessageRequest:
       type: object

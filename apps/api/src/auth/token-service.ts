@@ -50,6 +50,15 @@ export async function revokeRefreshToken(rawToken: string): Promise<void> {
 }
 
 export async function revokeAllUserRefreshTokens(userId: string): Promise<void> {
+  await revokeAllRefreshTokensForUsers([userId]);
+}
+
+export async function revokeAllRefreshTokensForUsers(userIds: string[]): Promise<void> {
+  const targetUserIds = new Set(userIds);
+  if (targetUserIds.size === 0) {
+    return;
+  }
+
   const stream = redis.scanStream({
     match: `${REFRESH_PREFIX}*`,
     count: 200,
@@ -60,7 +69,10 @@ export async function revokeAllUserRefreshTokens(userId: string): Promise<void> 
       continue;
     }
     const values = await redis.mget(...keys);
-    const matchedKeys = keys.filter((_, idx) => values[idx] === userId);
+    const matchedKeys = keys.filter((_, idx) => {
+      const storedUserId = values[idx];
+      return typeof storedUserId === "string" && targetUserIds.has(storedUserId);
+    });
     if (matchedKeys.length > 0) {
       await redis.del(...matchedKeys);
     }

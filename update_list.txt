@@ -1,4 +1,4 @@
-【声明栏】时间 | 操作者 | 事件内容
+﻿【声明栏】时间 | 操作者 | 事件内容
 
 2026-05-06 15:30 | zkx | 补充：Prisma 使用要点——以 schema.prisma 作为结构单一事实源；先执行 db push 或 migrate 再联调接口；生产优先 migrate 并保留回滚脚本；敏感信息只放环境变量并确保 DATABASE_URL 正确。
 
@@ -84,3 +84,36 @@
   - 更新 docs/api/courses/course-tables-design-v1.md：
     · chat_conversations.created_by 改为 VARCHAR(10) NULL
     · chat_messages 补充 updated_at DATETIME NOT NULL
+
+2026-05-09 | codex | refactor(assignments+courses)+docs: 课程权限/材料存储抽离，Assignment/Stage 路由拆分，并同步文档到当前可运行接口
+  [新增文件]
+  - apps/api/src/courses/course-access.ts
+  - apps/api/src/assignments/assignment-access.ts
+  - apps/api/src/assignments/course-material-storage.ts
+  - apps/api/src/assignments/assignment-stages-router.ts
+
+  [代码结构调整]
+  - assignments-router.ts 仅保留 Assignment 顶层 CRUD 与 assignment materials（上传/删除）
+  - assignment-stages-router.ts 承接 Stage CRUD、状态流转与 stage materials（上传/删除）
+  - auth/server.ts 挂载 assignmentStagesRouter
+  - courses-router.ts 接入统一课程权限与课程教师关系查询辅助
+
+  [后端开放接口（本次确认）]
+  - GET/POST    /api/v1/courses/:courseId/assignments
+  - GET/PATCH/DELETE /api/v1/assignments/:assignmentId
+  - POST/DELETE /api/v1/assignments/:assignmentId/materials
+  - GET/POST    /api/v1/assignments/:assignmentId/stages
+  - GET/PATCH/DELETE /api/v1/stages/:stageId
+  - POST/DELETE /api/v1/stages/:stageId/materials
+
+  [文档]
+  - 更新 docs/api/openapi/linksee-v1.yaml（Assignment/Stage 已实现接口、状态与文件元数据结构对齐）
+  - 更新 apps/web/README.md（前端联调按已开放接口对齐，统一上传规范 multipart/form-data + files）
+  - 更新 docs/architecture/current-architecture-status.md（改为“当前已实现范围 + 缺口 + 前后端对齐”）
+
+2026-05-09 | codex | docs(refactor): 交付状态与架构定位分离，前后端联调文档独立归档
+  [文档位置调整]
+  - 新增 docs/status/current-delivery-status.md（承载阶段交付状态、已实现范围、缺口）
+  - 新增 docs/api/前后端联调对齐说明.md（承载前后端联调对齐规则）
+  - 调整 docs/architecture/current-architecture-status.md 为“架构文档定位说明”，仅保留架构目录边界声明
+  - 调整 apps/web/README.md 为入口说明，链接到联调文档与交付状态文档
