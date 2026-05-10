@@ -3,7 +3,7 @@
 // 对应设计文档：docs/api/auth/auth-tables-design-v2.md
 //
 // 表：users / user_profiles / student_profiles /
-//     teacher_profiles / assistant_bindings
+//     teacher_profiles / teacher_assistants / assistant_bindings
 //
 // Refresh Token → Redis（不建表）
 // Audit Log     → winston 文件日志（不建表）
@@ -62,7 +62,24 @@ model User {
   teacherProfile  TeacherProfile?
 
   assistantBindingsAsAssistant AssistantBinding[] @relation("AssistantUser")
-  assistantBindingsAsTeacher   AssistantBinding[] @relation("TeacherUser")
+
+  // 归属关系：老师名下的助教（teacher 侧）；助教归属的老师（assistant 侧）
+  teacherAssistantsAsTeacher   TeacherAssistant[] @relation("TeacherOwner")
+  teacherAssistantsAsAssistant TeacherAssistant[] @relation("AssistantOwned")
+
+  // Course 模块关联
+  createdCourses    Course[]
+  courseTeachers    CourseTeacher[]
+  courseMembers     CourseMember[]
+  createdAssignments Assignment[]
+  createdStages     AssignmentStage[]
+  groupMemberships  GroupMember[]
+  createdGroups     Group[]
+  createdMiniTasks  MiniTask[]
+  assignedMiniTasks MiniTask[]   @relation("MiniTaskAssignee")
+  chatConversations ChatConversation[]
+  chatMessages      ChatMessage[]
+  chatConversationReads ChatConversationRead[]
 
   @@map("users")
 }
@@ -152,30 +169,466 @@ model TeacherProfile {
 }
 
 // ────────────────────────────────────────────────────────────
-// assistant_bindings — 助教子账号与课程绑定
+// teacher_assistants — 老师与助教的归属关系
 //
-// 助教是 users 表中 role=assistant 的完整账号记录，
-// 密码存在 users.passwordHash，本表只记绑定关系。
-// 助教权限范围 = 本表中该 assistant_user_id 对应的 course_id 集合。
+// 老师创建助教账号时写入，记录"这个助教账号属于哪位老师"。
+// assistantUserId 是 PK，保证一个助教只能属于一个老师。
+// 用途：
+//   - 老师重置助教密码时的权限边界校验（查此表）
+//   - 老师查看自己名下所有助教
+// ────────────────────────────────────────────────────────────
+
+model TeacherAssistant {
+  /// 助教的一卡通号（PK = 唯一归属保证），FK → users.id（role=assistant）
+  assistantUserId String   @id @db.VarChar(10)
+
+  /// 创建该助教账号的老师，FK → users.id（role=teacher）
+  teacherUserId   String   @db.VarChar(10)
+
+  createdAt       DateTime @default(now())
+
+  teacher   User @relation("TeacherOwner",   fields: [teacherUserId],   references: [id])
+  assistant User @relation("AssistantOwned", fields: [assistantUserId], references: [id])
+
+  @@index([teacherUserId])
+  @@map("teacher_assistants")
+}
+
+// ────────────────────────────────────────────────────────────
+// assistant_bindings — 助教与具体课程的分配关系
+//
+// 与 teacher_assistants 解耦：
+//   teacher_assistants  → "这个助教账号属于哪位老师"（账号创建时写入）
+//   assistant_bindings  → "这个助教被分配到了哪门课程"（分配时写入）
+//
+// 分配前须校验助教确实属于该老师（查 teacher_assistants）。
+// 助教账号存在但无分配记录时，登录后不显示任何课程内容（前端处理）。
+// 每门课程最多绑定 3 个助教，由业务层校验，不在 DB 层约束。
 // ────────────────────────────────────────────────────────────
 
 model AssistantBinding {
-  /// 助教的一卡通号，FK → users.id
+  /// 助教的一卡通号，FK → users.id（role=assistant）
   assistantUserId String @db.VarChar(10)
 
-  /// 创建该助教子账号的老师一卡通号，FK → users.id
-  teacherUserId String @db.VarChar(10)
+  /// 执行分配操作的老师一卡通号（审计用，无 Prisma relation）
+  teacherUserId   String @db.VarChar(10)
 
-  /// 绑定的课程 ID（课程表建立后补充 FK）
-  /// 暂用 VarChar(36) 预留 UUID 格式
-  courseId      String @db.VarChar(36)
+  /// 绑定的课程 ID，FK → courses.id
+  courseId        BigInt @db.UnsignedBigInt
 
   createdAt DateTime @default(now())
 
   assistant User @relation("AssistantUser", fields: [assistantUserId], references: [id])
-  teacher   User @relation("TeacherUser",   fields: [teacherUserId],   references: [id])
+  course    Course @relation(fields: [courseId], references: [id])
 
   @@id([assistantUserId, courseId])
   @@index([teacherUserId])
+  @@index([courseId])
   @@map("assistant_bindings")
+}
+
+// ============================================================
+// PHASE 1 — courses / course_teachers / course_members
+// 设计文档：docs/api/courses/course-tables-design-v1.md
+// ============================================================
+
+enum CourseStatus {
+  draft
+  active
+  archived
+}
+
+// ────────────────────────────────────────────────────────────
+// courses — 课程基础信息（教务处创建）
+// ────────────────────────────────────────────────────────────
+
+model Course {
+  id           BigInt       @id @default(autoincrement()) @db.UnsignedBigInt
+  courseNo     String       @unique @db.VarChar(30)
+  name         String       @db.VarChar(80)
+  academicYear Int          @db.SmallInt
+  semester     Int          @db.TinyInt
+  description  String?      @db.Text
+  status       CourseStatus @default(draft)
+
+  /// FK → users.id（role=academic），教务处创建人
+  createdBy    String       @db.VarChar(10)
+
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  creator          User                @relation(fields: [createdBy], references: [id])
+  teachers         CourseTeacher[]
+  members          CourseMember[]
+  assistantBindings AssistantBinding[]
+  assignments      Assignment[]
+
+  @@index([academicYear, semester])
+  @@map("courses")
+}
+
+// ────────────────────────────────────────────────────────────
+// course_teachers — 老师与课程的负责关系（academic 指派）
+// ────────────────────────────────────────────────────────────
+
+enum CourseTeacherRole {
+  lead // 主讲老师
+  co   // 合讲老师
+}
+
+model CourseTeacher {
+  courseId  BigInt           @db.UnsignedBigInt
+  userId    String           @db.VarChar(10)
+  role      CourseTeacherRole @default(lead)
+  assignedAt DateTime        @default(now())
+
+  course Course @relation(fields: [courseId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@id([courseId, userId])
+  @@map("course_teachers")
+}
+
+// ────────────────────────────────────────────────────────────
+// course_members — 学生课程成员名单（academic 导入）
+// ────────────────────────────────────────────────────────────
+
+enum CourseMemberStatus {
+  active
+  withdrawn
+}
+
+model CourseMember {
+  id       BigInt             @id @default(autoincrement()) @db.UnsignedBigInt
+  courseId BigInt             @db.UnsignedBigInt
+  userId   String             @db.VarChar(10)
+  status   CourseMemberStatus @default(active)
+  joinedAt DateTime           @default(now())
+
+  course Course @relation(fields: [courseId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([courseId, userId])
+  @@index([courseId, status])
+  @@map("course_members")
+}
+
+// ============================================================
+// PHASE 2 — assignments / assignment_group_configs / assignment_stages
+// ============================================================
+
+enum AssignmentStatus {
+  draft
+  active
+  archived
+}
+
+// ────────────────────────────────────────────────────────────
+// assignments — 课程项目
+// ────────────────────────────────────────────────────────────
+
+model Assignment {
+  id               BigInt           @id @default(autoincrement()) @db.UnsignedBigInt
+  courseId         BigInt           @db.UnsignedBigInt
+  title            String           @db.VarChar(120)
+  description      String?          @db.Text
+  descriptionFiles Json?
+  status           AssignmentStatus @default(draft)
+
+  /// FK → users.id（role=teacher）
+  createdBy        String           @db.VarChar(10)
+
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  course       Course                @relation(fields: [courseId], references: [id])
+  creator      User                  @relation(fields: [createdBy], references: [id])
+  groupConfig  AssignmentGroupConfig?
+  stages       AssignmentStage[]
+  groups       Group[]
+
+  @@map("assignments")
+}
+
+// ────────────────────────────────────────────────────────────
+// assignment_group_configs — 项目组队规则（1:1，可选）
+// ────────────────────────────────────────────────────────────
+
+enum RegroupPolicy {
+  teacher_decides
+  auto_then_teacher_confirm
+}
+
+model AssignmentGroupConfig {
+  assignmentId   BigInt         @id @db.UnsignedBigInt
+  groupFormStart DateTime?
+  groupFormEnd   DateTime?
+  groupMinSize   Int            @default(1) @db.UnsignedTinyInt
+  groupMaxSize   Int            @default(6) @db.UnsignedTinyInt
+  maxGroups      Int?           @db.UnsignedSmallInt
+  regroupPolicy  RegroupPolicy  @default(teacher_decides)
+
+  /// FK → users.id（teacher 或 academic），最近修改人
+  updatedBy      String         @db.VarChar(10)
+  updatedAt      DateTime       @updatedAt
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id])
+
+  @@map("assignment_group_configs")
+}
+
+// ────────────────────────────────────────────────────────────
+// assignment_stages — 项目阶段
+// ────────────────────────────────────────────────────────────
+
+enum StageStatus {
+  planned
+  open
+  closed
+  archived
+}
+
+model AssignmentStage {
+  id               BigInt      @id @default(autoincrement()) @db.UnsignedBigInt
+  assignmentId     BigInt      @db.UnsignedBigInt
+  stageNo          Int         @db.UnsignedTinyInt
+  title            String      @db.VarChar(120)
+  description      String?     @db.Text
+  startAt          DateTime?
+  dueAt            DateTime?
+  weight           Decimal?    @db.Decimal(5, 2)
+  submissionDesc   String?     @db.Text
+  requirementFiles Json?
+  acceptCriteria   String?     @db.Text
+  status           StageStatus @default(planned)
+
+  /// FK → users.id（role=teacher）
+  createdBy        String      @db.VarChar(10)
+
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  assignment Assignment  @relation(fields: [assignmentId], references: [id])
+  creator    User        @relation(fields: [createdBy], references: [id])
+  miniTasks  MiniTask[]
+
+  @@unique([assignmentId, stageNo])
+  @@index([assignmentId, stageNo])
+  @@map("assignment_stages")
+}
+
+// ============================================================
+// PHASE 3 — groups / group_members
+// ============================================================
+
+enum GroupStatus {
+  forming
+  active
+  archived
+}
+
+// ────────────────────────────────────────────────────────────
+// groups — 小组（归属 Assignment）
+// ────────────────────────────────────────────────────────────
+
+model Group {
+  id           BigInt      @id @default(autoincrement()) @db.UnsignedBigInt
+  assignmentId BigInt      @db.UnsignedBigInt
+  groupNo      Int         @db.UnsignedTinyInt
+  name         String?     @db.VarChar(60)
+  status       GroupStatus @default(forming)
+
+  /// FK → users.id（role=student），创建小组的学生（初始组长）
+  createdBy    String      @db.VarChar(10)
+
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  assignment        Assignment        @relation(fields: [assignmentId], references: [id])
+  creator           User              @relation(fields: [createdBy], references: [id])
+  members           GroupMember[]
+  miniTasks         MiniTask[]
+
+  @@unique([assignmentId, groupNo])
+  @@map("groups")
+}
+
+// ────────────────────────────────────────────────────────────
+// group_members — 小组成员
+// ────────────────────────────────────────────────────────────
+
+enum GroupMemberRole {
+  leader
+  member
+}
+
+model GroupMember {
+  id           BigInt          @id @default(autoincrement()) @db.UnsignedBigInt
+  groupId      BigInt          @db.UnsignedBigInt
+  assignmentId BigInt          @db.UnsignedBigInt
+  userId       String          @db.VarChar(10)
+  role         GroupMemberRole @default(member)
+  joinedAt     DateTime        @default(now())
+
+  group Group @relation(fields: [groupId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@unique([assignmentId, userId])
+  @@index([groupId])
+  @@map("group_members")
+}
+
+// ============================================================
+// PHASE 4 — mini_tasks / chat_conversations / chat_messages
+// ============================================================
+
+enum MiniTaskPriority {
+  low
+  medium
+  high
+}
+
+enum MiniTaskStatus {
+  todo
+  in_progress
+  done
+  cancelled
+}
+
+// ────────────────────────────────────────────────────────────
+// mini_tasks — 小组执行任务（可挂靠 Stage）
+// ────────────────────────────────────────────────────────────
+
+model MiniTask {
+  id          BigInt          @id @default(autoincrement()) @db.UnsignedBigInt
+  groupId     BigInt          @db.UnsignedBigInt
+  stageId     BigInt?         @db.UnsignedBigInt
+  title       String          @db.VarChar(120)
+  description String?         @db.Text
+  assigneeId  String?         @db.VarChar(10)
+  priority    MiniTaskPriority @default(medium)
+  status      MiniTaskStatus  @default(todo)
+  dueAt       DateTime?
+
+  /// FK → users.id，创建人
+  createdBy   String          @db.VarChar(10)
+
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  group    Group            @relation(fields: [groupId], references: [id])
+  stage    AssignmentStage? @relation(fields: [stageId], references: [id])
+  assignee User?            @relation("MiniTaskAssignee", fields: [assigneeId], references: [id])
+  creator  User             @relation(fields: [createdBy], references: [id])
+
+  @@index([groupId, stageId])
+  @@index([groupId, status])
+  @@index([assigneeId])
+  @@map("mini_tasks")
+}
+
+// ────────────────────────────────────────────────────────────
+// chat_conversations — 统一会话（课程群 + 项目组群）
+// ────────────────────────────────────────────────────────────
+
+enum ConversationScopeType {
+  course
+  group
+}
+
+enum ConversationStatus {
+  active
+  archived
+}
+
+model ChatConversation {
+  id        BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
+  scopeType ConversationScopeType
+  scopeId   BigInt                 @db.UnsignedBigInt
+
+  /// socket room key: "course:{courseId}" 或 "group:{groupId}"
+  roomKey   String                 @unique @db.VarChar(64)
+
+  status    ConversationStatus     @default(active)
+
+  /// 课程群系统自动创建时为 NULL；项目组群为创建学生 ID
+  createdBy String?                @db.VarChar(10)
+
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
+
+  // scopeId 是多态字段（course 或 group），Prisma 不支持同列多态 FK；
+  // 应用层根据 scopeType 自行 join courses / groups 表
+  creator  User?   @relation(fields: [createdBy], references: [id])
+  messages ChatMessage[]
+  reads    ChatConversationRead[]
+
+  @@unique([scopeType, scopeId])
+  @@map("chat_conversations")
+}
+
+// ────────────────────────────────────────────────────────────
+// chat_messages — 统一消息（课程群 + 项目组群）
+// ────────────────────────────────────────────────────────────
+
+model ChatMessage {
+  id             BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  conversationId BigInt    @db.UnsignedBigInt
+  senderId       String    @db.VarChar(10)
+  content        String?   @db.Text
+  files          Json?
+  mentions       Json?
+  replyToId      BigInt?   @db.UnsignedBigInt
+
+  /// EventEnvelope.id，幂等键
+  eventId        String    @unique @db.VarChar(64)
+  traceId        String    @db.VarChar(64)
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  editedAt       DateTime?
+  deletedAt      DateTime?
+
+  conversation ChatConversation @relation(fields: [conversationId], references: [id])
+  sender       User             @relation(fields: [senderId], references: [id])
+  replyTo      ChatMessage?     @relation("MessageReply", fields: [replyToId], references: [id])
+  replies      ChatMessage[]    @relation("MessageReply")
+  filesMeta    ChatFile[]
+
+  @@index([conversationId, createdAt, id])
+  @@index([senderId, createdAt])
+  @@map("chat_messages")
+}
+
+model ChatFile {
+  id             BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  messageId      BigInt   @db.UnsignedBigInt
+  objectKey      String   @unique @db.VarChar(255)
+  name           String   @db.VarChar(200)
+  size           BigInt   @db.UnsignedBigInt
+  mimeType       String   @db.VarChar(120)
+  uploadedAt     DateTime
+  expiresAt      DateTime
+  thumbnailKey   String?  @db.VarChar(255)
+
+  message ChatMessage @relation(fields: [messageId], references: [id])
+
+  @@index([messageId])
+  @@index([expiresAt])
+  @@map("chat_files")
+}
+
+model ChatConversationRead {
+  conversationId BigInt   @db.UnsignedBigInt
+  userId         String   @db.VarChar(10)
+  lastMessageId  BigInt?
+  lastReadAt     DateTime?
+  updatedAt      DateTime @updatedAt
+
+  conversation ChatConversation @relation(fields: [conversationId], references: [id])
+  user         User             @relation(fields: [userId], references: [id])
+
+  @@id([conversationId, userId])
+  @@index([userId, lastReadAt])
+  @@map("chat_conversation_reads")
 }

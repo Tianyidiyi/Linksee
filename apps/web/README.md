@@ -1,16 +1,52 @@
 # apps/web
 
-前端客户端骨架目录（MVP 版本）。
+Web 端工程目录，当前用于承载前端静态页面、联调代码与构建产物。
 
-## 角色定位
+## 目录结构
 
-- [api](src/api/)：通过 HTTP 访问业务写接口和查询接口
-- [realtime](src/realtime/)：处理 Socket 连接、订阅和事件分发
-- [state](src/state/)：预留页面状态组织边界，用于后续合并 HTTP 结果与 Socket 增量更新
+- `app/`：主应用静态资源目录（由 API 服务以 `/app` 路径托管）
+- `demo/`：演示页面静态资源目录（由 API 服务以 `/demo` 路径托管）
+- `src/api/`：HTTP 请求封装与 API 调用逻辑
+- `src/realtime/`：Socket 客户端与事件处理
+- `src/state/`：前端状态与联调说明
+- `scripts/build.mjs`：构建脚本
+- `dist/`：构建产物目录（当前产出 `BUILD_INFO.json`）
 
-## 前端硬规则
+## 可用命令
 
-1. 不通过 Socket 提交写操作。
-2. 所有写操作统一走 HTTP。
-3. Socket 只接收服务端变化推送。
-4. 收到重复事件时按 eventId 去重。
+在仓库根目录执行：
+
+```bash
+npm run build --workspace @linksee/web
+```
+
+或在 `apps/web` 目录执行：
+
+```bash
+npm run build
+```
+
+当前 `web` 包没有独立 `dev` 脚本；页面由 API 服务统一静态托管。
+
+## 运行与访问
+
+启动 API 服务后可访问：
+
+- `/app`
+- `/demo`
+
+说明：`apps/api/src/auth/server.ts` 已挂载上述两个静态目录。
+
+## 联调文档入口
+
+- 前后端联调规范：`docs/api/前后端联调对齐说明.md`
+- 当前交付状态：`docs/status/current-delivery-status.md`
+- OpenAPI：`docs/api/openapi/linksee-v1.yaml`
+
+## 当前联调覆盖
+
+1. Auth + Users
+2. Courses
+3. Assignments + Stages（含材料上传/删除）
+
+未完成主联调的模块：Group、Submission、Review、Socket/Worker 闭环业务事件。

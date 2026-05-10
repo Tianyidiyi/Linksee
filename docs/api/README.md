@@ -8,10 +8,13 @@
 
 ## 当前入口
 
-- [认证与鉴权设计 v2](auth/auth-design-v2.md)
+- [鉴权与权限基线设计 v2](auth/auth-design-v2.md)
+- [数据表结构设计 v2](auth/auth-tables-design-v2.md)
+- [Users 模块 API 契约 v1](auth/users-api-v1.md)
 - [HTTP + Socket + Worker 通信契约 v1](contracts/communication-contract-v1.md)
+- [群聊消息增强 v1](collaboration/chat-messages-v1.md)
 - [OpenAPI schema v1](openapi/linksee-v1.yaml)
-- [前后端联调记录模板](frontend-backend-integration-record-template.md)
+- [前后端联调记录模板](前后端联调记录模板.md)
 
 ## 新增文档命名规范
 

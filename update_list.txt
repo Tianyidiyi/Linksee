@@ -1,0 +1,157 @@
+﻿【声明栏】时间 | 操作者 | 事件内容
+
+2026-05-06 15:30 | zkx | 补充：Prisma 使用要点——以 schema.prisma 作为结构单一事实源；先执行 db push 或 migrate 再联调接口；生产优先 migrate 并保留回滚脚本；敏感信息只放环境变量并确保 DATABASE_URL 正确。
+
+2026-05-06 15:36 | zkx | 规范：每次 push、合并、发起 PR 时，必须基于 git 实际变更写简洁更新说明，仅保留关键改动、影响范围与风险点。
+
+2026-05-06 20:00 | zkx | feat(auth+users): Auth 模块全量实现，包含以下变更：
+  [新增接口]
+  - POST   /api/v1/auth/login                    登录，返回 AT+RT，forceChangePassword 标志
+  - POST   /api/v1/auth/refresh                  滚动刷新 Access Token（RT 一次性消费）
+  - POST   /api/v1/auth/logout                   登出，撤销 RT
+  - POST   /api/v1/auth/change-password          自主改密（改后吊销所有旧 RT，返回新 AT+RT）
+  - POST   /api/v1/auth/admin/reset-password     管理员/教师重置单用户密码
+  - POST   /api/v1/auth/admin/batch-reset-password  教务批量重置密码（支持 userIds / 学生条件筛选）
+  - GET    /api/v1/users/me                      获取当前用户 profile
+  - PATCH  /api/v1/users/me                      更新个人 bio/location/email/avatarUrl
+  - POST   /api/v1/users                         教务创建单个学生或教师账号
+  - POST   /api/v1/users/batch/students          教务批量创建学生（逐条校验，成功/失败分开返回）
+  - POST   /api/v1/users/batch/teachers          教务批量创建教师
+  - PATCH  /api/v1/users/:id                     教务更新账号状态（isActive/realName）
+  - POST   /api/v1/users/assistants              教师创建助教账号（同步写 teacher_assistants 归属）
+
+  [数据库变更]
+  - 新增 teacher_assistants 表：记录助教账号的归属老师（账号创建时写入，PK=assistantUserId 保证唯一归属）
+  - 修改 assistant_bindings 表：去掉 teacher FK relation，teacherUserId 保留为审计字段
+  - 原 assistant_bindings 的双重语义（归属+分配）已拆分为两张表，职责清晰
+  参考：docs/api/auth/auth-tables-design-v2.md
+
+  [基础设施]
+  - JWT 中间件：requireAuth / optionalAuth / forceChangeGuard（首次登录门卫）
+  - MinIO 默认灰色头像：defaultAvatarUrl 注入所有新建账号
+  - 密码强度工具：generatePassword() / isStrongPassword()
+
+  [测试]
+
+  [文档]
+  - 新增 docs/api/auth/users-api-v1.md          Users 模块 API 契约（所有接口的入参/响应/错误码）
+  - 更新 docs/api/auth/auth-tables-design-v2.md  表清单从 5 张→6 张，拆表决策记录
+  - 更新 docs/architecture/current-architecture-status.md  当前状态日期 + Auth 完成情况 + 风险列表
+  - 更新 docs/api/README.md                      补充 users-api-v1.md 和 auth-tables-design-v2.md 链接
+
+2026-05-07 | zkx | feat(courses)+fix(schema): Phase 1-4 表结构落库 + courses API 实现 + 类型修复
+  [数据库变更]
+  - 新增 Phase 1-4 共 11 张表（courses / course_teachers / course_members /
+    assignments / assignment_group_configs / assignment_stages /
+    groups / group_members / mini_tasks / chat_conversations / chat_messages）
+  - 修正 assistant_bindings.courseId：从 VarChar(36) 改为 BigInt FK → courses.id
+  - 以上变更通过 prisma db push 已同步至本地 collab 数据库
+
+  [新增接口]
+  - GET    /api/v1/courses                课程列表（按角色过滤：academic/teacher/assistant/student）
+  - POST   /api/v1/courses                创建课程（academic only）
+  - GET    /api/v1/courses/:id            课程详情（权限校验：课程成员/老师/助教/academic）
+  - PATCH  /api/v1/courses/:id            更新课程名/描述/状态（academic only）
+  - GET    /api/v1/courses/:id/teachers   列出课程老师
+  - POST   /api/v1/courses/:id/teachers   指派老师（academic only）
+  - DELETE /api/v1/courses/:id/teachers/:userId  移除老师（academic only）
+  - GET    /api/v1/courses/:id/members    列出课程成员（支持 status 筛选）
+  - POST   /api/v1/courses/:id/members/batch     批量导入学生（最大 500，upsert 语义）
+  - DELETE /api/v1/courses/:id/members/:userId   移除成员（软删除 status=withdrawn）
+
+  [修复]
+  - apps/api/tsconfig.json：补充 "types": ["node"]
+  - apps/api 本地安装 @types/node（根 workspace 未实际安装导致 node:crypto 类型缺失）
+  - apps/api/src/infra/jwt-middleware.ts：req.headers.authorization 改为 req.header("authorization")
+    （Express 推荐写法，兼容 header 名大小写不敏感）
+  - src/courses/courses-router.ts GET /courses/:id：删除重复的 semester 字段声明
+
+  [文档]
+  - 新增 docs/architecture/socket-risks-and-errors.md
+    · 3 个已知错误（Phase 4 代码写入前必须修复）：
+      1. course.message.created 事件名三处缺失（contracts.ts / event-catalog.ts / event-handlers.ts）
+      2. chat_conversations.created_by 原为 NOT NULL → 应改为可空（课程群为系统自动创建）
+      3. chat_messages 缺 updated_at 列
+    · 3 个风险（实现时主动规避）：
+      风险2：HTTP 写库后 Socket 推送失败 → 客户端补拉兜底
+      风险3：gateway.ts authenticate() 老师/助教应返回空 groupIds
+      风险4：客户端内存 Set 去重刷新失效 → 改用消息 DB id 去重
+  - 新增 docs/architecture/courses-api-review.md
+    · Courses API v1 审查报告：10 个端点接口完整性审查（10/10）
+    · 权限设置分析：9/10 正确，缺 lead 唯一性业务约束（设计文档要求）
+    · 发现 4 处改进点：semester 重复（P0 已修）/ lead 唯一性检查（P1）/ 课程存在性检查（P1）
+    · 提供修复代码片段与后续扩展建议
+  - 更新 docs/api/courses/course-tables-design-v1.md：
+    · chat_conversations.created_by 改为 VARCHAR(10) NULL
+    · chat_messages 补充 updated_at DATETIME NOT NULL
+
+2026-05-09 | codex | refactor(assignments+courses)+docs: 课程权限/材料存储抽离，Assignment/Stage 路由拆分，并同步文档到当前可运行接口
+  [新增文件]
+  - apps/api/src/courses/course-access.ts
+  - apps/api/src/assignments/assignment-access.ts
+  - apps/api/src/assignments/course-material-storage.ts
+  - apps/api/src/assignments/assignment-stages-router.ts
+
+  [代码结构调整]
+  - assignments-router.ts 仅保留 Assignment 顶层 CRUD 与 assignment materials（上传/删除）
+  - assignment-stages-router.ts 承接 Stage CRUD、状态流转与 stage materials（上传/删除）
+  - auth/server.ts 挂载 assignmentStagesRouter
+  - courses-router.ts 接入统一课程权限与课程教师关系查询辅助
+
+  [后端开放接口（本次确认）]
+  - GET/POST    /api/v1/courses/:courseId/assignments
+  - GET/PATCH/DELETE /api/v1/assignments/:assignmentId
+  - POST/DELETE /api/v1/assignments/:assignmentId/materials
+  - GET/POST    /api/v1/assignments/:assignmentId/stages
+  - GET/PATCH/DELETE /api/v1/stages/:stageId
+  - POST/DELETE /api/v1/stages/:stageId/materials
+
+  [文档]
+  - 更新 docs/api/openapi/linksee-v1.yaml（Assignment/Stage 已实现接口、状态与文件元数据结构对齐）
+  - 更新 apps/web/README.md（前端联调按已开放接口对齐，统一上传规范 multipart/form-data + files）
+  - 更新 docs/architecture/current-architecture-status.md（改为“当前已实现范围 + 缺口 + 前后端对齐”）
+
+2026-05-09 | codex | docs(refactor): 交付状态与架构定位分离，前后端联调文档独立归档
+  [文档位置调整]
+  - 新增 docs/status/current-delivery-status.md（承载阶段交付状态、已实现范围、缺口）
+  - 新增 docs/api/前后端联调对齐说明.md（承载前后端联调对齐规则）
+  - 调整 docs/architecture/current-architecture-status.md 为“架构文档定位说明”，仅保留架构目录边界声明
+  - 调整 apps/web/README.md 为入口说明，链接到联调文档与交付状态文档
+
+2026-05-10 | zkx | feat(collaboration): 群聊消息增强（编辑/撤回/回复/@/搜索/文件/ACK/会话）+ 文档与对接补齐
+  [数据库变更]
+  - chat_messages 增加 mentions/editedAt
+  - 新增 chat_files（附件元数据、过期清理）
+  - 新增 chat_conversation_reads（会话未读与已读位置）
+
+  [新增接口]
+  - PATCH/DELETE /api/v1/courses/:courseId/messages/:messageId（编辑/撤回）
+  - PATCH/DELETE /api/v1/groups/:groupId/messages/:messageId（编辑/撤回）
+  - GET /api/v1/courses/:courseId/messages/search
+  - GET /api/v1/groups/:groupId/messages/search
+  - POST /api/v1/courses/:courseId/announcements
+  - POST /api/v1/groups/:groupId/announcements
+  - POST /api/v1/chat/files/presign-upload
+  - GET  /api/v1/chat/files/presign-download
+  - GET  /api/v1/conversations
+  - POST /api/v1/conversations/:conversationId/read
+  - POST /api/v1/realtime/acks
+  - GET  /api/v1/realtime/replay
+
+  [事件/实时]
+  - 新增 course.message.updated / course.message.deleted
+  - 新增 group.message.updated / group.message.deleted
+  - Socket 事件缓存 + ACK 去重 + 重放窗口
+
+  [文件与清理]
+  - chat-files 私有桶 + 30 分钟 presign
+  - 单文件上限 500MB，常见类型白名单，保留 7 天
+  - 清理脚本：apps/api/src/collaboration/chat-files-cleanup.ts
+
+  [文档]
+  - 新增 docs/api/collaboration/chat-messages-v1.md
+  - 更新 docs/api/README.md / docs/collaboration/README.md / docs/api/前后端联调对齐说明.md / contracts
+
+  [风险]
+  - Prisma 变更已用 db push（无迁移历史），后续上线需补 migration
+  - ACK/重放依赖 Redis，可用性需保证

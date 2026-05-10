@@ -89,11 +89,27 @@ export async function revokeRefreshToken(rawToken: string): Promise<void> {
 }
 
 export async function revokeAllUserRefreshTokens(userId: string): Promise<void> {
+<<<<<<< HEAD
   try {
     const stream = redis.scanStream({
       match: `${REFRESH_PREFIX}*`,
       count: 200,
     });
+=======
+  await revokeAllRefreshTokensForUsers([userId]);
+}
+
+export async function revokeAllRefreshTokensForUsers(userIds: string[]): Promise<void> {
+  const targetUserIds = new Set(userIds);
+  if (targetUserIds.size === 0) {
+    return;
+  }
+
+  const stream = redis.scanStream({
+    match: `${REFRESH_PREFIX}*`,
+    count: 200,
+  });
+>>>>>>> origin/main
 
     for await (const keys of stream) {
       if (!Array.isArray(keys) || keys.length === 0) {
@@ -105,11 +121,21 @@ export async function revokeAllUserRefreshTokens(userId: string): Promise<void> 
         await redis.del(...matchedKeys);
       }
     }
+<<<<<<< HEAD
   } catch {
     for (const [key, entry] of memoryRefreshTokens.entries()) {
       if (entry.userId === userId) {
         memoryRefreshTokens.delete(key);
       }
+=======
+    const values = await redis.mget(...keys);
+    const matchedKeys = keys.filter((_, idx) => {
+      const storedUserId = values[idx];
+      return typeof storedUserId === "string" && targetUserIds.has(storedUserId);
+    });
+    if (matchedKeys.length > 0) {
+      await redis.del(...matchedKeys);
+>>>>>>> origin/main
     }
   }
 }

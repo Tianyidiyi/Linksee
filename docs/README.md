@@ -1,17 +1,6 @@
 # docs
 
-此目录存放项目文档，保证需求、设计、实现一致。
-
-## 子目录
-
-- [product](product/)：产品定位、用户场景、MVP 范围、商业说明
-- [architecture](architecture/)：架构图、模块边界、演进计划
-- [api](api/)：接口契约、错误码、版本说明
-- [sprints](sprints/)：Sprint 计划、评审与复盘记录
-
-## 推荐先读
-
-- [教学项目协作与过程评价平台产品大纲](product/teaching-collaboration-outline.md)
+- [协作与群聊规范](collaboration/README.md)
 - [课程场景与需求整理](product/course-scenario-requirements-v2.md)
 - [五人团队两个月开发分工与进度计划](product/two-month-team-plan.md)
 - [MVP P0 任务与后续跟进任务](product/mvp-p0-and-follow-up-tasks.md)
