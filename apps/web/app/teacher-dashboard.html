@@ -6,187 +6,187 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Linksee 教师工作台</title>
     <link rel="stylesheet" href="./styles/theme.css" />
+    <style>
+        /* 针对教师工作台专门补充的双栏响应式布局 */
+        .teacher-grid-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 7fr) minmax(280px, 3fr);
+            gap: 32px;
+            align-items: start;
+            margin-top: 24px;
+        }
+
+        .teacher-main-col {
+            display: grid;
+            gap: 24px;
+        }
+
+        .teacher-side-col {
+            display: grid;
+            gap: 24px;
+            align-content: start;
+            /* 让右侧批改面板在页面滚动时保持吸顶，方便对照左侧内容打分 */
+            position: sticky;
+            top: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .teacher-grid-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .teacher-side-col {
+                position: static;
+            }
+        }
+    </style>
 </head>
 
-<body>
-    <main class="page">
-        <header class="topbar">
-            <div class="brand">
-                <span class="brand-mark" aria-hidden="true"></span>
-                教师工作台
-            </div>
-            <div class="top-actions">
-                <span id="userBadge" class="user-avatar">ID: --</span>
-                <a class="icon-btn" href="./chat-hub.html" title="打开课程群聊">聊</a>
-                <button id="logoutBtn">退出登录</button>
-            </div>
-        </header>
+<body class="app-shell teacher-shell">
 
-        <section class="card">
-            <h1 class="card-title">授课概览 <span class="badge">teacher</span></h1>
-            <div class="meta" id="metaInfo">正在加载登录信息...</div>
-            <div class="filters">
-                <button class="filter-btn is-active" type="button">active</button>
-                <button class="filter-btn" type="button">draft</button>
-                <button class="filter-btn" type="button">under_review</button>
-                <button class="filter-btn" type="button">archived</button>
-            </div>
-            <div class="stat-grid">
-                <div class="stat">
-                    <strong>2</strong>
-                    <span>进行中课程</span>
-                </div>
-                <div class="stat">
-                    <strong>3</strong>
-                    <span>待发布阶段</span>
-                </div>
-                <div class="stat">
-                    <strong>5</strong>
-                    <span>待批改提交</span>
-                </div>
-            </div>
-        </section>
+    <aside class="sidebar">
+        <div class="user-profile" id="userBadge">ID: --</div>
+    </aside>
 
-        <section class="layout">
-            <div class="card">
-                <h2 class="card-title">快速入口 <span class="badge">actions</span></h2>
-                <div class="action-row">
-                    <a class="btn" href="./grading-hub.html">进入批改台</a>
-                    <a class="btn btn-outline" href="./submission-hub.html">前往提交台</a>
-                </div>
-            </div>
-            <div class="card">
-                <h2 class="card-title">课程与老师关系 <span class="badge">course_teachers</span></h2>
-                <div class="list">
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>软件工程实践</strong>
-                                <span class="tag">lead</span>
-                            </div>
-                            <div class="muted">course_id=12 · assigned_by=2022000001 · assigned_at=2026-02-12</div>
-                        </div>
-                        <span class="tag">active</span>
-                    </div>
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>数据库系统</strong>
-                                <span class="tag">co</span>
-                            </div>
-                            <div class="muted">course_id=14 · assigned_by=2022000001 · assigned_at=2026-02-22</div>
-                        </div>
-                        <span class="tag--quiet">draft</span>
-                    </div>
-                </div>
-            </div>
+    <div class="workspace">
+        <div class="content-container">
 
-            <div class="card">
-                <h2 class="card-title">课程学生名单 <span class="badge">course_members</span></h2>
-                <div class="list">
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>课程：软件工程实践</strong>
-                                <span class="chip">students=52</span>
-                            </div>
-                            <div class="muted">status=active · imported_by=2022000001 · updated_at=2026-03-05</div>
-                        </div>
-                        <span class="tag">active</span>
-                    </div>
+            <header class="topbar">
+                <div class="brand">
+                    <span class="brand-mark" aria-hidden="true"></span>
+                    教师工作台
                 </div>
-            </div>
+                <button id="logoutBtn" class="btn btn-secondary">退出登录</button>
+            </header>
 
-            <div class="card">
-                <h2 class="card-title">项目列表 <span class="badge">assignments</span></h2>
-                <div class="list">
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>课程项目 · 软件工程实践</strong>
-                                <span class="chip">course_id=12</span>
-                            </div>
-                            <div class="muted">status=active · weight=0.4 · created_at=2026-02-20</div>
-                        </div>
-                        <span class="tag">active</span>
-                    </div>
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>课程项目 · 数据库系统</strong>
-                                <span class="chip">course_id=14</span>
-                            </div>
-                            <div class="muted">status=draft · weight=0.35 · updated_at=2026-02-28</div>
-                        </div>
-                        <span class="tag--muted">draft</span>
-                    </div>
-                </div>
-            </div>
+            <div class="teacher-grid-layout">
 
-            <div class="card">
-                <h2 class="card-title">阶段安排 <span class="badge">assignment_stages</span></h2>
-                <div class="flow">
-                    <span>draft</span>
-                    <span>open</span>
-                    <span>closed</span>
-                </div>
-                <div class="list">
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>阶段 1 · 需求调研报告</strong>
-                                <span class="chip">stage_no=1</span>
-                            </div>
-                            <div class="muted">start_at=2026-03-10 · due_at=2026-03-20 · updated_at=2026-03-12</div>
-                        </div>
-                        <span class="tag">open</span>
-                    </div>
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>阶段 2 · 原型评审</strong>
-                                <span class="chip">stage_no=2</span>
-                            </div>
-                            <div class="muted">start_at=2026-03-21 · due_at=2026-04-01 · created_at=2026-03-05</div>
-                        </div>
-                        <span class="tag--muted">planned</span>
-                    </div>
-                </div>
-            </div>
+                <div class="teacher-main-col">
 
-            <div class="card">
-                <h2 class="card-title">提交与批改 <span class="badge">submissions</span></h2>
-                <div class="flow">
-                    <span>draft</span>
-                    <span>submitted</span>
-                    <span>under_review</span>
-                    <span>approved</span>
-                </div>
-                <div class="list">
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>需求调研报告</strong>
-                                <span class="chip">group_id=31</span>
+                    <section class="card">
+                        <h1 class="card-title">课程概览 <span class="badge badge-active">active</span></h1>
+                        <div class="meta" id="metaInfo">正在加载登录信息...</div>
+                        <div class="stat-grid" style="grid-template-columns: repeat(3, 1fr);">
+                            <div class="stat">
+                                <strong>2</strong>
+                                <span>进行中课程</span>
                             </div>
-                            <div class="muted">status=submitted · submitted_at=2026-03-19 · reviewer=2023000001</div>
-                        </div>
-                        <span class="tag">submitted</span>
-                    </div>
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>原型评审材料</strong>
-                                <span class="chip">group_id=31</span>
+                            <div class="stat">
+                                <strong>3</strong>
+                                <span>待发布阶段</span>
                             </div>
-                            <div class="muted">status=under_review · submitted_at=2026-03-27 · reviewer=2023000012</div>
+                            <div class="stat">
+                                <strong style="color: #991B1B;">8</strong>
+                                <span>待批改作业</span>
+                            </div>
                         </div>
-                        <span class="tag--muted">under_review</span>
-                    </div>
+                    </section>
+
+                    <section class="card">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <h2 class="card-title" style="margin: 0;">待批改列表 <span
+                                    class="badge badge-reviewing">needs_review</span></h2>
+                            <select
+                                style="padding: 6px 12px; border: 1px solid #D1D5DB; border-radius: 6px; font-size: 13px; background: white;">
+                                <option>按提交时间排序 (最早)</option>
+                                <option>按提交时间排序 (最新)</option>
+                            </select>
+                        </div>
+
+                        <div class="list" style="margin-top: 8px;">
+                            <div class="list-item"
+                                style="cursor: pointer; background: var(--accent-soft); border-color: var(--accent);">
+                                <div class="list-main">
+                                    <div class="list-row">
+                                        <strong>需求调研报告</strong>
+                                        <span class="chip">group_id=31</span>
+                                    </div>
+                                    <div class="muted">status=submitted · submitted_at=2026-03-19 ·
+                                        student_id=2023010031</div>
+                                </div>
+                                <span class="badge badge-pending">selected</span>
+                            </div>
+
+                            <div class="list-item" style="cursor: pointer;">
+                                <div class="list-main">
+                                    <div class="list-row">
+                                        <strong>原型评审材料</strong>
+                                        <span class="chip">group_id=32</span>
+                                    </div>
+                                    <div class="muted">status=submitted · submitted_at=2026-03-27 ·
+                                        student_id=2023010032</div>
+                                </div>
+                                <span class="badge badge-submitted">new</span>
+                            </div>
+
+                            <div class="list-item" style="cursor: pointer;">
+                                <div class="list-main">
+                                    <div class="list-row">
+                                        <strong>课程总结报告</strong>
+                                        <span class="chip">group_id=33</span>
+                                    </div>
+                                    <div class="muted">status=submitted · submitted_at=2026-03-29 ·
+                                        student_id=2023010033</div>
+                                </div>
+                                <span class="badge badge-submitted">new</span>
+                            </div>
+
+                            <div class="list-item" style="cursor: pointer;">
+                                <div class="list-main">
+                                    <div class="list-row">
+                                        <strong>数据库架构设计</strong>
+                                        <span class="chip">course_id=14</span>
+                                    </div>
+                                    <div class="muted">status=resubmitted · submitted_at=2026-04-02 ·
+                                        student_id=2023010088</div>
+                                </div>
+                                <span class="badge badge-urgent">urgent</span>
+                            </div>
+                        </div>
+                    </section>
                 </div>
+
+                <div class="teacher-side-col">
+
+                    <section class="card">
+                        <h2 class="card-title">批改控制台</h2>
+
+                        <div class="nav-section" style="margin-bottom: 12px;">
+                            <div class="review-item"
+                                style="cursor: default; background: #FAFAFA; border: 1px dashed #D1D5DB;">
+                                <div class="review-meta">
+                                    <strong>当前批改: 需求调研报告</strong>
+                                    <span class="muted">提交人: 2023010031</span>
+                                    <a href="#"
+                                        style="font-size: 12px; color: var(--accent); margin-top: 4px; display: inline-block;">查看完整附件
+                                        ↗</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="nav-section" style="margin-bottom: 16px;">
+                            <div class="nav-section-title" style="margin-bottom: 8px;">打分 (0-100)</div>
+                            <input type="number" placeholder="输入分数" min="0" max="100"
+                                style="padding: 10px; border: 1px solid #D1D5DB; border-radius: 6px; width: 100%; font-size: 16px; font-weight: 500;">
+                        </div>
+
+                        <div class="nav-section" style="margin-bottom: 24px;">
+                            <div class="nav-section-title" style="margin-bottom: 8px;">批改反馈意见</div>
+                            <textarea placeholder="请输入建设性的反馈意见，指出优点与不足..."
+                                style="padding: 12px; border: 1px solid #D1D5DB; border-radius: 6px; min-height: 140px; resize: vertical; font-family: inherit; width: 100%; line-height: 1.5;"></textarea>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                            <button class="btn btn-secondary" style="width: 100%; max-width: 100%;">退回修改</button>
+                            <button class="btn btn-primary" style="width: 100%; max-width: 100%;">确认通过 ✓</button>
+                        </div>
+                    </section>
+
+                </div>
+
             </div>
-        </section>
-    </main>
+        </div>
+    </div>
 
     <script>
         const appOrigin = window.location.origin && window.location.origin !== "null"
@@ -205,7 +205,7 @@
             userBadge.textContent = `ID: ${userId}`;
         } else {
             metaInfo.textContent = "未检测到登录信息，请返回登录页。";
-            userBadge.textContent = "ID: --";
+            userBadge.textContent = `ID: --`;
         }
 
         logoutBtn.addEventListener("click", () => {
@@ -215,13 +215,27 @@
             window.location.href = `${appOrigin}${appBasePath}/login.html`;
         });
 
-        document.querySelectorAll(".filters").forEach((group) => {
-            const buttons = group.querySelectorAll(".filter-btn");
-            buttons.forEach((btn) => {
-                btn.addEventListener("click", () => {
-                    buttons.forEach((el) => el.classList.remove("is-active"));
-                    btn.classList.add("is-active");
+        // 简单的交互效果演示：点击列表项切换高亮
+        document.querySelectorAll(".list-item").forEach((item) => {
+            item.addEventListener("click", () => {
+                // 清除所有高亮
+                document.querySelectorAll(".list-item").forEach((el) => {
+                    el.style.background = "";
+                    el.style.borderColor = "var(--border)";
+                    const badge = el.querySelector(".badge");
+                    if (badge && badge.textContent === 'selected') {
+                        badge.className = 'badge badge-submitted';
+                        badge.textContent = 'new';
+                    }
                 });
+                // 设置当前项高亮
+                item.style.background = "var(--accent-soft)";
+                item.style.borderColor = "var(--accent)";
+                const badge = item.querySelector(".badge");
+                if (badge) {
+                    badge.className = 'badge badge-pending';
+                    badge.textContent = 'selected';
+                }
             });
         });
     </script>

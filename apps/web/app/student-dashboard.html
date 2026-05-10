@@ -6,180 +6,190 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Linksee 学生工作台</title>
     <link rel="stylesheet" href="./styles/theme.css" />
+    <style>
+        /* 针对学生工作台专门补充的双栏响应式布局 */
+        .student-grid-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 7fr) minmax(280px, 3fr);
+            gap: 32px;
+            align-items: start;
+            margin-top: 24px;
+        }
+
+        .student-main-col {
+            display: grid;
+            gap: 24px;
+        }
+
+        .student-side-col {
+            display: grid;
+            gap: 24px;
+            align-content: start;
+        }
+
+        @media (max-width: 1024px) {
+            .student-grid-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 
-<body>
-    <main class="page">
-        <header class="topbar">
-            <div class="brand">
-                <span class="brand-mark" aria-hidden="true"></span>
-                学生工作台
-            </div>
-            <div class="top-actions">
-                <span id="userBadge" class="user-avatar">ID: --</span>
-                <a class="icon-btn" href="./chat-hub.html" title="打开课程群聊">聊</a>
-                <button id="logoutBtn">退出登录</button>
-            </div>
-        </header>
+<body class="app-shell student-shell">
 
-        <section class="card">
-            <h1 class="card-title">学习概览 <span class="badge">student</span></h1>
-            <div class="meta" id="metaInfo">正在加载登录信息...</div>
-            <div class="filters">
-                <button class="filter-btn is-active" type="button">todo</button>
-                <button class="filter-btn" type="button">in_progress</button>
-                <button class="filter-btn" type="button">submitted</button>
-                <button class="filter-btn" type="button">under_review</button>
-                <button class="filter-btn" type="button">approved</button>
-            </div>
-            <div class="stat-grid">
-                <div class="stat">
-                    <strong>3</strong>
-                    <span>已加入课程</span>
-                </div>
-                <div class="stat">
-                    <strong>2</strong>
-                    <span>进行中阶段</span>
-                </div>
-                <div class="stat">
-                    <strong>4</strong>
-                    <span>待完成任务</span>
-                </div>
-            </div>
-        </section>
+    <aside class="sidebar">
+        <div class="user-profile" id="userBadge">ID: --</div>
+    </aside>
 
-        <section class="layout">
-            <div class="card">
-                <h2 class="card-title">快速入口 <span class="badge">actions</span></h2>
-                <div class="action-row">
-                    <a class="btn" href="./student-group-space.html">进入小组空间</a>
-                    <a class="btn btn-outline" href="./submission-hub.html">前往提交台</a>
-                </div>
-            </div>
-            <div class="card">
-                <h2 class="card-title">我的课程 <span class="badge">course_members</span></h2>
-                <div class="list">
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>软件工程实践</strong>
-                                <span class="chip">course_id=12</span>
-                            </div>
-                            <div class="muted">status=active · semester=1 · joined_at=2026-02-18</div>
-                        </div>
-                        <span class="tag">active</span>
-                    </div>
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>Web 应用开发</strong>
-                                <span class="chip">course_id=19</span>
-                            </div>
-                            <div class="muted">status=active · semester=2 · joined_at=2026-03-02</div>
-                        </div>
-                        <span class="tag">active</span>
-                    </div>
-                </div>
-            </div>
+    <div class="workspace">
+        <div class="content-container">
 
-            <div class="card">
-                <h2 class="card-title">当前项目 <span class="badge">assignments</span></h2>
-                <div class="list">
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>软件工程实践 · 课程项目</strong>
-                                <span class="chip">assignment_id=101</span>
+            <header class="topbar">
+                <div class="brand">
+                    <span class="brand-mark" aria-hidden="true"></span>
+                    学生工作台
+                </div>
+                <button id="logoutBtn" class="btn btn-secondary">退出登录</button>
+            </header>
+
+            <div class="student-grid-layout">
+
+                <div class="student-main-col">
+
+                    <section class="card">
+                        <h2 class="card-title">我的待办 (Up Next) <span class="badge badge-pending">todo</span></h2>
+                        <div class="timeline">
+                            <div class="timeline-item is-overdue">
+                                <div class="timeline-meta">
+                                    <strong>完成需求访谈记录</strong>
+                                    <span class="muted">due_at=2026-03-18 · status=in_progress</span>
+                                </div>
+                                <span class="badge badge-urgent">urgent</span>
                             </div>
-                            <div class="muted">status=active · course_id=12 · weight=0.4</div>
+                            <div class="timeline-item">
+                                <div class="timeline-meta">
+                                    <strong>原型评审准备</strong>
+                                    <span class="muted">due_at=2026-03-26 · status=todo</span>
+                                </div>
+                                <span class="badge badge-pending">3 days</span>
+                            </div>
+                            <div class="timeline-item">
+                                <div class="timeline-meta">
+                                    <strong>提交阶段材料</strong>
+                                    <span class="muted">due_at=2026-04-01 · status=todo</span>
+                                </div>
+                                <span class="badge badge-pending">9 days</span>
+                            </div>
+                            <div class="timeline-item">
+                                <div class="timeline-meta">
+                                    <strong>课程项目总结</strong>
+                                    <span class="muted">due_at=2026-04-10 · status=todo</span>
+                                </div>
+                                <span class="badge badge-pending">18 days</span>
+                            </div>
                         </div>
-                        <span class="tag">active</span>
-                    </div>
+                    </section>
+
+                    <section class="card">
+                        <h2 class="card-title">最近成绩与反馈</h2>
+                        <div class="list">
+                            <div class="list-item">
+                                <div class="list-main">
+                                    <div class="list-row">
+                                        <strong>需求调研报告</strong>
+                                        <span class="chip">score=92</span>
+                                    </div>
+                                    <div class="muted">reviewed_at=2026-03-22 · feedback=结构清晰</div>
+                                </div>
+                                <span class="badge badge-approved">approved</span>
+                            </div>
+                            <div class="list-item">
+                                <div class="list-main">
+                                    <div class="list-row">
+                                        <strong>上阶段提交</strong>
+                                        <span class="chip">score=85</span>
+                                    </div>
+                                    <div class="muted">reviewed_at=2026-03-10 · status=needs_changes</div>
+                                </div>
+                                <span class="badge badge-pending">pending</span>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="student-side-col">
+
+                    <section class="card">
+                        <h1 class="card-title">学习概览 <span class="badge badge-active">overview</span></h1>
+                        <div class="meta" id="metaInfo">正在加载登录信息...</div>
+                        <div class="stat-grid" style="grid-template-columns: 1fr;">
+                            <div class="stat"
+                                style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>已加入课程</span>
+                                <strong>3</strong>
+                            </div>
+                            <div class="stat"
+                                style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>进行中阶段</span>
+                                <strong style="color: #065F46;">2</strong>
+                            </div>
+                            <div class="stat"
+                                style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>待完成任务</span>
+                                <strong style="color: #991B1B;">4</strong>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="card">
+                        <h2 class="card-title">快速入口</h2>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                            <a class="btn btn-primary" href="./student-group-space.html"
+                                style="width: 100%; max-width: 100%;">小组空间</a>
+                            <a class="btn btn-secondary" href="./submission-hub.html"
+                                style="width: 100%; max-width: 100%;">前往提交台</a>
+                        </div>
+                    </section>
+
+                    <section class="card">
+                        <h2 class="card-title">小组与群聊</h2>
+                        <div class="list" style="margin-bottom: 8px;">
+                            <div class="list-item" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+                                <div style="display: flex; justify-content: space-between; width: 100%;">
+                                    <strong>第 3 组 · 原型推进组</strong>
+                                    <span class="badge badge-active">active</span>
+                                </div>
+                                <div class="muted">role=leader · members=6</div>
+                            </div>
+                        </div>
+                        <a class="btn btn-secondary" href="./chat-hub.html"
+                            style="justify-content: center; width: 100%; max-width: 100%;">💬 进入小组群聊</a>
+                    </section>
+
+                    <section class="card">
+                        <h2 class="card-title">我的课程</h2>
+                        <div class="list">
+                            <div class="list-item" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+                                <div style="display: flex; justify-content: space-between; width: 100%;">
+                                    <strong>软件工程实践</strong>
+                                    <span class="badge badge-active">active</span>
+                                </div>
+                                <div class="muted">course=12 · semester=1</div>
+                            </div>
+                            <div class="list-item" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+                                <div style="display: flex; justify-content: space-between; width: 100%;">
+                                    <strong>Web 应用开发</strong>
+                                    <span class="badge badge-active">active</span>
+                                </div>
+                                <div class="muted">course=19 · semester=2</div>
+                            </div>
+                        </div>
+                    </section>
+
                 </div>
             </div>
-
-            <div class="card">
-                <h2 class="card-title">我的小组 <span class="badge">groups</span></h2>
-                <div class="list">
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>第 3 组 · 原型推进组</strong>
-                                <span class="chip">group_id=31</span>
-                            </div>
-                            <div class="muted">role=leader · status=active · updated_at=2026-03-08</div>
-                        </div>
-                        <span class="tag">active</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h2 class="card-title">待办任务 <span class="badge">mini_tasks</span></h2>
-                <div class="flow">
-                    <span>todo</span>
-                    <span>in_progress</span>
-                    <span>submitted</span>
-                    <span>approved</span>
-                </div>
-                <div class="list">
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>完成需求访谈记录</strong>
-                                <span class="chip">stage_id=501</span>
-                            </div>
-                            <div class="muted">status=in_progress · due_at=2026-03-18 · updated_at=2026-03-16</div>
-                        </div>
-                        <span class="tag">in_progress</span>
-                    </div>
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>原型评审准备</strong>
-                                <span class="chip">stage_id=502</span>
-                            </div>
-                            <div class="muted">status=todo · due_at=2026-03-26 · created_at=2026-03-12</div>
-                        </div>
-                        <span class="tag--quiet">todo</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h2 class="card-title">我的提交 <span class="badge">submissions</span></h2>
-                <div class="flow">
-                    <span>draft</span>
-                    <span>submitted</span>
-                    <span>under_review</span>
-                    <span>approved</span>
-                </div>
-                <div class="list">
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>需求调研报告</strong>
-                                <span class="chip">stage_id=501</span>
-                            </div>
-                            <div class="muted">status=submitted · submitted_at=2026-03-19 · reviewer=2023000001</div>
-                        </div>
-                        <span class="tag">submitted</span>
-                    </div>
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>原型评审材料</strong>
-                                <span class="chip">stage_id=502</span>
-                            </div>
-                            <div class="muted">status=under_review · updated_at=2026-03-27 · reviewer=2023000012</div>
-                        </div>
-                        <span class="tag--muted">under_review</span>
-                    </div>
-                </div>
-            </div>
-
-        </section>
-    </main>
+        </div>
+    </div>
 
     <script>
         const appOrigin = window.location.origin && window.location.origin !== "null"
@@ -198,7 +208,7 @@
             userBadge.textContent = `ID: ${userId}`;
         } else {
             metaInfo.textContent = "未检测到登录信息，请返回登录页。";
-            userBadge.textContent = "ID: --";
+            userBadge.textContent = `ID: --`;
         }
 
         logoutBtn.addEventListener("click", () => {
@@ -206,16 +216,6 @@
             localStorage.removeItem("auth_refresh_token");
             localStorage.removeItem("auth_user_id");
             window.location.href = `${appOrigin}${appBasePath}/login.html`;
-        });
-
-        document.querySelectorAll(".filters").forEach((group) => {
-            const buttons = group.querySelectorAll(".filter-btn");
-            buttons.forEach((btn) => {
-                btn.addEventListener("click", () => {
-                    buttons.forEach((el) => el.classList.remove("is-active"));
-                    btn.classList.add("is-active");
-                });
-            });
         });
     </script>
 </body>
