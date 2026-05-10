@@ -5,242 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Linksee 教师工作台</title>
-    <style>
-        :root {
-            color-scheme: light;
-            --bg: #f7f3ee;
-            --bg-deep: #efe7dd;
-            --card: #ffffff;
-            --ink: #1f1f1f;
-            --muted: #6c6c6c;
-            --accent: #0f766e;
-            --accent-strong: #0b4f49;
-            --accent-bright: #14b8a6;
-            --accent-soft: rgba(15, 118, 110, 0.12);
-            --border: rgba(31, 31, 31, 0.1);
-            --shadow: 0 24px 60px rgba(17, 24, 39, 0.14);
-            --shadow-soft: 0 12px 32px rgba(15, 23, 42, 0.1);
-            --radius-lg: 22px;
-            --radius-md: 14px;
-            --radius-sm: 10px;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            font-family: "Space Grotesk", "IBM Plex Sans", "Noto Sans SC", "Segoe UI", sans-serif;
-            background: radial-gradient(1200px 600px at 10% -10%, #fdf7ef 0%, transparent 60%),
-                radial-gradient(800px 400px at 95% 15%, #e4f4f1 0%, transparent 60%),
-                linear-gradient(180deg, var(--bg), var(--bg-deep));
-            color: var(--ink);
-            min-height: 100vh;
-        }
-
-        .page {
-            min-height: 100vh;
-            padding: 72px 7vw 64px;
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-
-        .topbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-        }
-
-        .brand {
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            font-weight: 600;
-        }
-
-        .brand-mark {
-            width: 38px;
-            height: 38px;
-            border-radius: 12px;
-            background: linear-gradient(140deg, var(--accent), var(--accent-bright));
-            box-shadow: 0 10px 20px rgba(15, 118, 110, 0.35);
-            position: relative;
-        }
-
-        .brand-mark::after {
-            content: "";
-            position: absolute;
-            inset: 9px;
-            border-radius: 9px;
-            border: 2px solid rgba(255, 255, 255, 0.8);
-        }
-
-        .top-actions {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .layout {
-            display: grid;
-            grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
-            gap: 20px;
-        }
-
-        .card {
-            background: var(--card);
-            border-radius: var(--radius-lg);
-            padding: 20px 22px;
-            box-shadow: var(--shadow);
-            border: 1px solid rgba(31, 31, 31, 0.06);
-            display: grid;
-            gap: 14px;
-        }
-
-        .card-title {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            margin: 0;
-            font-size: 18px;
-        }
-
-        .badge {
-            font-size: 12px;
-            padding: 4px 10px;
-            border-radius: 999px;
-            background: var(--accent-soft);
-            color: var(--accent-strong);
-        }
-
-        .meta {
-            padding: 10px 12px;
-            border-radius: var(--radius-md);
-            background: var(--accent-soft);
-            color: var(--muted);
-            font-size: 13px;
-        }
-
-        .stat-grid {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 12px;
-        }
-
-        .stat {
-            padding: 12px 14px;
-            border-radius: var(--radius-md);
-            background: rgba(255, 255, 255, 0.8);
-            border: 1px solid rgba(31, 31, 31, 0.08);
-            box-shadow: var(--shadow-soft);
-        }
-
-        .stat strong {
-            display: block;
-            font-size: 18px;
-        }
-
-        .stat span {
-            font-size: 12px;
-            color: var(--muted);
-        }
-
-        .list {
-            display: grid;
-            gap: 10px;
-        }
-
-        .list-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 10px 12px;
-            border-radius: var(--radius-md);
-            border: 1px solid var(--border);
-            background: rgba(255, 255, 255, 0.75);
-        }
-
-        .list-main {
-            display: grid;
-            gap: 4px;
-        }
-
-        .list-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .muted {
-            color: var(--muted);
-            font-size: 13px;
-        }
-
-        .tag {
-            font-size: 12px;
-            padding: 4px 8px;
-            border-radius: 999px;
-            background: rgba(15, 118, 110, 0.1);
-            color: var(--accent-strong);
-        }
-
-        .tag--muted {
-            background: rgba(15, 118, 110, 0.06);
-            color: var(--muted);
-        }
-
-        .tag--warn {
-            background: rgba(234, 88, 12, 0.12);
-            color: #c2410c;
-        }
-
-        .tag--quiet {
-            background: rgba(148, 163, 184, 0.18);
-            color: #475569;
-        }
-
-        .chip {
-            font-size: 12px;
-            padding: 4px 8px;
-            border-radius: 999px;
-            border: 1px solid var(--border);
-            color: var(--muted);
-        }
-
-        button {
-            border: none;
-            font: inherit;
-            padding: 10px 14px;
-            border-radius: 10px;
-            cursor: pointer;
-            background: var(--accent);
-            color: #fff;
-        }
-
-        .ghost {
-            background: var(--accent-soft);
-            color: var(--accent-strong);
-        }
-
-        @media (max-width: 980px) {
-            .layout {
-                grid-template-columns: 1fr;
-            }
-
-            .stat-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
-    <style>
-        @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@400;500;600&display=swap");
-    </style>
+    <link rel="stylesheet" href="./styles/theme.css" />
 </head>
 
 <body>
@@ -251,7 +16,8 @@
                 教师工作台
             </div>
             <div class="top-actions">
-                <button id="toRole" class="ghost">切换角色</button>
+                <span id="userBadge" class="user-avatar">ID: --</span>
+                <a class="icon-btn" href="./chat-hub.html" title="打开课程群聊">聊</a>
                 <button id="logoutBtn">退出登录</button>
             </div>
         </header>
@@ -259,6 +25,12 @@
         <section class="card">
             <h1 class="card-title">授课概览 <span class="badge">teacher</span></h1>
             <div class="meta" id="metaInfo">正在加载登录信息...</div>
+            <div class="filters">
+                <button class="filter-btn is-active" type="button">active</button>
+                <button class="filter-btn" type="button">draft</button>
+                <button class="filter-btn" type="button">under_review</button>
+                <button class="filter-btn" type="button">archived</button>
+            </div>
             <div class="stat-grid">
                 <div class="stat">
                     <strong>2</strong>
@@ -277,6 +49,13 @@
 
         <section class="layout">
             <div class="card">
+                <h2 class="card-title">快速入口 <span class="badge">actions</span></h2>
+                <div class="action-row">
+                    <a class="btn" href="./grading-hub.html">进入批改台</a>
+                    <a class="btn btn-outline" href="./submission-hub.html">前往提交台</a>
+                </div>
+            </div>
+            <div class="card">
                 <h2 class="card-title">课程与老师关系 <span class="badge">course_teachers</span></h2>
                 <div class="list">
                     <div class="list-item">
@@ -285,7 +64,7 @@
                                 <strong>软件工程实践</strong>
                                 <span class="tag">lead</span>
                             </div>
-                            <div class="muted">course_id=12 · assigned_by=2022000001</div>
+                            <div class="muted">course_id=12 · assigned_by=2022000001 · assigned_at=2026-02-12</div>
                         </div>
                         <span class="tag">active</span>
                     </div>
@@ -295,7 +74,7 @@
                                 <strong>数据库系统</strong>
                                 <span class="tag">co</span>
                             </div>
-                            <div class="muted">course_id=14 · assigned_by=2022000001</div>
+                            <div class="muted">course_id=14 · assigned_by=2022000001 · assigned_at=2026-02-22</div>
                         </div>
                         <span class="tag--quiet">draft</span>
                     </div>
@@ -311,7 +90,7 @@
                                 <strong>课程：软件工程实践</strong>
                                 <span class="chip">students=52</span>
                             </div>
-                            <div class="muted">status=active · imported_by=2022000001</div>
+                            <div class="muted">status=active · imported_by=2022000001 · updated_at=2026-03-05</div>
                         </div>
                         <span class="tag">active</span>
                     </div>
@@ -327,7 +106,7 @@
                                 <strong>课程项目 · 软件工程实践</strong>
                                 <span class="chip">course_id=12</span>
                             </div>
-                            <div class="muted">status=active · created_by=2023000001</div>
+                            <div class="muted">status=active · weight=0.4 · created_at=2026-02-20</div>
                         </div>
                         <span class="tag">active</span>
                     </div>
@@ -337,15 +116,20 @@
                                 <strong>课程项目 · 数据库系统</strong>
                                 <span class="chip">course_id=14</span>
                             </div>
-                            <div class="muted">status=draft · created_by=2023000012</div>
+                            <div class="muted">status=draft · weight=0.35 · updated_at=2026-02-28</div>
                         </div>
-                        <span class="tag--warn">draft</span>
+                        <span class="tag--muted">draft</span>
                     </div>
                 </div>
             </div>
 
             <div class="card">
                 <h2 class="card-title">阶段安排 <span class="badge">assignment_stages</span></h2>
+                <div class="flow">
+                    <span>draft</span>
+                    <span>open</span>
+                    <span>closed</span>
+                </div>
                 <div class="list">
                     <div class="list-item">
                         <div class="list-main">
@@ -353,7 +137,7 @@
                                 <strong>阶段 1 · 需求调研报告</strong>
                                 <span class="chip">stage_no=1</span>
                             </div>
-                            <div class="muted">start_at=2026-03-10 · due_at=2026-03-20</div>
+                            <div class="muted">start_at=2026-03-10 · due_at=2026-03-20 · updated_at=2026-03-12</div>
                         </div>
                         <span class="tag">open</span>
                     </div>
@@ -363,7 +147,7 @@
                                 <strong>阶段 2 · 原型评审</strong>
                                 <span class="chip">stage_no=2</span>
                             </div>
-                            <div class="muted">start_at=2026-03-21 · due_at=2026-04-01</div>
+                            <div class="muted">start_at=2026-03-21 · due_at=2026-04-01 · created_at=2026-03-05</div>
                         </div>
                         <span class="tag--muted">planned</span>
                     </div>
@@ -372,6 +156,12 @@
 
             <div class="card">
                 <h2 class="card-title">提交与批改 <span class="badge">submissions</span></h2>
+                <div class="flow">
+                    <span>draft</span>
+                    <span>submitted</span>
+                    <span>under_review</span>
+                    <span>approved</span>
+                </div>
                 <div class="list">
                     <div class="list-item">
                         <div class="list-main">
@@ -379,7 +169,7 @@
                                 <strong>需求调研报告</strong>
                                 <span class="chip">group_id=31</span>
                             </div>
-                            <div class="muted">status=submitted · reviewer=2023000001</div>
+                            <div class="muted">status=submitted · submitted_at=2026-03-19 · reviewer=2023000001</div>
                         </div>
                         <span class="tag">submitted</span>
                     </div>
@@ -389,7 +179,7 @@
                                 <strong>原型评审材料</strong>
                                 <span class="chip">group_id=31</span>
                             </div>
-                            <div class="muted">status=under_review · reviewer=2023000012</div>
+                            <div class="muted">status=under_review · submitted_at=2026-03-27 · reviewer=2023000012</div>
                         </div>
                         <span class="tag--muted">under_review</span>
                     </div>
@@ -404,16 +194,18 @@
             : "http://localhost:3001";
         const appBasePath = window.location.pathname.includes("/app/") ? "/app" : "";
         const metaInfo = document.getElementById("metaInfo");
+        const userBadge = document.getElementById("userBadge");
         const logoutBtn = document.getElementById("logoutBtn");
-        const toRole = document.getElementById("toRole");
 
         const userId = localStorage.getItem("auth_user_id");
         const token = localStorage.getItem("auth_access_token");
 
         if (userId && token) {
             metaInfo.textContent = `当前登录账号：${userId}`;
+            userBadge.textContent = `ID: ${userId}`;
         } else {
             metaInfo.textContent = "未检测到登录信息，请返回登录页。";
+            userBadge.textContent = "ID: --";
         }
 
         logoutBtn.addEventListener("click", () => {
@@ -423,8 +215,14 @@
             window.location.href = `${appOrigin}${appBasePath}/login.html`;
         });
 
-        toRole.addEventListener("click", () => {
-            window.location.href = `${appOrigin}${appBasePath}/dashboard.html`;
+        document.querySelectorAll(".filters").forEach((group) => {
+            const buttons = group.querySelectorAll(".filter-btn");
+            buttons.forEach((btn) => {
+                btn.addEventListener("click", () => {
+                    buttons.forEach((el) => el.classList.remove("is-active"));
+                    btn.classList.add("is-active");
+                });
+            });
         });
     </script>
 </body>

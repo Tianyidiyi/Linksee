@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Linksee 助教检查台</title>
+    <link rel="stylesheet" href="./styles/theme.css" />
+</head>
+
+<body>
+    <main class="page">
+        <header class="topbar">
+            <div class="brand">
+                <span class="brand-mark" aria-hidden="true"></span>
+                助教检查台
+            </div>
+            <div class="top-actions">
+                <span id="userBadge" class="user-avatar">ID: --</span>
+                <a class="icon-btn" href="./chat-hub.html" title="打开课程群聊">聊</a>
+                <button id="backToDashboard" class="ghost">返回工作台</button>
+                <button id="logoutBtn">退出登录</button>
+            </div>
+        </header>
+
+        <section class="card">
+            <h1 class="card-title">材料检查面板 <span class="badge">assistant</span></h1>
+            <div class="meta" id="metaInfo">正在加载登录信息...</div>
+            <div class="filters">
+                <button class="filter-btn is-active" type="button">missing</button>
+                <button class="filter-btn" type="button">needs_review</button>
+                <button class="filter-btn" type="button">processed</button>
+                <button class="filter-btn" type="button">flagged</button>
+            </div>
+            <div class="stat-grid">
+                <div class="stat">
+                    <strong>4</strong>
+                    <span>材料缺失</span>
+                </div>
+                <div class="stat">
+                    <strong>3</strong>
+                    <span>需复核提交</span>
+                </div>
+                <div class="stat">
+                    <strong>6</strong>
+                    <span>已处理</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="layout">
+            <div class="card">
+                <h2 class="card-title">待检查清单 <span class="badge">queue</span></h2>
+                <div class="flow">
+                    <span>missing</span>
+                    <span>needs_review</span>
+                    <span>processed</span>
+                </div>
+                <div class="list">
+                    <div class="list-item">
+                        <div class="list-main">
+                            <div class="list-row">
+                                <strong>原型评审材料</strong>
+                                <span class="chip">group_id=31</span>
+                            </div>
+                            <div class="muted">status=missing · due_at=2026-04-01</div>
+                        </div>
+                        <span class="tag--warn">missing</span>
+                    </div>
+                    <div class="list-item">
+                        <div class="list-main">
+                            <div class="list-row">
+                                <strong>需求调研报告</strong>
+                                <span class="chip">group_id=32</span>
+                            </div>
+                            <div class="muted">status=needs_review · submitted_at=2026-03-25</div>
+                        </div>
+                        <span class="tag--muted">needs_review</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">缺失说明 <span class="badge">remarks</span></h2>
+                <div class="list">
+                    <div class="list-item">
+                        <div class="list-main">
+                            <div class="list-row">
+                                <strong>原型评审材料</strong>
+                                <span class="chip">required</span>
+                            </div>
+                            <div class="muted">缺少演示链接，需补充可访问的在线地址。</div>
+                        </div>
+                        <span class="tag">pending</span>
+                    </div>
+                </div>
+                <div class="action-grid">
+                    <button class="btn">提醒学生补充</button>
+                    <button class="btn btn-ghost">标记已处理</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">历史记录 <span class="badge">history</span></h2>
+                <div class="list">
+                    <div class="list-item">
+                        <div class="list-main">
+                            <div class="list-row">
+                                <strong>阶段 1 · 需求调研报告</strong>
+                                <span class="chip">group_id=31</span>
+                            </div>
+                            <div class="muted">status=processed · handled_at=2026-03-18</div>
+                        </div>
+                        <span class="tag">processed</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const appOrigin = window.location.origin && window.location.origin !== "null"
+            ? window.location.origin
+            : "http://localhost:3001";
+        const appBasePath = window.location.pathname.includes("/app/") ? "/app" : "";
+        const metaInfo = document.getElementById("metaInfo");
+        const userBadge = document.getElementById("userBadge");
+        const logoutBtn = document.getElementById("logoutBtn");
+        const backToDashboard = document.getElementById("backToDashboard");
+
+        const userId = localStorage.getItem("auth_user_id");
+        const token = localStorage.getItem("auth_access_token");
+
+        if (userId && token) {
+            metaInfo.textContent = `当前登录账号：${userId}`;
+            userBadge.textContent = `ID: ${userId}`;
+        } else {
+            metaInfo.textContent = "未检测到登录信息，请返回登录页。";
+            userBadge.textContent = "ID: --";
+        }
+
+        logoutBtn.addEventListener("click", () => {
+            localStorage.removeItem("auth_access_token");
+            localStorage.removeItem("auth_refresh_token");
+            localStorage.removeItem("auth_user_id");
+            window.location.href = `${appOrigin}${appBasePath}/login.html`;
+        });
+
+        backToDashboard.addEventListener("click", () => {
+            window.location.href = `${appOrigin}${appBasePath}/assistant-dashboard.html`;
+        });
+
+        document.querySelectorAll(".filters").forEach((group) => {
+            const buttons = group.querySelectorAll(".filter-btn");
+            buttons.forEach((btn) => {
+                btn.addEventListener("click", () => {
+                    buttons.forEach((el) => el.classList.remove("is-active"));
+                    btn.classList.add("is-active");
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Linksee 教务工作台</title>
+    <title>Linksee 提交台</title>
     <link rel="stylesheet" href="./styles/theme.css" />
 </head>
 
@@ -13,139 +13,117 @@
         <header class="topbar">
             <div class="brand">
                 <span class="brand-mark" aria-hidden="true"></span>
-                教务工作台
+                提交台
             </div>
             <div class="top-actions">
                 <span id="userBadge" class="user-avatar">ID: --</span>
                 <a class="icon-btn" href="./chat-hub.html" title="打开课程群聊">聊</a>
+                <button id="backToDashboard" class="ghost">返回工作台</button>
                 <button id="logoutBtn">退出登录</button>
             </div>
         </header>
 
         <section class="card">
-            <h1 class="card-title">教务总览 <span class="badge">academic</span></h1>
+            <h1 class="card-title">阶段提交入口 <span class="badge">submission</span></h1>
             <div class="meta" id="metaInfo">正在加载登录信息...</div>
             <div class="filters">
-                <button class="filter-btn is-active" type="button">active</button>
-                <button class="filter-btn" type="button">draft</button>
-                <button class="filter-btn" type="button">archived</button>
-                <button class="filter-btn" type="button">withdrawn</button>
+                <button class="filter-btn is-active" type="button">draft</button>
+                <button class="filter-btn" type="button">submitted</button>
+                <button class="filter-btn" type="button">under_review</button>
+                <button class="filter-btn" type="button">approved</button>
             </div>
             <div class="stat-grid">
                 <div class="stat">
-                    <strong>6</strong>
-                    <span>本学期课程</span>
-                </div>
-                <div class="stat">
-                    <strong>4</strong>
-                    <span>待指派老师</span>
+                    <strong>阶段 2</strong>
+                    <span>当前提交流程</span>
                 </div>
                 <div class="stat">
                     <strong>2</strong>
-                    <span>待导入名单</span>
+                    <span>需上传材料</span>
+                </div>
+                <div class="stat">
+                    <strong>2026-04-01</strong>
+                    <span>提交截止时间</span>
                 </div>
             </div>
         </section>
 
         <section class="layout">
             <div class="card">
-                <h2 class="card-title">课程基础信息 <span class="badge">courses</span></h2>
+                <h2 class="card-title">提交清单 <span class="badge">materials</span></h2>
+                <div class="list">
+                    <div class="list-item">
+                        <div class="list-main">
+                            <div class="list-row">
+                                <strong>原型评审材料</strong>
+                                <span class="chip">required</span>
+                            </div>
+                            <div class="muted">格式：PDF/ZIP · 最大 20MB</div>
+                        </div>
+                        <span class="tag--muted">pending</span>
+                    </div>
+                    <div class="list-item">
+                        <div class="list-main">
+                            <div class="list-row">
+                                <strong>演示链接</strong>
+                                <span class="chip">optional</span>
+                            </div>
+                            <div class="muted">请填写可访问的在线原型地址</div>
+                        </div>
+                        <span class="tag--muted">optional</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">提交信息 <span class="badge">form</span></h2>
+                <div class="list">
+                    <div class="list-item">
+                        <div class="list-main">
+                            <div class="list-row">
+                                <strong>仓库链接</strong>
+                                <span class="chip">repo_url</span>
+                            </div>
+                            <div class="muted">https://github.com/org/linksee-group31</div>
+                        </div>
+                        <span class="tag">filled</span>
+                    </div>
+                    <div class="list-item">
+                        <div class="list-main">
+                            <div class="list-row">
+                                <strong>贡献说明</strong>
+                                <span class="chip">summary</span>
+                            </div>
+                            <div class="muted">本阶段完成原型流程与可用性修复。</div>
+                        </div>
+                        <span class="tag">filled</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">提交状态 <span class="badge">status</span></h2>
                 <div class="flow">
                     <span>draft</span>
-                    <span>active</span>
-                    <span>archived</span>
+                    <span>submitted</span>
+                    <span>under_review</span>
+                    <span>approved</span>
                 </div>
                 <div class="list">
                     <div class="list-item">
                         <div class="list-main">
                             <div class="list-row">
-                                <strong>软件工程实践</strong>
-                                <span class="chip">BSJ084-2026-1-01</span>
+                                <strong>阶段 2 · 原型评审</strong>
+                                <span class="chip">group_id=31</span>
                             </div>
-                            <div class="muted">2026 学年 · 春季学期 · created_at=2026-02-10 · updated_at=2026-04-01</div>
+                            <div class="muted">status=under_review · submitted_at=2026-03-27</div>
                         </div>
-                        <span class="tag">active</span>
-                    </div>
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>数据库系统</strong>
-                                <span class="chip">DBS102-2026-1-02</span>
-                            </div>
-                            <div class="muted">2026 学年 · 春季学期 · created_at=2026-02-18 · updated_at=2026-02-20</div>
-                        </div>
-                        <span class="tag--muted">draft</span>
+                        <span class="tag--muted">under_review</span>
                     </div>
                 </div>
-            </div>
-
-            <div class="card">
-                <h2 class="card-title">老师指派 <span class="badge">course_teachers</span></h2>
-                <div class="list">
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>软件工程实践</strong>
-                                <span class="tag">lead</span>
-                            </div>
-                            <div class="muted">teacher=2023000001 · assigned_by=2022000001 · assigned_at=2026-02-12
-                            </div>
-                        </div>
-                        <span class="tag">active</span>
-                    </div>
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>数据库系统</strong>
-                                <span class="tag">co</span>
-                            </div>
-                            <div class="muted">teacher=2023000012 · assigned_by=2022000001 · assigned_at=2026-02-22
-                            </div>
-                        </div>
-                        <span class="tag--quiet">draft</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h2 class="card-title">学生名单导入 <span class="badge">course_members</span></h2>
-                <div class="list">
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>软件工程实践</strong>
-                                <span class="chip">student=2023010001</span>
-                            </div>
-                            <div class="muted">status=active · imported_by=2022000001 · imported_at=2026-02-15</div>
-                        </div>
-                        <span class="tag">active</span>
-                    </div>
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>数据库系统</strong>
-                                <span class="chip">student=2023010012</span>
-                            </div>
-                            <div class="muted">status=withdrawn · imported_by=2022000001 · updated_at=2026-03-02</div>
-                        </div>
-                        <span class="tag--quiet">withdrawn</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h2 class="card-title">助教分配 <span class="badge">assistant_bindings</span></h2>
-                <div class="list">
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>软件工程实践</strong>
-                                <span class="chip">assistant=2023019001</span>
-                            </div>
-                            <div class="muted">teacher=2023000001 · course_id=12 · created_at=2026-02-16</div>
-                        </div>
-                        <span class="tag">active</span>
-                    </div>
+                <div class="action-grid">
+                    <button class="btn">提交材料</button>
+                    <button class="btn btn-ghost">保存草稿</button>
                 </div>
             </div>
         </section>
@@ -159,6 +137,7 @@
         const metaInfo = document.getElementById("metaInfo");
         const userBadge = document.getElementById("userBadge");
         const logoutBtn = document.getElementById("logoutBtn");
+        const backToDashboard = document.getElementById("backToDashboard");
 
         const userId = localStorage.getItem("auth_user_id");
         const token = localStorage.getItem("auth_access_token");
@@ -176,6 +155,10 @@
             localStorage.removeItem("auth_refresh_token");
             localStorage.removeItem("auth_user_id");
             window.location.href = `${appOrigin}${appBasePath}/login.html`;
+        });
+
+        backToDashboard.addEventListener("click", () => {
+            window.location.href = `${appOrigin}${appBasePath}/student-dashboard.html`;
         });
 
         document.querySelectorAll(".filters").forEach((group) => {
