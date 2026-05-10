@@ -9,7 +9,8 @@
     "start:demo": "node ./src/demo/server.mjs",
     "test:socket-demo": "node ./src/demo/socket-smoke.mjs",
     "start:auth": "tsx ./src/auth/server.ts",
-    "seed:auth-user": "tsx ./src/auth/seed-test-user.ts"
+    "seed:auth-user": "tsx ./src/auth/seed-test-user.ts",
+    "cleanup:chat-files": "tsx ./src/collaboration/chat-files-cleanup.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

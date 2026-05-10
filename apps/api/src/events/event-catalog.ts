@@ -9,9 +9,37 @@ export const eventCatalog: Record<EventName, { channel: "socket" | "worker"; des
     channel: "socket",
     description: "阶段要求创建后推送给相关小组",
   },
+  "course.message.created": {
+    channel: "socket",
+    description: "课程群消息新增后推送给课程成员",
+  },
+  "course.message.updated": {
+    channel: "socket",
+    description: "课程群消息编辑后推送给课程成员",
+  },
+  "course.message.deleted": {
+    channel: "socket",
+    description: "课程群消息撤回后推送给课程成员",
+  },
+  "course.member.updated": {
+    channel: "socket",
+    description: "课程成员增删后推送给课程成员",
+  },
   "group.message.created": {
     channel: "socket",
     description: "小组讨论消息新增后推送给小组成员",
+  },
+  "group.message.updated": {
+    channel: "socket",
+    description: "小组讨论消息编辑后推送给小组成员",
+  },
+  "group.message.deleted": {
+    channel: "socket",
+    description: "小组讨论消息撤回后推送给小组成员",
+  },
+  "group.member.updated": {
+    channel: "socket",
+    description: "小组成员增删后推送给课程成员与小组成员",
   },
   "group.minitask.updated": {
     channel: "socket",

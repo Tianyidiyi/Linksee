@@ -22,6 +22,11 @@
    - Assignment 说明附件上传/删除（MinIO）
    - Stage CRUD、状态流转（planned/open/closed/archived）
    - Stage 要求附件上传/删除（MinIO）
+5. Collaboration + Groups
+   - 课程群消息（GET/POST /api/v1/courses/:courseId/messages）
+   - 小组群消息（GET/POST /api/v1/groups/:groupId/messages）
+   - 小组列表与创建（GET/POST /api/v1/assignments/:assignmentId/groups）
+   - 小组成员增删（POST/DELETE /api/v1/groups/:groupId/members）
 
 ## 2. 当前实现的结构化拆分
 
@@ -57,9 +62,14 @@
    - `/api/v1/assignments/:assignmentId/stages`
    - `/api/v1/stages/:stageId`
    - `/api/v1/stages/:stageId/materials`
+4. 群聊与小组可直接对接
+   - `/api/v1/courses/:courseId/messages`
+   - `/api/v1/groups/:groupId/messages`
+   - `/api/v1/assignments/:assignmentId/groups`
+   - `/api/v1/groups/:groupId/members`
 
 ## 4. 仍缺少/待推进部分
 
-1. Group / Submission / Review 主业务尚未进入完整实现阶段（当前以规划为主）
+1. Submission / Review 主业务尚未进入完整实现阶段（当前以规划为主）
 2. 端到端自动化集成测试（integration test）体系尚未建立
 3. OpenAPI 仍需继续与“真实可运行行为”保持同步更新（尤其是错误码与返回结构）

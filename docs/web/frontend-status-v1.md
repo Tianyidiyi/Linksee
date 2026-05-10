@@ -1,7 +1,7 @@
 # 前端现状与待补清单 v1
 
 > 最近更新：2026-05-07  
-> 对标后端：auth 模块已完整实现；course/assignment/group/stage/chat 表设计完成但代码未写。  
+> 对标后端：auth/users/courses/assignments/stages 已实现并可联调；group/minitask/chat/submission/review 仍未实现。  
 > 关联文档：[apps/web/README.md](../../apps/web/README.md) · [design-mapping-checklist.md](../../skills/design-md-ui-workflow/references/design-mapping-checklist.md)
 
 ---
@@ -25,13 +25,13 @@
 | 模块 | 后端现状 | 前端现状 | 差距等级 |
 | ---- | -------- | -------- | -------- |
 | Auth / 登录 | ✅ 完整实现（36 个测试） | ✅ login.html 可用 | 🔴 缺强制改密拦截、个人信息、改密页 |
-| Users / 个人信息 | ✅ GET + PATCH /me 接口已设计 | ❌ 无任何页面 | 🔴 最紧迫 |
+| Users / 个人信息 | ✅ GET + PATCH /me 接口已实现 | ❌ 无任何页面 | 🔴 最紧迫 |
 | 角色路由分发 | ✅ role 字段在 token / me 响应中 | ❌ dashboard 未按 role 跳转 | 🔴 最紧迫 |
-| Course（Phase 1） | ⏳ 表设计完成，代码未写 | ❌ 无页面 | 🟡 可 mock 先做 |
-| Assignment / Stage（Phase 2） | ⏳ 表设计完成，代码未写 | ❌ 无页面 | 🟡 可 mock 先做 |
-| Groups（Phase 3） | ⏳ 表设计完成，代码未写 | ❌ 无页面 | 🟡 可 mock 先做 |
-| MiniTask / Chat（Phase 4） | ⏳ 表设计完成，代码未写 | ❌ 无页面 | 🟡 可 mock 先做 |
-| Submissions / Reviews（Phase 5） | ❌ 未设计 | ❌ 无页面 | ⚪ 等后端设计完成 |
+| Course（Phase 1） | ✅ API 已实现（可联调） | ❌ 无页面 | 🟡 需要联调 |
+| Assignment / Stage（Phase 2） | ✅ API 已实现（可联调） | ❌ 无页面 | 🟡 需要联调 |
+| Groups（Phase 3） | ❌ 未实现 | ❌ 无页面 | ⚪ 等后端实现 |
+| MiniTask / Chat（Phase 4） | ❌ 未实现 | ❌ 无页面 | ⚪ 等后端实现 |
+| Submissions / Reviews（Phase 5） | ❌ 未设计 / 未实现 | ❌ 无页面 | ⚪ 等后端设计完成 |
 | Socket 业务事件处理 | ✅ 网关/心跳/房间已实现 | ⚠️ 骨架有，无业务处理函数 | 🟡 联调时补 |
 
 ---
@@ -76,7 +76,7 @@
 
 ---
 
-### 3.3 课程模块（Phase 1，后端待实现，可 mock 先做）
+### 3.3 课程模块（Phase 1，后端已实现，可联调）
 
 | 页面 / 功能 | 对应后端接口 | 要点 |
 | ----------- | ------------ | ---- |
@@ -86,7 +86,7 @@
 
 ---
 
-### 3.4 Assignment / Stage（Phase 2，后端待实现）
+### 3.4 Assignment / Stage（Phase 2，后端已实现，可联调）
 
 | 页面 / 功能 | 对应后端接口 | 要点 |
 | ----------- | ------------ | ---- |

@@ -79,6 +79,7 @@ model User {
   assignedMiniTasks MiniTask[]   @relation("MiniTaskAssignee")
   chatConversations ChatConversation[]
   chatMessages      ChatMessage[]
+  chatConversationReads ChatConversationRead[]
 
   @@map("users")
 }
@@ -560,6 +561,7 @@ model ChatConversation {
   // 应用层根据 scopeType 自行 join courses / groups 表
   creator  User?   @relation(fields: [createdBy], references: [id])
   messages ChatMessage[]
+  reads    ChatConversationRead[]
 
   @@unique([scopeType, scopeId])
   @@map("chat_conversations")
@@ -575,6 +577,7 @@ model ChatMessage {
   senderId       String    @db.VarChar(10)
   content        String?   @db.Text
   files          Json?
+  mentions       Json?
   replyToId      BigInt?   @db.UnsignedBigInt
 
   /// EventEnvelope.id，幂等键
@@ -583,14 +586,49 @@ model ChatMessage {
 
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+  editedAt       DateTime?
   deletedAt      DateTime?
 
   conversation ChatConversation @relation(fields: [conversationId], references: [id])
   sender       User             @relation(fields: [senderId], references: [id])
   replyTo      ChatMessage?     @relation("MessageReply", fields: [replyToId], references: [id])
   replies      ChatMessage[]    @relation("MessageReply")
+  filesMeta    ChatFile[]
 
   @@index([conversationId, createdAt, id])
   @@index([senderId, createdAt])
   @@map("chat_messages")
+}
+
+model ChatFile {
+  id             BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  messageId      BigInt   @db.UnsignedBigInt
+  objectKey      String   @unique @db.VarChar(255)
+  name           String   @db.VarChar(200)
+  size           BigInt   @db.UnsignedBigInt
+  mimeType       String   @db.VarChar(120)
+  uploadedAt     DateTime
+  expiresAt      DateTime
+  thumbnailKey   String?  @db.VarChar(255)
+
+  message ChatMessage @relation(fields: [messageId], references: [id])
+
+  @@index([messageId])
+  @@index([expiresAt])
+  @@map("chat_files")
+}
+
+model ChatConversationRead {
+  conversationId BigInt   @db.UnsignedBigInt
+  userId         String   @db.VarChar(10)
+  lastMessageId  BigInt?
+  lastReadAt     DateTime?
+  updatedAt      DateTime @updatedAt
+
+  conversation ChatConversation @relation(fields: [conversationId], references: [id])
+  user         User             @relation(fields: [userId], references: [id])
+
+  @@id([conversationId, userId])
+  @@index([userId, lastReadAt])
+  @@map("chat_conversation_reads")
 }

@@ -162,18 +162,46 @@ Failure Examples:
   - Authorization: Bearer `<token>`
   - Idempotency-Key: `<uuid>`
 - Request:
-  - content: string
+- Request:
+  - type: text | file
+  - content?: string
+  - files?: ChatFileMetadata[]
+  - mentions?: string[]
+  - replyToId?: string
 - Response:
   - id: string
   - groupId: string
-  - content: string
+  - content?: string
+  - files?: ChatFileMetadata[]
+  - mentions?: string[]
+  - replyToId?: string
+  - messageType: text | file | announcement
   - creatorId: string
   - createdAt: string
+  - editedAt?: string
+  - deletedAt?: string
 
 Field Constraints:
 
 - groupId: 必须是当前用户可访问的小组 ID；学生只能访问自己所在小组。
-- content: 必填，1 到 2000 个字符，去除首尾空格后不能为空。
+- type: 必填，`text` 或 `file`。
+- content: 文本消息必填，1 到 2000 个字符。
+- files: 文件消息必填，需先 presign 上传。
+- mentions: 可选，最多 20 个用户 ID。
+- replyToId: 可选，必须指向同会话消息。
+
+ChatFileMetadata（files 数组元素）:
+
+```json
+{
+  "name": "spec.pdf",
+  "objectKey": "chat/group/123/uuid-spec.pdf",
+  "size": 102400,
+  "mimeType": "application/pdf",
+  "uploadedAt": "2026-05-09T10:00:00+08:00",
+  "thumbnailKey": "chat/group/123/uuid-spec.pdf"
+}
+```
 - creatorId: 服务端根据 token 写入，客户端不得传入。
 
 Success Example:
@@ -476,12 +504,19 @@ not_submitted -> submitted -> needs_changes -> resubmitted -> approved
 事件示例：
 
 1. group.message.created
-2. group.minitask.updated
-3. submission.created
-4. submission.status.updated
-5. review.created
-6. grade.published
-7. course.dashboard.updated
+2. group.message.updated
+3. group.message.deleted
+4. course.message.created
+5. course.message.updated
+6. course.message.deleted
+3. course.member.updated
+4. group.member.updated
+5. group.minitask.updated
+6. submission.created
+7. submission.status.updated
+8. review.created
+9. grade.published
+10. course.dashboard.updated
 
 ## 5. Worker 事件契约（预留增强）
 

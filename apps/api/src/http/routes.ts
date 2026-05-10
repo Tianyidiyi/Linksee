@@ -105,6 +105,18 @@ export const mvpRoutes: HttpRoute[] = [
   },
   {
     method: "GET",
+    path: "/api/v1/assignments/:assignmentId/groups",
+    authRequired: true,
+    module: "group",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/assignments/:assignmentId/groups",
+    authRequired: true,
+    module: "group",
+  },
+  {
+    method: "GET",
     path: "/api/v1/stages/:stageId",
     authRequired: true,
     module: "assignment",
@@ -134,10 +146,40 @@ export const mvpRoutes: HttpRoute[] = [
     module: "assignment",
   },
   {
+    method: "GET",
+    path: "/api/v1/courses/:courseId/messages",
+    authRequired: true,
+    module: "collaboration",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/courses/:courseId/messages",
+    authRequired: true,
+    module: "collaboration",
+  },
+  {
     method: "POST",
     path: "/api/v1/groups/:groupId/messages",
     authRequired: true,
     module: "collaboration",
+  },
+  {
+    method: "GET",
+    path: "/api/v1/groups/:groupId/messages",
+    authRequired: true,
+    module: "collaboration",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/groups/:groupId/members",
+    authRequired: true,
+    module: "group",
+  },
+  {
+    method: "DELETE",
+    path: "/api/v1/groups/:groupId/members/:userId",
+    authRequired: true,
+    module: "group",
   },
   {
     method: "POST",
