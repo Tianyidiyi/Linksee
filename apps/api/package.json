@@ -10,7 +10,10 @@
     "test:socket-demo": "node ./src/demo/socket-smoke.mjs",
     "start:auth": "tsx ./src/auth/server.ts",
     "seed:auth-user": "tsx ./src/auth/seed-test-user.ts",
-    "cleanup:chat-files": "tsx ./src/collaboration/chat-files-cleanup.ts"
+    "cleanup:chat-files": "tsx ./src/collaboration/chat-files-cleanup.ts",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
@@ -31,10 +34,15 @@
     "dist"
   ],
   "devDependencies": {
+    "@jest/globals": "^29.7.0",
     "@types/express": "^5.0.6",
+    "@types/jest": "^29.5.11",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.1.0",
     "@types/node": "^25.6.0",
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3",
+    "ts-jest": "^29.1.1",
     "tsx": "^4.21.0",
     "typescript": "^6.0.3"
   }
