@@ -62,18 +62,19 @@ Dockerfile 中必须执行 `npm install`（或 `npm ci`），不能只 COPY node
 ### 5.4 Redis 限流 Key 命名规范
 
 登录暴力破解防护使用 Redis 计数器，Key 格式：
+
 - `rate:login:ip:{ip}`   → 同一 IP 连续失败计数，TTL 15 分钟
 - `rate:login:user:{userId}` → 同一账号连续失败计数，TTL 15 分钟
-超过 5 次后接口直接返回 429，不再验证密码。
+  超过 5 次后接口直接返回 429，不再验证密码。
 
 ### 5.5 MySQL init 脚本执行顺序
 
 `mysql-init/` 目录下脚本按文件名字典序执行：
 
-| 文件 | 内容 |
-|------|------|
-| `001_create_extensions.sql` | 占位/扩展预留 |
-| `002_auth_tables.sql` | 用户、令牌、审计表 |
+| 文件                          | 内容               |
+| ----------------------------- | ------------------ |
+| `001_create_extensions.sql` | 占位/扩展预留      |
+| `002_auth_tables.sql`       | 用户、令牌、审计表 |
 
 **注意**：init 脚本只在容器首次初始化（数据卷为空）时执行。
 已有数据时重新 `down -v up` 才会重跑，否则用 Prisma migration。
@@ -82,6 +83,7 @@ Dockerfile 中必须执行 `npm install`（或 `npm ci`），不能只 COPY node
 
 当前 docker-compose 将所有端口绑定到 `0.0.0.0`（即对外可达），开发环境可接受。
 生产/测试环境部署时：
+
 - MySQL (3306)、Redis (6379)、MinIO API (9000) 改为绑定 `127.0.0.1`，只允许本机访问。
 - 只有 API 服务（Node.js，如 3000 端口）通过反向代理对外暴露。
 

@@ -10,11 +10,13 @@
 
 | 阶段                        | 表                                                                                         | 状态   |
 | --------------------------- | ------------------------------------------------------------------------------------------ | ------ |
-| **Phase 1（本文档）** | `courses` / `course_teachers` / `course_members` / `assistant_bindings`（补全 FK） | 待实现 |
-| **Phase 2（本文档）** | `assignments` / `assignment_group_configs` / `assignment_stages`                     | 待实现 |
+| **Phase 1（本文档）** | `courses` / `course_teachers` / `course_members` / `assistant_bindings`（补全 FK） | 已落地 |
+| **Phase 2（本文档）** | `assignments` / `assignment_group_configs` / `assignment_stages`                     | 已落地 |
 | **Phase 3（本文档）** | `groups` / `group_members`                                                             | 待实现 |
 | **Phase 4（本文档）** | `mini_tasks` / `chat_conversations` / `chat_messages`                               | 待实现 |
 | Phase 5                     | `submissions` / `submission_files` / `reviews`                                       | 待设计 |
+
+实现状态以 [docs/status/current-delivery-status.md](docs/status/current-delivery-status.md) 为准，若有偏差以交付状态为准。
 
 ---
 

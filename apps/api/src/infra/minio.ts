@@ -9,11 +9,15 @@ export const minioClient = new Client({
   secretKey: env.minioSecretKey,
 });
 
-async function ensureBucketReady(bucket: string): Promise<void> {
+async function ensureBucketReady(bucket: string, publicRead: boolean): Promise<void> {
   const exists = await minioClient.bucketExists(bucket);
   if (!exists) {
     await minioClient.makeBucket(bucket, "");
     console.log(`[minio] bucket "${bucket}" created`);
+  }
+
+  if (!publicRead) {
+    return;
   }
 
   const policy = JSON.stringify({
@@ -31,8 +35,9 @@ async function ensureBucketReady(bucket: string): Promise<void> {
 }
 
 export async function ensureBuckets(): Promise<void> {
-  await ensureBucketReady(env.minioBucketAvatars);
-  await ensureBucketReady(env.minioBucketCourseMaterials);
+  await ensureBucketReady(env.minioBucketAvatars, true);
+  await ensureBucketReady(env.minioBucketCourseMaterials, true);
+  await ensureBucketReady(env.minioBucketChatFiles, false);
 }
 
 export function buildBucketPublicUrl(bucket: string, objectName: string): string {

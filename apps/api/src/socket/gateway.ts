@@ -12,6 +12,7 @@ import {
 
 export interface SocketGateway {
   push(room: string, event: EventEnvelope): Promise<void>;
+  removeUserFromRoom(userId: string, room: string): Promise<void>;
   heartbeatConfig: HeartbeatConfigEvent;
 }
 
@@ -27,6 +28,7 @@ export function setupRealtimeGateway(
   options: RealtimeGatewayOptions,
 ): SocketGateway {
   const logger = options.logger ?? console;
+  const userSockets = new Map<string, Set<string>>();
   const heartbeatConfig: HeartbeatConfigEvent = {
     intervalMs: options.heartbeatIntervalMs ?? SOCKET_RULES.heartbeatIntervalMs,
     timeoutMs: options.heartbeatTimeoutMs ?? SOCKET_RULES.heartbeatTimeoutMs,
@@ -60,6 +62,10 @@ export function setupRealtimeGateway(
     for (const groupId of authContext.groupIds ?? []) {
       socket.join(`group:${groupId}`);
     }
+
+    const sockets = userSockets.get(authContext.userId) ?? new Set<string>();
+    sockets.add(socket.id);
+    userSockets.set(authContext.userId, sockets);
 
     socket.emit(SERVER_SOCKET_EVENTS.heartbeatConfig, heartbeatConfig);
     socket.emit(SERVER_SOCKET_EVENTS.presence, {
@@ -119,6 +125,13 @@ export function setupRealtimeGateway(
     }, Math.max(1000, Math.floor(heartbeatConfig.timeoutMs / 3)));
 
     socket.on("disconnect", () => {
+      const sockets = userSockets.get(authContext!.userId);
+      if (sockets) {
+        sockets.delete(socket.id);
+        if (sockets.size === 0) {
+          userSockets.delete(authContext!.userId);
+        }
+      }
       clearInterval(heartbeatGuard);
     });
   });
@@ -127,6 +140,16 @@ export function setupRealtimeGateway(
     heartbeatConfig,
     async push(room: string, event: EventEnvelope): Promise<void> {
       io.to(room).emit(SERVER_SOCKET_EVENTS.realtimeEvent, event);
+    },
+    async removeUserFromRoom(userId: string, room: string): Promise<void> {
+      const sockets = userSockets.get(userId);
+      if (!sockets || sockets.size === 0) return;
+      for (const socketId of sockets) {
+        const socket = io.sockets.sockets.get(socketId);
+        if (socket) {
+          socket.leave(room);
+        }
+      }
     },
   };
 }

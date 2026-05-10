@@ -161,7 +161,7 @@ if (!record) {
 
 设计文档提到："老师被指派后，才可以在该课程下发布 Assignment、管理小组"
 
-**当前进展：** Phase 2 assignment API 还未实现
+**当前进展：** Assignment / Stage API 已落地，进度以 [docs/status/current-delivery-status.md](docs/status/current-delivery-status.md) 为准
 
 **建议规划：**
 - [ ] Assignment 创建时检查 course_teachers 权限（只有 lead/co 可创建）

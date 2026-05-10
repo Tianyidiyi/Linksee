@@ -117,3 +117,41 @@
   - 新增 docs/api/前后端联调对齐说明.md（承载前后端联调对齐规则）
   - 调整 docs/architecture/current-architecture-status.md 为“架构文档定位说明”，仅保留架构目录边界声明
   - 调整 apps/web/README.md 为入口说明，链接到联调文档与交付状态文档
+
+2026-05-10 | zkx | feat(collaboration): 群聊消息增强（编辑/撤回/回复/@/搜索/文件/ACK/会话）+ 文档与对接补齐
+  [数据库变更]
+  - chat_messages 增加 mentions/editedAt
+  - 新增 chat_files（附件元数据、过期清理）
+  - 新增 chat_conversation_reads（会话未读与已读位置）
+
+  [新增接口]
+  - PATCH/DELETE /api/v1/courses/:courseId/messages/:messageId（编辑/撤回）
+  - PATCH/DELETE /api/v1/groups/:groupId/messages/:messageId（编辑/撤回）
+  - GET /api/v1/courses/:courseId/messages/search
+  - GET /api/v1/groups/:groupId/messages/search
+  - POST /api/v1/courses/:courseId/announcements
+  - POST /api/v1/groups/:groupId/announcements
+  - POST /api/v1/chat/files/presign-upload
+  - GET  /api/v1/chat/files/presign-download
+  - GET  /api/v1/conversations
+  - POST /api/v1/conversations/:conversationId/read
+  - POST /api/v1/realtime/acks
+  - GET  /api/v1/realtime/replay
+
+  [事件/实时]
+  - 新增 course.message.updated / course.message.deleted
+  - 新增 group.message.updated / group.message.deleted
+  - Socket 事件缓存 + ACK 去重 + 重放窗口
+
+  [文件与清理]
+  - chat-files 私有桶 + 30 分钟 presign
+  - 单文件上限 500MB，常见类型白名单，保留 7 天
+  - 清理脚本：apps/api/src/collaboration/chat-files-cleanup.ts
+
+  [文档]
+  - 新增 docs/api/collaboration/chat-messages-v1.md
+  - 更新 docs/api/README.md / docs/collaboration/README.md / docs/api/前后端联调对齐说明.md / contracts
+
+  [风险]
+  - Prisma 变更已用 db push（无迁移历史），后续上线需补 migration
+  - ACK/重放依赖 Redis，可用性需保证
