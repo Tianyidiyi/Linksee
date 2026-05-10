@@ -6,39 +6,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Linksee 学生工作台</title>
     <link rel="stylesheet" href="./styles/theme.css" />
-    <style>
-        /* 针对学生工作台专门补充的双栏响应式布局 */
-        .student-grid-layout {
-            display: grid;
-            grid-template-columns: minmax(0, 7fr) minmax(280px, 3fr);
-            gap: 32px;
-            align-items: start;
-            margin-top: 24px;
-        }
-
-        .student-main-col {
-            display: grid;
-            gap: 24px;
-        }
-
-        .student-side-col {
-            display: grid;
-            gap: 24px;
-            align-content: start;
-        }
-
-        @media (max-width: 1024px) {
-            .student-grid-layout {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
 </head>
 
 <body class="app-shell student-shell">
 
     <aside class="sidebar">
-        <div class="user-profile" id="userBadge">ID: --</div>
+        <div class="user-profile">
+            <input type="file" id="avatarInput" accept="image/*" hidden />
+            <div class="avatar-wrapper" id="avatarWrapper" title="点击更换头像">
+                <img id="avatarImage"
+                    src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239CA3AF'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>"
+                    alt="用户头像" />
+                <div class="avatar-overlay">更换</div>
+            </div>
+            <div id="userBadge">ID: --</div>
+        </div>
+
+        <nav class="side-nav" aria-label="学生功能导航">
+            <button class="nav-item is-active" data-target="panel-todo" type="button">我的待办</button>
+            <button class="nav-item" data-target="panel-grades" type="button">成绩与反馈</button>
+            <button class="nav-item" data-target="panel-courses" type="button">课程与小组</button>
+        </nav>
     </aside>
 
     <div class="workspace">
@@ -52,132 +40,159 @@
                 <button id="logoutBtn" class="btn btn-secondary">退出登录</button>
             </header>
 
-            <div class="student-grid-layout">
+            <div class="page-panel is-active" id="panel-todo">
+                <div class="student-grid-layout">
 
-                <div class="student-main-col">
+                    <div class="student-main-col">
 
-                    <section class="card">
-                        <h2 class="card-title">我的待办 (Up Next) <span class="badge badge-pending">todo</span></h2>
-                        <div class="timeline">
-                            <div class="timeline-item is-overdue">
-                                <div class="timeline-meta">
-                                    <strong>完成需求访谈记录</strong>
-                                    <span class="muted">due_at=2026-03-18 · status=in_progress</span>
-                                </div>
-                                <span class="badge badge-urgent">urgent</span>
+                        <section class="card">
+                            <div class="dashboard-section-intro">
+                                <div class="dashboard-kicker">Student Focus</div>
+                                <h2 class="card-title">我的待办 (Up Next) <span class="badge badge-pending">todo</span></h2>
+                                <p>优先处理最近会影响小组推进和阶段提交的任务，避免在评审前出现连锁延期。</p>
                             </div>
-                            <div class="timeline-item">
-                                <div class="timeline-meta">
-                                    <strong>原型评审准备</strong>
-                                    <span class="muted">due_at=2026-03-26 · status=todo</span>
-                                </div>
-                                <span class="badge badge-pending">3 days</span>
-                            </div>
-                            <div class="timeline-item">
-                                <div class="timeline-meta">
-                                    <strong>提交阶段材料</strong>
-                                    <span class="muted">due_at=2026-04-01 · status=todo</span>
-                                </div>
-                                <span class="badge badge-pending">9 days</span>
-                            </div>
-                            <div class="timeline-item">
-                                <div class="timeline-meta">
-                                    <strong>课程项目总结</strong>
-                                    <span class="muted">due_at=2026-04-10 · status=todo</span>
-                                </div>
-                                <span class="badge badge-pending">18 days</span>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section class="card">
-                        <h2 class="card-title">最近成绩与反馈</h2>
-                        <div class="list">
-                            <div class="list-item">
-                                <div class="list-main">
-                                    <div class="list-row">
-                                        <strong>需求调研报告</strong>
-                                        <span class="chip">score=92</span>
+                            <div class="timeline">
+                                <div class="timeline-item is-overdue">
+                                    <div class="timeline-meta">
+                                        <strong>完成需求访谈记录</strong>
+                                        <span class="muted">due_at=2026-03-18 · status=in_progress</span>
                                     </div>
-                                    <div class="muted">reviewed_at=2026-03-22 · feedback=结构清晰</div>
+                                    <span class="badge badge-urgent">urgent</span>
                                 </div>
-                                <span class="badge badge-approved">approved</span>
-                            </div>
-                            <div class="list-item">
-                                <div class="list-main">
-                                    <div class="list-row">
-                                        <strong>上阶段提交</strong>
-                                        <span class="chip">score=85</span>
+                                <div class="timeline-item">
+                                    <div class="timeline-meta">
+                                        <strong>原型评审准备</strong>
+                                        <span class="muted">due_at=2026-03-26 · status=todo</span>
                                     </div>
-                                    <div class="muted">reviewed_at=2026-03-10 · status=needs_changes</div>
+                                    <span class="badge badge-pending">3 days</span>
                                 </div>
-                                <span class="badge badge-pending">pending</span>
+                                <div class="timeline-item">
+                                    <div class="timeline-meta">
+                                        <strong>提交阶段材料</strong>
+                                        <span class="muted">due_at=2026-04-01 · status=todo</span>
+                                    </div>
+                                    <span class="badge badge-pending">9 days</span>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-meta">
+                                        <strong>课程项目总结</strong>
+                                        <span class="muted">due_at=2026-04-10 · status=todo</span>
+                                    </div>
+                                    <span class="badge badge-pending">18 days</span>
+                                </div>
                             </div>
-                        </div>
-                    </section>
+                        </section>
+                    </div>
+
+                    <div class="student-side-col">
+
+                        <section class="card">
+                            <div class="dashboard-section-intro">
+                                <div class="dashboard-kicker">Learning Overview</div>
+                                <h1 class="card-title">学习概览 <span class="badge badge-active">overview</span></h1>
+                                <p>这里是你本周最关键的课程节奏、任务压力和协作入口。</p>
+                            </div>
+                            <div class="meta" id="metaInfo">正在加载登录信息...</div>
+                            <div class="stat-grid dashboard-stat-grid-single">
+                                <div class="stat dashboard-stat-row">
+                                    <span>已加入课程</span>
+                                    <strong>3</strong>
+                                </div>
+                                <div class="stat dashboard-stat-row">
+                                    <span>进行中阶段</span>
+                                    <strong class="dashboard-stat-value-success">2</strong>
+                                </div>
+                                <div class="stat dashboard-stat-row">
+                                    <span>待完成任务</span>
+                                    <strong class="dashboard-stat-value-danger">4</strong>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="card">
+                            <div class="dashboard-section-intro">
+                                <div class="dashboard-kicker">Quick Access</div>
+                                <h2 class="card-title">快速入口</h2>
+                                <p>把最常用的协作和提交入口前置，减少在多个页面之间来回跳转。</p>
+                            </div>
+                            <div class="dashboard-quick-grid">
+                                <a class="btn btn-primary academic-btn-block" href="./student-group-space.html">小组空间</a>
+                                <a class="btn btn-secondary academic-btn-block" href="./submission-hub.html">前往提交台</a>
+                            </div>
+                        </section>
+
+                    </div>
                 </div>
+            </div>
 
-                <div class="student-side-col">
-
-                    <section class="card">
-                        <h1 class="card-title">学习概览 <span class="badge badge-active">overview</span></h1>
-                        <div class="meta" id="metaInfo">正在加载登录信息...</div>
-                        <div class="stat-grid" style="grid-template-columns: 1fr;">
-                            <div class="stat"
-                                style="display: flex; justify-content: space-between; align-items: center;">
-                                <span>已加入课程</span>
-                                <strong>3</strong>
+            <div class="page-panel" id="panel-grades">
+                <section class="card">
+                    <div class="dashboard-section-intro">
+                        <div class="dashboard-kicker">Scores & Feedback</div>
+                        <h2 class="card-title">最近成绩与反馈</h2>
+                        <p>汇总最近一次评审结果，帮助你快速判断是否需要立即返工。</p>
+                    </div>
+                    <div class="list">
+                        <div class="list-item">
+                            <div class="list-main">
+                                <div class="list-row">
+                                    <strong>需求调研报告</strong>
+                                    <span class="chip">score=92</span>
+                                </div>
+                                <div class="muted">reviewed_at=2026-03-22 · feedback=结构清晰</div>
                             </div>
-                            <div class="stat"
-                                style="display: flex; justify-content: space-between; align-items: center;">
-                                <span>进行中阶段</span>
-                                <strong style="color: #065F46;">2</strong>
-                            </div>
-                            <div class="stat"
-                                style="display: flex; justify-content: space-between; align-items: center;">
-                                <span>待完成任务</span>
-                                <strong style="color: #991B1B;">4</strong>
-                            </div>
+                            <span class="badge badge-approved">approved</span>
                         </div>
-                    </section>
-
-                    <section class="card">
-                        <h2 class="card-title">快速入口</h2>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                            <a class="btn btn-primary" href="./student-group-space.html"
-                                style="width: 100%; max-width: 100%;">小组空间</a>
-                            <a class="btn btn-secondary" href="./submission-hub.html"
-                                style="width: 100%; max-width: 100%;">前往提交台</a>
+                        <div class="list-item">
+                            <div class="list-main">
+                                <div class="list-row">
+                                    <strong>上阶段提交</strong>
+                                    <span class="chip">score=85</span>
+                                </div>
+                                <div class="muted">reviewed_at=2026-03-10 · status=needs_changes</div>
+                            </div>
+                            <span class="badge badge-pending">pending</span>
                         </div>
-                    </section>
+                    </div>
+                </section>
+            </div>
 
+            <div class="page-panel" id="panel-courses">
+                <div class="course-panel-grid">
                     <section class="card">
-                        <h2 class="card-title">小组与群聊</h2>
-                        <div class="list" style="margin-bottom: 8px;">
-                            <div class="list-item" style="flex-direction: column; align-items: flex-start; gap: 8px;">
-                                <div style="display: flex; justify-content: space-between; width: 100%;">
+                        <div class="dashboard-section-intro">
+                            <div class="dashboard-kicker">Collaboration</div>
+                            <h2 class="card-title">小组与群聊</h2>
+                            <p>当前小组状态、角色分工和即时沟通入口集中展示在这里。</p>
+                        </div>
+                        <div class="list dashboard-list-tight">
+                            <div class="list-item dashboard-list-item-vertical">
+                                <div class="dashboard-split-row">
                                     <strong>第 3 组 · 原型推进组</strong>
                                     <span class="badge badge-active">active</span>
                                 </div>
                                 <div class="muted">role=leader · members=6</div>
                             </div>
                         </div>
-                        <a class="btn btn-secondary" href="./chat-hub.html"
-                            style="justify-content: center; width: 100%; max-width: 100%;">💬 进入小组群聊</a>
+                        <a class="btn btn-secondary academic-btn-block" href="./chat-hub.html">💬 进入小组群聊</a>
                     </section>
 
                     <section class="card">
-                        <h2 class="card-title">我的课程</h2>
+                        <div class="dashboard-section-intro">
+                            <div class="dashboard-kicker">Courses</div>
+                            <h2 class="card-title">我的课程</h2>
+                            <p>快速查看你本学期仍在推进中的课程和阶段归属。</p>
+                        </div>
                         <div class="list">
-                            <div class="list-item" style="flex-direction: column; align-items: flex-start; gap: 8px;">
-                                <div style="display: flex; justify-content: space-between; width: 100%;">
+                            <div class="list-item dashboard-list-item-vertical">
+                                <div class="dashboard-split-row">
                                     <strong>软件工程实践</strong>
                                     <span class="badge badge-active">active</span>
                                 </div>
                                 <div class="muted">course=12 · semester=1</div>
                             </div>
-                            <div class="list-item" style="flex-direction: column; align-items: flex-start; gap: 8px;">
-                                <div style="display: flex; justify-content: space-between; width: 100%;">
+                            <div class="list-item dashboard-list-item-vertical">
+                                <div class="dashboard-split-row">
                                     <strong>Web 应用开发</strong>
                                     <span class="badge badge-active">active</span>
                                 </div>
@@ -185,37 +200,15 @@
                             </div>
                         </div>
                     </section>
-
                 </div>
             </div>
         </div>
     </div>
 
+    <script src="./scripts/dashboard-shell.js"></script>
     <script>
-        const appOrigin = window.location.origin && window.location.origin !== "null"
-            ? window.location.origin
-            : "http://localhost:3001";
-        const appBasePath = window.location.pathname.includes("/app/") ? "/app" : "";
-        const metaInfo = document.getElementById("metaInfo");
-        const userBadge = document.getElementById("userBadge");
-        const logoutBtn = document.getElementById("logoutBtn");
-
-        const userId = localStorage.getItem("auth_user_id");
-        const token = localStorage.getItem("auth_access_token");
-
-        if (userId && token) {
-            metaInfo.textContent = `当前登录账号：${userId}`;
-            userBadge.textContent = `ID: ${userId}`;
-        } else {
-            metaInfo.textContent = "未检测到登录信息，请返回登录页。";
-            userBadge.textContent = `ID: --`;
-        }
-
-        logoutBtn.addEventListener("click", () => {
-            localStorage.removeItem("auth_access_token");
-            localStorage.removeItem("auth_refresh_token");
-            localStorage.removeItem("auth_user_id");
-            window.location.href = `${appOrigin}${appBasePath}/login.html`;
+        initDashboardShell({
+            avatarStorageKey: "student_avatar_data_url",
         });
     </script>
 </body>

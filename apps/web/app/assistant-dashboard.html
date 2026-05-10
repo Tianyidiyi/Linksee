@@ -6,44 +6,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Linksee 助教工作台</title>
     <link rel="stylesheet" href="./styles/theme.css" />
-    <style>
-        /* 布局基础样式，解决卡片重合问题 */
-        .workspace-layout {
-            display: grid;
-            grid-template-columns: 7fr 3fr;
-            /* 左侧占 7 份，右侧占 3 份 */
-            gap: 32px;
-            margin-top: 24px;
-        }
-
-        .side-panel {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 24px;
-            align-content: start;
-            /* 确保右侧卡片从上到下依次排列，不拉伸 */
-        }
-
-        .action-group {
-            display: flex;
-            flex-direction: row;
-            /* 按钮横向排列 */
-            justify-content: flex-start;
-            gap: 16px;
-        }
-
-        @media (max-width: 1024px) {
-            .workspace-layout {
-                grid-template-columns: 1fr;
-                /* 小屏幕下自动变为单列上下堆叠 */
-            }
-        }
-    </style>
 </head>
 
 <body class="app-shell assistant-shell">
     <aside class="sidebar">
-        <div class="user-profile" id="userBadge">ID: --</div>
+        <div class="user-profile">
+            <input type="file" id="avatarInput" accept="image/*" hidden />
+            <div class="avatar-wrapper" id="avatarWrapper" title="点击更换头像">
+                <img id="avatarImage"
+                    src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239CA3AF'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>"
+                    alt="用户头像" />
+                <div class="avatar-overlay">更换</div>
+            </div>
+            <div id="userBadge">ID: --</div>
+        </div>
+
+        <nav class="side-nav" aria-label="助教功能导航">
+            <button class="nav-item is-active" data-target="panel-review" type="button">待批改提交</button>
+            <button class="nav-item" data-target="panel-history" type="button">批改记录</button>
+            <button class="nav-item" data-target="panel-courses" type="button">助教分配</button>
+        </nav>
     </aside>
 
     <div class="workspace">
@@ -56,133 +38,146 @@
                 <button id="logoutBtn" class="btn btn-secondary">退出登录</button>
             </header>
 
-            <div class="workspace-layout">
+            <div class="page-panel is-active" id="panel-review">
+                <div class="assistant-grid-layout">
 
-                <div style="display: grid; gap: 24px;">
-
-                    <section class="card">
-                        <h2 class="card-title">待批改提交 (Needs Review)</h2>
-                        <div class="list">
-                            <div class="list-item">
-                                <div class="list-main">
-                                    <div class="list-row">
-                                        <strong>需求调研报告</strong>
-                                        <span class="chip">group_id=31</span>
-                                    </div>
-                                    <div class="muted">submitted_at=2026-03-19 · submitted_by=2023010001</div>
-                                </div>
-                                <span class="tag" style="background-color: #FEF3C7; color: #92400E;">under_review</span>
+                    <div class="assistant-main-col">
+                        <section class="card">
+                            <div class="dashboard-section-intro">
+                                <div class="dashboard-kicker">TA Review Queue</div>
+                                <h2 class="card-title">待批改提交 (Needs Review)</h2>
+                                <p>优先关注处于复审链路中的提交，避免教师批改队列被无效阻塞。</p>
                             </div>
-
-                            <div class="list-item">
-                                <div class="list-main">
-                                    <div class="list-row">
-                                        <strong>原型评审材料</strong>
-                                        <span class="chip">group_id=31</span>
+                            <div class="list">
+                                <div class="list-item">
+                                    <div class="list-main">
+                                        <div class="list-row">
+                                            <strong>需求调研报告</strong>
+                                            <span class="chip">group_id=31</span>
+                                        </div>
+                                        <div class="muted">submitted_at=2026-03-19 · submitted_by=2023010001</div>
                                     </div>
-                                    <div class="muted">submitted_at=2026-03-27 · submitted_by=2023010008</div>
+                                    <span class="badge badge-reviewing">under_review</span>
                                 </div>
-                                <span class="tag" style="background-color: #E0F2FE; color: #0369A1;">submitted</span>
-                            </div>
-                        </div>
-                    </section>
 
-                    <section class="card">
+                                <div class="list-item">
+                                    <div class="list-main">
+                                        <div class="list-row">
+                                            <strong>原型评审材料</strong>
+                                            <span class="chip">group_id=31</span>
+                                        </div>
+                                        <div class="muted">submitted_at=2026-03-27 · submitted_by=2023010008</div>
+                                    </div>
+                                    <span class="badge badge-submitted">submitted</span>
+                                </div>
+                            </div>
+                            <div class="dashboard-filter-bar">
+                                <div class="dashboard-filter-meta">
+                                    <span>当前待处理 2 条</span>
+                                    <span class="dashboard-filter-tag">复审链路: 1</span>
+                                    <span class="dashboard-filter-tag">新提交: 1</span>
+                                </div>
+                                <span class="dashboard-soft-note">建议优先处理 under_review 项</span>
+                            </div>
+                        </section>
+                    </div>
+
+                    <div class="assistant-side-col">
+                        <section class="card">
+                            <div class="dashboard-section-intro">
+                                <div class="dashboard-kicker">Workload Snapshot</div>
+                                <h1 class="card-title">工作概览</h1>
+                                <p>帮助你快速判断本周负责课程、检查量和当前工作负荷。</p>
+                            </div>
+                            <div class="meta" id="metaInfo">正在加载登录信息...</div>
+                            <div class="stat-grid">
+                                <div class="stat">
+                                    <strong>2</strong>
+                                    <span>负责课程</span>
+                                </div>
+                                <div class="stat">
+                                    <strong>4</strong>
+                                    <span>待检查提交</span>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="card">
+                            <div class="dashboard-section-intro">
+                                <div class="dashboard-kicker">Quick Access</div>
+                                <h2 class="card-title">快速入口</h2>
+                                <p>把批改和检查两个高频入口固定到最短路径。</p>
+                            </div>
+                            <div class="action-group">
+                                <a class="btn btn-primary" href="./grading-hub.html">进入批改台</a>
+                                <a class="btn btn-secondary" href="./assistant-check.html">进入检查台</a>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </div>
+
+            <div class="page-panel" id="panel-history">
+                <section class="card">
+                    <div class="dashboard-section-intro">
+                        <div class="dashboard-kicker">Review History</div>
                         <h2 class="card-title">最近批改记录</h2>
-                        <div class="list">
-                            <div class="list-item">
-                                <div class="list-main">
-                                    <div class="list-row">
-                                        <strong>需求调研报告</strong>
-                                        <span class="chip">score=85</span>
-                                    </div>
-                                    <div class="muted">reviewed_at=2026-03-22</div>
+                        <p>回看最近处理过的提交状态，方便追踪返工和复审结果。</p>
+                    </div>
+                    <div class="list">
+                        <div class="list-item">
+                            <div class="list-main">
+                                <div class="list-row">
+                                    <strong>需求调研报告</strong>
+                                    <span class="chip">score=85</span>
                                 </div>
-                                <span class="tag" style="background-color: #D1FAE5; color: #065F46;">approved</span>
+                                <div class="muted">reviewed_at=2026-03-22</div>
                             </div>
-                            <div class="list-item">
-                                <div class="list-main">
-                                    <div class="list-row">
-                                        <strong>原型评审材料</strong>
-                                        <span class="chip">score=--</span>
-                                    </div>
-                                    <div class="muted">reviewed_at=2026-03-28</div>
+                            <span class="badge badge-approved">approved</span>
+                        </div>
+                        <div class="list-item">
+                            <div class="list-main">
+                                <div class="list-row">
+                                    <strong>原型评审材料</strong>
+                                    <span class="chip">score=--</span>
                                 </div>
-                                <span class="tag"
-                                    style="background-color: #FEE2E2; color: #991B1B;">needs_changes</span>
+                                <div class="muted">reviewed_at=2026-03-28</div>
                             </div>
+                            <span class="badge badge-error">needs_changes</span>
                         </div>
-                    </section>
-                </div>
+                    </div>
+                    <div class="dashboard-empty-state">
+                        <strong>暂无额外待复核记录</strong>
+                        <p>除上方两条已展示任务外，目前没有新的异常返工项或跨课程冲突需要处理。</p>
+                    </div>
+                </section>
+            </div>
 
-                <div class="side-panel">
-
-                    <section class="card">
-                        <h1 class="card-title">工作概览</h1>
-                        <div class="meta" id="metaInfo">正在加载登录信息...</div>
-                        <div class="stat-grid">
-                            <div class="stat">
-                                <strong>2</strong>
-                                <span>负责课程</span>
-                            </div>
-                            <div class="stat">
-                                <strong>4</strong>
-                                <span>待检查提交</span>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section class="card">
-                        <h2 class="card-title">快速入口</h2>
-                        <div class="action-group">
-                            <a class="btn btn-primary" href="./grading-hub.html">进入批改台</a>
-                            <a class="btn btn-secondary" href="./assistant-check.html">进入检查台</a>
-                        </div>
-                    </section>
-
-                    <section class="card">
+            <div class="page-panel" id="panel-courses">
+                <section class="card">
+                    <div class="dashboard-section-intro">
+                        <div class="dashboard-kicker">Course Allocation</div>
                         <h2 class="card-title">助教分配</h2>
-                        <div class="list">
-                            <div class="list-item" style="flex-direction: column; align-items: flex-start; gap: 8px;">
-                                <div style="display: flex; justify-content: space-between; width: 100%;">
-                                    <strong>软件工程实践</strong>
-                                    <span class="tag" style="background-color: #D1FAE5; color: #065F46;">active</span>
-                                </div>
-                                <div class="muted">course_id=12 · teacher=2023000001</div>
+                        <p>展示当前负责课程与教师绑定关系，便于确认责任范围。</p>
+                    </div>
+                    <div class="list">
+                        <div class="list-item dashboard-list-item-vertical">
+                            <div class="dashboard-split-row">
+                                <strong>软件工程实践</strong>
+                                <span class="badge badge-active">active</span>
                             </div>
+                            <div class="muted">course_id=12 · teacher=2023000001</div>
                         </div>
-                    </section>
-                </div>
-
+                    </div>
+                </section>
             </div>
         </div>
     </div>
 
+    <script src="./scripts/dashboard-shell.js"></script>
     <script>
-        const appOrigin = window.location.origin && window.location.origin !== "null"
-            ? window.location.origin
-            : "http://localhost:3001";
-        const appBasePath = window.location.pathname.includes("/app/") ? "/app" : "";
-        const metaInfo = document.getElementById("metaInfo");
-        const userBadge = document.getElementById("userBadge");
-        const logoutBtn = document.getElementById("logoutBtn");
-
-        const userId = localStorage.getItem("auth_user_id");
-        const token = localStorage.getItem("auth_access_token");
-
-        if (userId && token) {
-            metaInfo.textContent = `当前登录账号：${userId}`;
-            userBadge.textContent = `ID: ${userId}`;
-        } else {
-            metaInfo.textContent = "未检测到登录信息，请返回登录页。";
-            userBadge.textContent = `ID: --`;
-        }
-
-        logoutBtn.addEventListener("click", () => {
-            localStorage.removeItem("auth_access_token");
-            localStorage.removeItem("auth_refresh_token");
-            localStorage.removeItem("auth_user_id");
-            window.location.href = `${appOrigin}${appBasePath}/login.html`;
+        initDashboardShell({
+            avatarStorageKey: "assistant_avatar_data_url",
         });
     </script>
 </body>

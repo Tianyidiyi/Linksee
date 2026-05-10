@@ -1,0 +1,70 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap");
+
+:root {
+    color-scheme: light;
+    /* Baseline inference: Linear x Notion */
+    --bg: #eef2f7;
+    --bg-subtle: #f8fafc;
+    --bg-deep: #e3eaf4;
+    --surface: rgba(255, 255, 255, 0.82);
+    --surface-strong: #ffffff;
+    --surface-muted: #f4f7fb;
+    --surface-raised: rgba(255, 255, 255, 0.94);
+    --card: var(--surface-strong);
+    --ink: #0f172a;
+    --ink-soft: #334155;
+    --muted: #64748b;
+    --muted-strong: #475569;
+    --accent: #2563eb;
+    --accent-strong: #1e40af;
+    --accent-bright: #7dd3fc;
+    --accent-soft: rgba(37, 99, 235, 0.11);
+    --accent-outline: rgba(37, 99, 235, 0.18);
+    --success-soft: #dcfce7;
+    --success-ink: #166534;
+    --warning-soft: #fef3c7;
+    --warning-ink: #92400e;
+    --danger-soft: #fee2e2;
+    --danger-ink: #991b1b;
+    --border: rgba(15, 23, 42, 0.08);
+    --border-strong: rgba(15, 23, 42, 0.14);
+    --shadow-xs: 0 1px 1px rgba(15, 23, 42, 0.04);
+    --shadow-sm: 0 6px 16px rgba(15, 23, 42, 0.06);
+    --shadow-soft: 0 18px 48px rgba(15, 23, 42, 0.08);
+    --shadow: 0 28px 80px rgba(15, 23, 42, 0.12);
+    --radius-xl: 24px;
+    --radius-lg: 18px;
+    --radius-md: 12px;
+    --radius-sm: 10px;
+    --radius-xs: 8px;
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-10: 40px;
+    --space-12: 48px;
+    --font-ui: "Inter", "IBM Plex Sans", "Noto Sans SC", "Segoe UI", sans-serif;
+    --font-display: "IBM Plex Sans", "Inter", "Noto Sans SC", "Segoe UI", sans-serif;
+    --motion-fast: 160ms;
+    --motion-base: 220ms;
+    --motion-slow: 320ms;
+    --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: var(--font-ui);
+    background:
+        radial-gradient(circle at top left, rgba(59, 130, 246, 0.16), transparent 30%),
+        radial-gradient(circle at top right, rgba(125, 211, 252, 0.16), transparent 24%),
+        linear-gradient(180deg, var(--bg-subtle), var(--bg));
+    color: var(--ink);
+    min-height: 100vh;
+}

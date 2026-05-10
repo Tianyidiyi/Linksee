@@ -6,46 +6,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Linksee 教师工作台</title>
     <link rel="stylesheet" href="./styles/theme.css" />
-    <style>
-        /* 针对教师工作台专门补充的双栏响应式布局 */
-        .teacher-grid-layout {
-            display: grid;
-            grid-template-columns: minmax(0, 7fr) minmax(280px, 3fr);
-            gap: 32px;
-            align-items: start;
-            margin-top: 24px;
-        }
-
-        .teacher-main-col {
-            display: grid;
-            gap: 24px;
-        }
-
-        .teacher-side-col {
-            display: grid;
-            gap: 24px;
-            align-content: start;
-            /* 让右侧批改面板在页面滚动时保持吸顶，方便对照左侧内容打分 */
-            position: sticky;
-            top: 24px;
-        }
-
-        @media (max-width: 1024px) {
-            .teacher-grid-layout {
-                grid-template-columns: 1fr;
-            }
-
-            .teacher-side-col {
-                position: static;
-            }
-        }
-    </style>
 </head>
 
 <body class="app-shell teacher-shell">
 
     <aside class="sidebar">
-        <div class="user-profile" id="userBadge">ID: --</div>
+        <div class="user-profile">
+            <input type="file" id="avatarInput" accept="image/*" hidden />
+            <div class="avatar-wrapper" id="avatarWrapper" title="点击更换头像">
+                <img id="avatarImage"
+                    src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239CA3AF'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>"
+                    alt="用户头像" />
+                <div class="avatar-overlay">更换</div>
+            </div>
+            <div id="userBadge">ID: --</div>
+        </div>
+
+        <nav class="side-nav" aria-label="教师功能导航">
+            <button class="nav-item is-active" data-target="panel-overview" type="button">课程概览</button>
+            <button class="nav-item" data-target="panel-review-list" type="button">待批改列表</button>
+            <button class="nav-item" data-target="panel-grading" type="button">批改控制台</button>
+        </nav>
     </aside>
 
     <div class="workspace">
@@ -59,185 +40,177 @@
                 <button id="logoutBtn" class="btn btn-secondary">退出登录</button>
             </header>
 
-            <div class="teacher-grid-layout">
-
-                <div class="teacher-main-col">
-
-                    <section class="card">
+            <div class="page-panel is-active" id="panel-overview">
+                <section class="card">
+                    <div class="dashboard-section-intro">
+                        <div class="dashboard-kicker">Teaching Snapshot</div>
                         <h1 class="card-title">课程概览 <span class="badge badge-active">active</span></h1>
-                        <div class="meta" id="metaInfo">正在加载登录信息...</div>
-                        <div class="stat-grid" style="grid-template-columns: repeat(3, 1fr);">
-                            <div class="stat">
-                                <strong>2</strong>
-                                <span>进行中课程</span>
-                            </div>
-                            <div class="stat">
-                                <strong>3</strong>
-                                <span>待发布阶段</span>
-                            </div>
-                            <div class="stat">
-                                <strong style="color: #991B1B;">8</strong>
-                                <span>待批改作业</span>
-                            </div>
+                        <p>聚焦当前学期的开课密度、发布节奏和批改压力，便于快速判断当天工作重点。</p>
+                    </div>
+                    <div class="meta" id="metaInfo">正在加载登录信息...</div>
+                    <div class="stat-grid dashboard-stat-grid-thirds">
+                        <div class="stat">
+                            <strong>2</strong>
+                            <span>进行中课程</span>
                         </div>
-                    </section>
+                        <div class="stat">
+                            <strong>3</strong>
+                            <span>待发布阶段</span>
+                        </div>
+                        <div class="stat">
+                            <strong class="dashboard-stat-value-danger">8</strong>
+                            <span>待批改作业</span>
+                        </div>
+                    </div>
+                </section>
+            </div>
 
-                    <section class="card">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <h2 class="card-title" style="margin: 0;">待批改列表 <span
+            <div class="page-panel" id="panel-review-list">
+                <section class="card">
+                    <div class="dashboard-toolbar-row">
+                        <div class="dashboard-section-intro">
+                            <div class="dashboard-kicker">Review Queue</div>
+                            <h2 class="card-title dashboard-title-reset">待批改列表 <span
                                     class="badge badge-reviewing">needs_review</span></h2>
-                            <select
-                                style="padding: 6px 12px; border: 1px solid #D1D5DB; border-radius: 6px; font-size: 13px; background: white;">
-                                <option>按提交时间排序 (最早)</option>
-                                <option>按提交时间排序 (最新)</option>
-                            </select>
+                            <p>按照提交优先级、时间和风险程度筛选，先处理最影响课程节奏的作业。</p>
+                        </div>
+                        <select class="dashboard-select">
+                            <option>按提交时间排序 (最早)</option>
+                            <option>按提交时间排序 (最新)</option>
+                        </select>
+                    </div>
+
+                    <div class="list dashboard-list-offset" id="teacherReviewList">
+                        <div class="list-item dashboard-list-item-interactive dashboard-list-item-selected">
+                            <div class="list-main">
+                                <div class="list-row">
+                                    <strong>需求调研报告</strong>
+                                    <span class="chip">group_id=31</span>
+                                </div>
+                                <div class="muted">status=submitted · submitted_at=2026-03-19 ·
+                                    student_id=2023010031</div>
+                            </div>
+                            <span class="badge badge-pending">selected</span>
                         </div>
 
-                        <div class="list" style="margin-top: 8px;">
-                            <div class="list-item"
-                                style="cursor: pointer; background: var(--accent-soft); border-color: var(--accent);">
-                                <div class="list-main">
-                                    <div class="list-row">
-                                        <strong>需求调研报告</strong>
-                                        <span class="chip">group_id=31</span>
-                                    </div>
-                                    <div class="muted">status=submitted · submitted_at=2026-03-19 ·
-                                        student_id=2023010031</div>
+                        <div class="list-item dashboard-list-item-interactive">
+                            <div class="list-main">
+                                <div class="list-row">
+                                    <strong>原型评审材料</strong>
+                                    <span class="chip">group_id=32</span>
                                 </div>
-                                <span class="badge badge-pending">selected</span>
+                                <div class="muted">status=submitted · submitted_at=2026-03-27 ·
+                                    student_id=2023010032</div>
                             </div>
-
-                            <div class="list-item" style="cursor: pointer;">
-                                <div class="list-main">
-                                    <div class="list-row">
-                                        <strong>原型评审材料</strong>
-                                        <span class="chip">group_id=32</span>
-                                    </div>
-                                    <div class="muted">status=submitted · submitted_at=2026-03-27 ·
-                                        student_id=2023010032</div>
-                                </div>
-                                <span class="badge badge-submitted">new</span>
-                            </div>
-
-                            <div class="list-item" style="cursor: pointer;">
-                                <div class="list-main">
-                                    <div class="list-row">
-                                        <strong>课程总结报告</strong>
-                                        <span class="chip">group_id=33</span>
-                                    </div>
-                                    <div class="muted">status=submitted · submitted_at=2026-03-29 ·
-                                        student_id=2023010033</div>
-                                </div>
-                                <span class="badge badge-submitted">new</span>
-                            </div>
-
-                            <div class="list-item" style="cursor: pointer;">
-                                <div class="list-main">
-                                    <div class="list-row">
-                                        <strong>数据库架构设计</strong>
-                                        <span class="chip">course_id=14</span>
-                                    </div>
-                                    <div class="muted">status=resubmitted · submitted_at=2026-04-02 ·
-                                        student_id=2023010088</div>
-                                </div>
-                                <span class="badge badge-urgent">urgent</span>
-                            </div>
+                            <span class="badge badge-submitted">new</span>
                         </div>
-                    </section>
+
+                        <div class="list-item dashboard-list-item-interactive">
+                            <div class="list-main">
+                                <div class="list-row">
+                                    <strong>课程总结报告</strong>
+                                    <span class="chip">group_id=33</span>
+                                </div>
+                                <div class="muted">status=submitted · submitted_at=2026-03-29 ·
+                                    student_id=2023010033</div>
+                            </div>
+                            <span class="badge badge-submitted">new</span>
+                        </div>
+
+                        <div class="list-item dashboard-list-item-interactive">
+                            <div class="list-main">
+                                <div class="list-row">
+                                    <strong>数据库架构设计</strong>
+                                    <span class="chip">course_id=14</span>
+                                </div>
+                                <div class="muted">status=resubmitted · submitted_at=2026-04-02 ·
+                                    student_id=2023010088</div>
+                            </div>
+                            <span class="badge badge-urgent">urgent</span>
+                        </div>
+                    </div>
+                    <div class="dashboard-filter-bar">
+                        <div class="dashboard-filter-meta">
+                            <span>队列共 4 条</span>
+                            <span class="dashboard-filter-tag">selected: 需求调研报告</span>
+                            <span class="dashboard-filter-tag">urgent: 1</span>
+                        </div>
+                        <span class="dashboard-soft-note">点击条目可切换右侧批改上下文</span>
+                    </div>
+                </section>
+            </div>
+
+            <div class="page-panel" id="panel-grading">
+                <div class="teacher-grid-layout">
+                    <div class="teacher-main-col">
+                        <section class="card">
+                            <div class="dashboard-section-intro">
+                                <div class="dashboard-kicker">Grading Console</div>
+                                <h2 class="card-title">批改控制台</h2>
+                                <p>在一个视图里完成附件查看、打分和反馈，减少在不同工具间跳转。</p>
+                            </div>
+
+                            <div class="nav-section dashboard-section-sm">
+                                <div class="review-item dashboard-list-item-static">
+                                    <div class="review-meta">
+                                        <strong>当前批改: 需求调研报告</strong>
+                                        <span class="muted">提交人: 2023010031</span>
+                                        <a href="#" class="dashboard-inline-link">查看完整附件
+                                            ↗</a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="nav-section dashboard-section-md">
+                                <div class="nav-section-title dashboard-section-sm">打分 (0-100)</div>
+                                <input class="dashboard-input" type="number" placeholder="输入分数" min="0" max="100">
+                            </div>
+
+                            <div class="nav-section dashboard-section-lg">
+                                <div class="nav-section-title dashboard-section-sm">批改反馈意见</div>
+                                <textarea class="dashboard-textarea" placeholder="请输入建设性的反馈意见，指出优点与不足..."></textarea>
+                            </div>
+
+                            <div class="dashboard-panel-actions">
+                                <button class="btn btn-secondary academic-btn-block">退回修改</button>
+                                <button class="btn btn-primary academic-btn-block">确认通过 ✓</button>
+                            </div>
+                        </section>
+                    </div>
+
+                    <div class="teacher-side-col">
+                        <section class="card">
+                            <div class="dashboard-section-intro">
+                                <div class="dashboard-kicker">Current Context</div>
+                                <h2 class="card-title">当前待批改上下文</h2>
+                                <p>右侧固定展示当前被选中的提交上下文，便于评分时始终保留参照。</p>
+                            </div>
+                            <div class="list">
+                                <div class="list-item">
+                                    <div class="list-main">
+                                        <div class="list-row">
+                                            <strong>需求调研报告</strong>
+                                            <span class="chip">group_id=31</span>
+                                        </div>
+                                        <div class="muted">student_id=2023010031 · submitted_at=2026-03-19</div>
+                                    </div>
+                                    <span class="badge badge-pending">selected</span>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
                 </div>
-
-                <div class="teacher-side-col">
-
-                    <section class="card">
-                        <h2 class="card-title">批改控制台</h2>
-
-                        <div class="nav-section" style="margin-bottom: 12px;">
-                            <div class="review-item"
-                                style="cursor: default; background: #FAFAFA; border: 1px dashed #D1D5DB;">
-                                <div class="review-meta">
-                                    <strong>当前批改: 需求调研报告</strong>
-                                    <span class="muted">提交人: 2023010031</span>
-                                    <a href="#"
-                                        style="font-size: 12px; color: var(--accent); margin-top: 4px; display: inline-block;">查看完整附件
-                                        ↗</a>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="nav-section" style="margin-bottom: 16px;">
-                            <div class="nav-section-title" style="margin-bottom: 8px;">打分 (0-100)</div>
-                            <input type="number" placeholder="输入分数" min="0" max="100"
-                                style="padding: 10px; border: 1px solid #D1D5DB; border-radius: 6px; width: 100%; font-size: 16px; font-weight: 500;">
-                        </div>
-
-                        <div class="nav-section" style="margin-bottom: 24px;">
-                            <div class="nav-section-title" style="margin-bottom: 8px;">批改反馈意见</div>
-                            <textarea placeholder="请输入建设性的反馈意见，指出优点与不足..."
-                                style="padding: 12px; border: 1px solid #D1D5DB; border-radius: 6px; min-height: 140px; resize: vertical; font-family: inherit; width: 100%; line-height: 1.5;"></textarea>
-                        </div>
-
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                            <button class="btn btn-secondary" style="width: 100%; max-width: 100%;">退回修改</button>
-                            <button class="btn btn-primary" style="width: 100%; max-width: 100%;">确认通过 ✓</button>
-                        </div>
-                    </section>
-
-                </div>
-
             </div>
         </div>
     </div>
 
+    <script src="./scripts/dashboard-shell.js"></script>
+    <script src="./scripts/teacher-dashboard.js"></script>
     <script>
-        const appOrigin = window.location.origin && window.location.origin !== "null"
-            ? window.location.origin
-            : "http://localhost:3001";
-        const appBasePath = window.location.pathname.includes("/app/") ? "/app" : "";
-        const metaInfo = document.getElementById("metaInfo");
-        const userBadge = document.getElementById("userBadge");
-        const logoutBtn = document.getElementById("logoutBtn");
-
-        const userId = localStorage.getItem("auth_user_id");
-        const token = localStorage.getItem("auth_access_token");
-
-        if (userId && token) {
-            metaInfo.textContent = `当前登录账号：${userId}`;
-            userBadge.textContent = `ID: ${userId}`;
-        } else {
-            metaInfo.textContent = "未检测到登录信息，请返回登录页。";
-            userBadge.textContent = `ID: --`;
-        }
-
-        logoutBtn.addEventListener("click", () => {
-            localStorage.removeItem("auth_access_token");
-            localStorage.removeItem("auth_refresh_token");
-            localStorage.removeItem("auth_user_id");
-            window.location.href = `${appOrigin}${appBasePath}/login.html`;
+        initDashboardShell({
+            avatarStorageKey: "teacher_avatar_data_url",
         });
-
-        // 简单的交互效果演示：点击列表项切换高亮
-        document.querySelectorAll(".list-item").forEach((item) => {
-            item.addEventListener("click", () => {
-                // 清除所有高亮
-                document.querySelectorAll(".list-item").forEach((el) => {
-                    el.style.background = "";
-                    el.style.borderColor = "var(--border)";
-                    const badge = el.querySelector(".badge");
-                    if (badge && badge.textContent === 'selected') {
-                        badge.className = 'badge badge-submitted';
-                        badge.textContent = 'new';
-                    }
-                });
-                // 设置当前项高亮
-                item.style.background = "var(--accent-soft)";
-                item.style.borderColor = "var(--accent)";
-                const badge = item.querySelector(".badge");
-                if (badge) {
-                    badge.className = 'badge badge-pending';
-                    badge.textContent = 'selected';
-                }
-            });
-        });
+        initTeacherDashboard();
     </script>
 </body>
 

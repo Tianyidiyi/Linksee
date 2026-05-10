@@ -6,39 +6,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Linksee 教务工作台</title>
     <link rel="stylesheet" href="./styles/theme.css" />
-    <style>
-        /* 针对教务工作台专门补充的双栏响应式布局 */
-        .academic-grid-layout {
-            display: grid;
-            grid-template-columns: minmax(0, 7fr) minmax(280px, 3fr);
-            gap: 32px;
-            align-items: start;
-            margin-top: 24px;
-        }
-
-        .academic-main-col {
-            display: grid;
-            gap: 24px;
-        }
-
-        .academic-side-col {
-            display: grid;
-            gap: 24px;
-            align-content: start;
-        }
-
-        @media (max-width: 1024px) {
-            .academic-grid-layout {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
 </head>
 
 <body class="app-shell academic-shell">
 
     <aside class="sidebar">
-        <div class="user-profile" id="userBadge">ID: --</div>
+        <div class="user-profile">
+            <input type="file" id="avatarInput" accept="image/*" hidden />
+            <div class="avatar-wrapper" id="avatarWrapper" title="点击更换头像">
+                <img id="avatarImage"
+                    src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239CA3AF'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>"
+                    alt="用户头像" />
+                <div class="avatar-overlay">更换</div>
+            </div>
+            <div id="userBadge">ID: --</div>
+        </div>
+
+        <nav class="side-nav" aria-label="教务功能导航">
+            <button class="nav-item is-active" data-target="panel-overview" type="button">教务总览</button>
+            <button class="nav-item" data-target="panel-courses" type="button">课程管理</button>
+            <button class="nav-item" data-target="panel-users" type="button">人员库</button>
+            <button class="nav-item" data-target="panel-assignments" type="button">项目监控</button>
+        </nav>
     </aside>
 
     <div class="workspace">
@@ -52,212 +41,306 @@
                 <button id="logoutBtn" class="btn btn-secondary">退出登录</button>
             </header>
 
-            <div class="academic-grid-layout">
-
-                <div class="academic-main-col">
-                    <section class="card" style="padding-top: 16px;">
-
-                        <div class="tabs" id="academicTabs" style="gap: 16px; margin-bottom: 16px;">
-                            <button class="tab-btn is-active" type="button" data-tab="courses"
-                                style="font-weight: 500;">📚 课程管理</button>
-                            <button class="tab-btn" type="button" data-tab="users" style="font-weight: 500;">👥
-                                人员库</button>
-                            <button class="tab-btn" type="button" data-tab="assignments" style="font-weight: 500;">📊
-                                全校项目监控</button>
-                        </div>
-
-                        <div class="tab-pane is-active" data-pane="courses">
-                            <div style="display: flex; gap: 12px; margin-bottom: 16px; align-items: center;">
-                                <input type="text" placeholder="搜索课程名称或 ID..."
-                                    style="flex: 1; padding: 8px 12px; border: 1px solid #D1D5DB; border-radius: 6px;">
-                                <select
-                                    style="padding: 8px 12px; border: 1px solid #D1D5DB; border-radius: 6px; background: white;">
-                                    <option>全部状态</option>
-                                    <option>进行中</option>
-                                    <option>草稿</option>
-                                    <option>已存档</option>
-                                </select>
-                            </div>
-                            <div class="data-grid">
-                                <div class="data-grid-header muted" style="font-weight: 600;">
-                                    <span>课程 ID</span>
-                                    <span>课程名称</span>
-                                    <span>负责人</span>
-                                    <span>状态</span>
-                                    <span>操作</span>
+            <div class="page-panel is-active" id="panel-overview">
+                <div class="academic-workspace-layout">
+                    <div class="academic-hero">
+                        <section class="card academic-hero-card academic-hero-card--spotlight">
+                            <div class="academic-hero-eyebrow">Academic Control Center</div>
+                            <h1 class="academic-hero-title">把课程、师资和名单导入放在一个决策视图里处理。</h1>
+                            <p class="academic-hero-lead">
+                                当前进入 2026 春季排课与导入窗口。优先关注待指派教师课程、仍未完成导入的班级，以及配置尚未闭环的课程模板。
+                            </p>
+                            <div class="meta" id="metaInfo">正在加载登录信息...</div>
+                            <div class="academic-kpi-strip">
+                                <div class="academic-kpi">
+                                    <div class="academic-kpi-value">6</div>
+                                    <div class="academic-kpi-label">本学期课程</div>
+                                    <div class="academic-kpi-meta">2 门新开课待上线</div>
                                 </div>
-                                <div class="data-grid-row">
-                                    <span><span class="chip">BSJ084-2026-1-01</span></span>
-                                    <span><strong>软件工程实践</strong></span>
-                                    <span>2023000001</span>
-                                    <span><span class="badge badge-active">active</span></span>
-                                    <span><a class="btn btn-secondary"
-                                            style="font-size: 12px; height: 32px; padding: 0 12px;">编辑</a></span>
+                                <div class="academic-kpi">
+                                    <div class="academic-kpi-value">4</div>
+                                    <div class="academic-kpi-label">待指派老师</div>
+                                    <div class="academic-kpi-meta">其中 2 门为核心课</div>
                                 </div>
-                                <div class="data-grid-row">
-                                    <span><span class="chip">DBS102-2026-1-02</span></span>
-                                    <span><strong>数据库系统</strong></span>
-                                    <span>2023000012</span>
-                                    <span><span class="badge badge-draft">draft</span></span>
-                                    <span><a class="btn btn-secondary"
-                                            style="font-size: 12px; height: 32px; padding: 0 12px;">编辑</a></span>
-                                </div>
-                                <div class="data-grid-row">
-                                    <span><span class="chip">PYS091-2026-1-03</span></span>
-                                    <span><strong>Python 高级编程</strong></span>
-                                    <span>2023000023</span>
-                                    <span><span class="badge badge-active">active</span></span>
-                                    <span><a class="btn btn-secondary"
-                                            style="font-size: 12px; height: 32px; padding: 0 12px;">编辑</a></span>
+                                <div class="academic-kpi">
+                                    <div class="academic-kpi-value">2</div>
+                                    <div class="academic-kpi-label">待导入名单</div>
+                                    <div class="academic-kpi-meta">建议本周内完成</div>
                                 </div>
                             </div>
-                        </div>
+                            <div class="academic-hero-actions">
+                                <a class="btn academic-btn-light" href="#create-course">新建课程</a>
+                                <a class="btn academic-btn-ghost-light" href="#system-settings">系统设置</a>
+                            </div>
+                        </section>
 
-                        <div class="tab-pane" data-pane="users">
-                            <div style="display: flex; gap: 12px; margin-bottom: 16px;">
-                                <input type="text" placeholder="搜索人员 ID 或名称..."
-                                    style="flex: 1; padding: 8px 12px; border: 1px solid #D1D5DB; border-radius: 6px;">
-                                <select
-                                    style="padding: 8px 12px; border: 1px solid #D1D5DB; border-radius: 6px; background: white;">
-                                    <option>全部角色</option>
-                                    <option>教师</option>
-                                    <option>助教</option>
-                                    <option>学生</option>
-                                </select>
+                        <section class="card academic-hero-card academic-overview-card">
+                            <h2 class="card-title">执行节奏</h2>
+                            <div class="academic-mini-stack">
+                                <div class="academic-mini-panel">
+                                    <div class="academic-mini-label">今日最先处理</div>
+                                    <div class="academic-mini-value academic-stat-value-danger">师资指派</div>
+                                    <div class="academic-mini-note">软件工程实践、数据库系统仍未完成负责教师绑定。</div>
+                                </div>
+                                <div class="academic-mini-panel">
+                                    <div class="academic-mini-label">数据导入窗口</div>
+                                    <div class="academic-mini-value academic-stat-value-warning">48h</div>
+                                    <div class="academic-mini-note">2026 春季两个班级名单尚未入库，影响学生分组与提交空间开通。</div>
+                                </div>
+                                <div class="academic-mini-panel">
+                                    <div class="academic-mini-label">配置闭环率</div>
+                                    <div class="academic-mini-value">83%</div>
+                                    <div class="academic-mini-note">剩余缺口集中在考核权重、课程模板和阶段发布时间。</div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <div class="academic-top-dashboard">
+                        <section class="card">
+                            <div class="dashboard-section-intro">
+                                <div class="dashboard-kicker">Operational Watchlist</div>
+                                <h2 class="card-title">待处理事项</h2>
+                                <p>把会阻塞课程开通、教师协作和学生入场的事项放在最前面，优先清掉链路上的高风险节点。</p>
                             </div>
                             <div class="config-stack">
                                 <div class="config-item">
                                     <div class="config-meta">
-                                        <strong>2023000001</strong>
-                                        <span class="muted">教师 · 软件工程实践</span>
+                                        <strong>4 门课程待指派教师</strong>
+                                        <span class="muted">优先处理 2026 春季新开课班级，避免阶段配置无法下发。</span>
                                     </div>
-                                    <span class="badge badge-active">active</span>
+                                    <span class="badge badge-error">urgent</span>
                                 </div>
                                 <div class="config-item">
                                     <div class="config-meta">
-                                        <strong>2023019001</strong>
-                                        <span class="muted">助教 · 软件工程实践</span>
+                                        <strong>2 个班级名单待导入</strong>
+                                        <span class="muted">建议在本周五前完成学生基线同步，以便分组和提交空间即时生效。</span>
                                     </div>
-                                    <span class="badge badge-active">active</span>
+                                    <span class="badge badge-pending">pending</span>
                                 </div>
                                 <div class="config-item">
                                     <div class="config-meta">
-                                        <strong>2023010001</strong>
-                                        <span class="muted">学生 · 原型推进组</span>
+                                        <strong>1 项课程配置待审核</strong>
+                                        <span class="muted">数据库系统课程仍缺少考核权重设置，当前无法发布阶段评分说明。</span>
                                     </div>
-                                    <span class="badge badge-active">active</span>
+                                    <span class="badge badge-active">review</span>
                                 </div>
                             </div>
-                            <a class="btn btn-primary" href="#import"
-                                style="margin-top: 16px; justify-content: center; width: 100%; max-width: 100%;">📥
-                                批量导入人员</a>
-                        </div>
+                        </section>
 
-                        <div class="tab-pane" data-pane="assignments">
-                            <div class="config-stack">
-                                <div class="config-item">
-                                    <div class="config-meta">
-                                        <strong>软件工程实践 · 阶段 2 · 原型评审</strong>
-                                        <span class="muted">submitted=28 · under_review=5 · approved=18</span>
-                                    </div>
-                                    <span class="badge badge-active">on track</span>
+                        <section class="card">
+                            <div class="dashboard-section-intro">
+                                <div class="dashboard-kicker">Command Shortcuts</div>
+                                <h2 class="card-title">快速操作</h2>
+                                <p>适合用于处理当前窗口内最高频的教务动作，不需要再进入下层配置页。</p>
+                            </div>
+                            <div class="academic-quick-actions">
+                                <a class="btn btn-primary" href="#assign-teacher">指派教师</a>
+                                <a class="btn btn-secondary" href="#import-students">批量导入</a>
+                            </div>
+                            <div class="academic-mini-stack">
+                                <div class="academic-mini-panel">
+                                    <div class="academic-mini-label">下一步建议</div>
+                                    <div class="academic-mini-note">先完成教师绑定，再批量导入学生名单，最后统一检查课程评分模板。</div>
                                 </div>
-                                <div class="config-item">
-                                    <div class="config-meta">
-                                        <strong>数据库系统 · 阶段 1 · 需求分析</strong>
-                                        <span class="muted">submitted=18 · under_review=2 · approved=12</span>
+                            </div>
+                        </section>
+                    </div>
+
+                    <div class="academic-bottom-panel">
+                        <section class="card">
+                            <div class="dashboard-section-intro">
+                                <div class="dashboard-kicker">Recent Signals</div>
+                                <h2 class="card-title">最近动态</h2>
+                                <p>最近 24 小时内与排课、导入、配置变更相关的关键动作，方便快速回看。</p>
+                            </div>
+                            <div class="timeline">
+                                <div class="timeline-item">
+                                    <div class="timeline-meta">
+                                        <strong>软件工程实践课程模板已更新阶段节点</strong>
+                                        <span class="muted">15 分钟前 · updated_by=2023000001</span>
+                                    </div>
+                                    <span class="badge badge-active">updated</span>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-meta">
+                                        <strong>数据库系统课程等待考核权重确认</strong>
+                                        <span class="muted">1 小时前 · status=blocked</span>
                                     </div>
                                     <span class="badge badge-pending">watch</span>
                                 </div>
-                                <div class="config-item">
-                                    <div class="config-meta">
-                                        <strong>Python 高级编程 · 阶段 3 · 代码复审</strong>
-                                        <span class="muted">submitted=15 · under_review=3 · needs_revision=2</span>
+                                <div class="timeline-item is-overdue">
+                                    <div class="timeline-meta">
+                                        <strong>2026 春季 2 班学生名单仍未导入</strong>
+                                        <span class="muted">超过 36 小时未处理 · import_queue=pending</span>
                                     </div>
-                                    <span class="badge badge-error">at risk</span>
+                                    <span class="badge badge-urgent">late</span>
                                 </div>
                             </div>
-                        </div>
-
-                    </section>
+                        </section>
+                    </div>
                 </div>
+            </div>
 
-                <div class="academic-side-col">
-
-                    <section class="card">
-                        <h1 class="card-title">教务总览 <span class="badge badge-pending">academic</span></h1>
-                        <div class="meta" id="metaInfo">正在加载登录信息...</div>
-                        <div class="stat-grid" style="grid-template-columns: 1fr;">
-                            <div class="stat"
-                                style="display: flex; justify-content: space-between; align-items: center;">
-                                <span>本学期课程</span>
-                                <strong>6</strong>
-                            </div>
-                            <div class="stat"
-                                style="display: flex; justify-content: space-between; align-items: center;">
-                                <span>待指派老师</span>
-                                <strong style="color: #991B1B;">4</strong>
-                            </div>
-                            <div class="stat"
-                                style="display: flex; justify-content: space-between; align-items: center;">
-                                <span>待导入名单</span>
-                                <strong style="color: #92400E;">2</strong>
-                            </div>
+            <div class="page-panel" id="panel-courses">
+                <section class="card">
+                    <div class="dashboard-section-intro">
+                        <div class="dashboard-kicker">Course Registry</div>
+                        <h2 class="card-title">课程管理</h2>
+                        <p>按课程状态、负责人和开课节奏筛选，优先处理会影响阶段发布的课程配置。</p>
+                    </div>
+                    <div class="academic-toolbar">
+                        <input type="text" placeholder="搜索课程名称或 ID..." />
+                        <select>
+                            <option>全部状态</option>
+                            <option>进行中</option>
+                            <option>草稿</option>
+                            <option>已存档</option>
+                        </select>
+                    </div>
+                    <div class="dashboard-filter-bar">
+                        <div class="dashboard-filter-meta">
+                            <span>当前结果 3 / 6</span>
+                            <span class="dashboard-filter-tag">状态: 全部</span>
+                            <span class="dashboard-filter-tag">学期: 2026 春季</span>
                         </div>
-                    </section>
-
-                    <section class="card">
-                        <h2 class="card-title">快捷操作</h2>
-                        <div style="display: flex; flex-direction: column; gap: 12px;">
-                            <a class="btn btn-primary" href="#create-course"
-                                style="justify-content: center; width: 100%; max-width: 100%;">新建课程</a>
-                            <a class="btn btn-secondary" href="#system-settings"
-                                style="justify-content: center; width: 100%; max-width: 100%;">系统设置</a>
+                        <span class="dashboard-soft-note">最后同步于 10 分钟前</span>
+                    </div>
+                    <div class="data-grid">
+                        <div class="data-grid-header muted academic-table-header">
+                            <span>课程 ID</span>
+                            <span>课程名称</span>
+                            <span>负责人</span>
+                            <span>状态</span>
+                            <span>操作</span>
                         </div>
-                    </section>
+                        <div class="data-grid-row">
+                            <span><span class="chip">BSJ084-2026-1-01</span></span>
+                            <span><strong>软件工程实践</strong></span>
+                            <span>2023000001</span>
+                            <span><span class="badge badge-active">active</span></span>
+                            <span><a class="btn btn-secondary academic-row-action">编辑</a></span>
+                        </div>
+                        <div class="data-grid-row">
+                            <span><span class="chip">DBS102-2026-1-02</span></span>
+                            <span><strong>数据库系统</strong></span>
+                            <span>2023000012</span>
+                            <span><span class="badge badge-draft">draft</span></span>
+                            <span><a class="btn btn-secondary academic-row-action">编辑</a></span>
+                        </div>
+                        <div class="data-grid-row">
+                            <span><span class="chip">PYS091-2026-1-03</span></span>
+                            <span><strong>Python 高级编程</strong></span>
+                            <span>2023000023</span>
+                            <span><span class="badge badge-active">active</span></span>
+                            <span><a class="btn btn-secondary academic-row-action">编辑</a></span>
+                        </div>
+                    </div>
+                </section>
+            </div>
 
-                </div>
+            <div class="page-panel" id="panel-users">
+                <section class="card">
+                    <div class="dashboard-section-intro">
+                        <div class="dashboard-kicker">People Directory</div>
+                        <h2 class="card-title">人员库</h2>
+                        <p>统一查看教师、助教与学生的角色归属，方便在导入前先校验身份和课程绑定。</p>
+                    </div>
+                    <div class="academic-toolbar">
+                        <input type="text" placeholder="搜索人员 ID 或名称..." />
+                        <select>
+                            <option>全部角色</option>
+                            <option>教师</option>
+                            <option>助教</option>
+                            <option>学生</option>
+                        </select>
+                    </div>
+                    <div class="dashboard-filter-bar">
+                        <div class="dashboard-filter-meta">
+                            <span>当前展示 3 条重点记录</span>
+                            <span class="dashboard-filter-tag">角色: 全部</span>
+                            <span class="dashboard-filter-tag">状态: Active</span>
+                        </div>
+                        <span class="dashboard-soft-note">支持批量导入后再次校验去重</span>
+                    </div>
+                    <div class="config-stack">
+                        <div class="config-item">
+                            <div class="config-meta">
+                                <strong>2023000001</strong>
+                                <span class="muted">教师 · 软件工程实践</span>
+                            </div>
+                            <span class="badge badge-active">active</span>
+                        </div>
+                        <div class="config-item">
+                            <div class="config-meta">
+                                <strong>2023019001</strong>
+                                <span class="muted">助教 · 软件工程实践</span>
+                            </div>
+                            <span class="badge badge-active">active</span>
+                        </div>
+                        <div class="config-item">
+                            <div class="config-meta">
+                                <strong>2023010001</strong>
+                                <span class="muted">学生 · 原型推进组</span>
+                            </div>
+                            <span class="badge badge-active">active</span>
+                        </div>
+                    </div>
+                    <a class="btn btn-primary academic-btn-block" href="#import">批量导入人员</a>
+                    <div class="dashboard-empty-state">
+                        <strong>暂无待处理的异常身份数据</strong>
+                        <p>当前人员库没有检测到角色冲突、重复账号或导入失败记录，后续导入可直接走批量流程。</p>
+                    </div>
+                </section>
+            </div>
 
+            <div class="page-panel" id="panel-assignments">
+                <section class="card">
+                    <div class="dashboard-section-intro">
+                        <div class="dashboard-kicker">Campus Monitor</div>
+                        <h2 class="card-title">全校项目监控</h2>
+                        <p>快速识别进度异常、评审堵点和需要教务介入的课程阶段。</p>
+                    </div>
+                    <div class="dashboard-filter-bar">
+                        <div class="dashboard-filter-meta">
+                            <span>已监控 3 个关键项目节点</span>
+                            <span class="dashboard-filter-tag">风险项: 1</span>
+                            <span class="dashboard-filter-tag">观察项: 1</span>
+                        </div>
+                        <span class="dashboard-soft-note">按风险优先级排序</span>
+                    </div>
+                    <div class="config-stack">
+                        <div class="config-item">
+                            <div class="config-meta">
+                                <strong>软件工程实践 · 阶段 2 · 原型评审</strong>
+                                <span class="muted">submitted=28 · under_review=5 · approved=18</span>
+                            </div>
+                            <span class="badge badge-active">on track</span>
+                        </div>
+                        <div class="config-item">
+                            <div class="config-meta">
+                                <strong>数据库系统 · 阶段 1 · 需求分析</strong>
+                                <span class="muted">submitted=18 · under_review=2 · approved=12</span>
+                            </div>
+                            <span class="badge badge-pending">watch</span>
+                        </div>
+                        <div class="config-item">
+                            <div class="config-meta">
+                                <strong>Python 高级编程 · 阶段 3 · 代码复审</strong>
+                                <span class="muted">submitted=15 · under_review=3 · needs_revision=2</span>
+                            </div>
+                            <span class="badge badge-error">at risk</span>
+                        </div>
+                    </div>
+                </section>
             </div>
         </div>
     </div>
 
+    <script src="./scripts/dashboard-shell.js"></script>
     <script>
-        const appOrigin = window.location.origin && window.location.origin !== "null"
-            ? window.location.origin
-            : "http://localhost:3001";
-        const appBasePath = window.location.pathname.includes("/app/") ? "/app" : "";
-        const metaInfo = document.getElementById("metaInfo");
-        const userBadge = document.getElementById("userBadge");
-        const logoutBtn = document.getElementById("logoutBtn");
-
-        const userId = localStorage.getItem("auth_user_id");
-        const token = localStorage.getItem("auth_access_token");
-
-        if (userId && token) {
-            metaInfo.textContent = `当前登录账号：${userId}`;
-            userBadge.textContent = `ID: ${userId}`;
-        } else {
-            metaInfo.textContent = "未检测到登录信息，请返回登录页。";
-            userBadge.textContent = `ID: --`;
-        }
-
-        logoutBtn.addEventListener("click", () => {
-            localStorage.removeItem("auth_access_token");
-            localStorage.removeItem("auth_refresh_token");
-            localStorage.removeItem("auth_user_id");
-            window.location.href = `${appOrigin}${appBasePath}/login.html`;
-        });
-
-        // 选项卡切换逻辑保持不变，但因为结构变化，它只在左侧内部生效
-        document.querySelectorAll(".tab-btn").forEach((btn) => {
-            btn.addEventListener("click", () => {
-                const tab = btn.getAttribute("data-tab");
-                document.querySelectorAll(".tab-btn").forEach((el) => el.classList.remove("is-active"));
-                document.querySelectorAll(".tab-pane").forEach((pane) => pane.classList.remove("is-active"));
-                btn.classList.add("is-active");
-                document.querySelector(`.tab-pane[data-pane="${tab}"]`)?.classList.add("is-active");
-            });
+        initDashboardShell({
+            avatarStorageKey: "academic_avatar_data_url",
         });
     </script>
 </body>
