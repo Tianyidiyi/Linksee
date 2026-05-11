@@ -11,7 +11,9 @@
     "start:auth": "tsx ./src/auth/server.ts",
     "seed:auth-user": "tsx ./src/auth/seed-test-user.ts",
     "cleanup:chat-files": "tsx ./src/collaboration/chat-files-cleanup.ts",
-    "test": "jest",
+    "test": "jest --config ./jest.config.js",
+    "test:unit": "jest --config ./jest.config.js --testMatch='**/unit/**/*.test.ts'",
+    "test:integration": "jest --config ./jest.config.js --testMatch='**/integration/**/*.integration.test.ts'",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
   },

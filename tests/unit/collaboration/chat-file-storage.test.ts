@@ -1,9 +1,16 @@
-import { describe, it, expect } from '@jest/globals';
+import { describe, it, expect, jest } from '@jest/globals';
 import {
+  buildChatObjectKey,
   isAllowedChatMimeType,
   ensureChatFileSize,
   CHAT_FILE_MAX_BYTES,
-} from '../chat-file-storage.js';
+  isObjectKeyInScope,
+  normalizeChatFiles,
+  presignChatDownload,
+  presignChatUpload,
+  toChatFileMetadata,
+} from '../../../apps/api/src/collaboration/chat-file-storage.js';
+import { minioClient } from '../../../apps/api/src/infra/minio.js';
 
 describe('chat-file-storage', () => {
   describe('isAllowedChatMimeType', () => {
@@ -83,6 +90,83 @@ describe('chat-file-storage', () => {
     it('should be within reason for file uploads', () => {
       expect(CHAT_FILE_MAX_BYTES).toBeGreaterThan(1024 * 1024 * 10); // At least 10 MB
       expect(CHAT_FILE_MAX_BYTES).toBeLessThan(1024 * 1024 * 1024); // Less than 1 GB
+    });
+  });
+
+  describe('object key and scope', () => {
+    it('should build scoped object key and validate scope', () => {
+      const key = buildChatObjectKey('course', '123', '../../a b?.pdf');
+      expect(key.startsWith('chat/course/123/')).toBe(true);
+      expect(isObjectKeyInScope(key, 'course', '123')).toBe(true);
+      expect(isObjectKeyInScope(key, 'group', '123')).toBe(false);
+    });
+
+    it('should fallback to "file" when sanitized name is empty', () => {
+      const key = buildChatObjectKey('group', '1', '////');
+      expect(key.endsWith('-file')).toBe(true);
+    });
+  });
+
+  describe('presign operations', () => {
+    it('should call minio presignedPutObject/presignedGetObject', async () => {
+      const putSpy = jest.spyOn(minioClient, 'presignedPutObject').mockResolvedValue('put-url' as any);
+      const getSpy = jest.spyOn(minioClient, 'presignedGetObject').mockResolvedValue('get-url' as any);
+      await expect(presignChatUpload('chat/course/1/a.txt', 'text/plain')).resolves.toBe('put-url');
+      await expect(presignChatDownload('chat/course/1/a.txt')).resolves.toBe('get-url');
+      expect(putSpy).toHaveBeenCalledTimes(1);
+      expect(getSpy).toHaveBeenCalledTimes(1);
+      putSpy.mockRestore();
+      getSpy.mockRestore();
+    });
+  });
+
+  describe('normalize and metadata', () => {
+    it('should return empty array for non-array input', () => {
+      expect(normalizeChatFiles(undefined)).toEqual([]);
+      expect(normalizeChatFiles(null)).toEqual([]);
+      expect(normalizeChatFiles({})).toEqual([]);
+    });
+
+    it('should normalize only valid file records', () => {
+      const files = normalizeChatFiles([
+        null,
+        [],
+        'x',
+        { foo: 'bar' },
+        { name: 'a.pdf', objectKey: 'k1', size: 12, mimeType: 'application/pdf' },
+        { name: 'c.pdf', objectKey: 'k7', size: 12, mimeType: 'application/pdf', uploadedAt: '2026-01-01T00:00:00.000Z' },
+        { name: 'a.pdf', objectKey: 'k3', size: 12, mimeType: 'application/pdf', uploadedAt: 1 },
+        { name: '', objectKey: 'k4', size: 12, mimeType: 'application/pdf' },
+        { name: 'a.pdf', objectKey: '', size: 12, mimeType: 'application/pdf' },
+        { name: 'a.pdf', objectKey: 'k5', size: null, mimeType: 'application/pdf' },
+        { name: 'a.pdf', objectKey: 'k6', size: 12, mimeType: '' },
+        { name: 'b.pdf', objectKey: 'k2', size: 'bad', mimeType: 'application/pdf' },
+      ]);
+      expect(files).toHaveLength(3);
+      expect(files[0].name).toBe('a.pdf');
+      expect(files[1].objectKey).toBe('k7');
+      expect(files[1].uploadedAt).toBe('2026-01-01T00:00:00.000Z');
+      expect(files[2].objectKey).toBe('k3');
+    });
+
+    it('should map metadata and set thumbnailKey for images', () => {
+      const imageMeta = toChatFileMetadata({
+        name: 'a.png',
+        objectKey: 'k',
+        size: 1,
+        mimeType: 'image/png',
+      });
+      expect(imageMeta.thumbnailKey).toBe('k');
+
+      const docMeta = toChatFileMetadata({
+        name: 'a.pdf',
+        objectKey: 'k2',
+        size: 1,
+        mimeType: 'application/pdf',
+        uploadedAt: '2026-01-01T00:00:00.000Z',
+      });
+      expect(docMeta.thumbnailKey).toBeUndefined();
+      expect(docMeta.uploadedAt).toBe('2026-01-01T00:00:00.000Z');
     });
   });
 });

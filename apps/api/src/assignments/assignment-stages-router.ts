@@ -2,6 +2,7 @@ import { AssignmentStatus, Prisma, Role, StageStatus } from "@prisma/client";
 import { Router, type Request, type Response } from "express";
 import { requireAuth } from "../infra/jwt-middleware.js";
 import { prisma } from "../infra/prisma.js";
+import { parseLimitOffset } from "../infra/request-utils.js";
 import {
   canTransitionStageStatus,
   conflict,
@@ -43,6 +44,7 @@ function serializeStageRecord<T extends { requirementFiles: Prisma.JsonValue | n
 assignmentStagesRouter.get("/assignments/:assignmentId/stages", requireAuth, async (req: Request, res: Response) => {
   const assignmentId = parseBigIntParam(req.params.assignmentId, "assignmentId", res);
   if (assignmentId === null) return;
+  const { limit, offset } = parseLimitOffset(req.query as Record<string, unknown>);
 
   const assignment = await getAssignmentAccess(assignmentId, req.user!.id, req.user!.role as Role, res);
   if (!assignment) return;
@@ -52,29 +54,38 @@ assignmentStagesRouter.get("/assignments/:assignmentId/stages", requireAuth, asy
     where.status = { in: [StageStatus.open, StageStatus.closed, StageStatus.archived] };
   }
 
-  const stages = await prisma.assignmentStage.findMany({
-    where,
-    orderBy: [{ stageNo: "asc" }],
-    select: {
-      id: true,
-      assignmentId: true,
-      stageNo: true,
-      title: true,
-      description: true,
-      startAt: true,
-      dueAt: true,
-      weight: true,
-      submissionDesc: true,
-      requirementFiles: true,
-      acceptCriteria: true,
-      status: true,
-      createdBy: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  });
+  const [stages, total] = await prisma.$transaction([
+    prisma.assignmentStage.findMany({
+      where,
+      orderBy: [{ stageNo: "asc" }],
+      take: limit,
+      skip: offset,
+      select: {
+        id: true,
+        assignmentId: true,
+        stageNo: true,
+        title: true,
+        description: true,
+        startAt: true,
+        dueAt: true,
+        weight: true,
+        submissionDesc: true,
+        requirementFiles: true,
+        acceptCriteria: true,
+        status: true,
+        createdBy: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    }),
+    prisma.assignmentStage.count({ where }),
+  ]);
 
-  res.json({ ok: true, data: stages.map((stage) => serializeStageRecord(stage)) });
+  res.json({
+    ok: true,
+    data: stages.map((stage) => serializeStageRecord(stage)),
+    paging: { limit, offset, total, hasMore: offset + stages.length < total },
+  });
 });
 
 assignmentStagesRouter.post("/assignments/:assignmentId/stages", requireAuth, async (req: Request, res: Response) => {

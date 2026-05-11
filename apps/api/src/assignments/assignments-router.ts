@@ -2,6 +2,8 @@ import { AssignmentStatus, Prisma, Role } from "@prisma/client";
 import { Router, type Request, type Response } from "express";
 import { requireAuth } from "../infra/jwt-middleware.js";
 import { prisma } from "../infra/prisma.js";
+import { parseIdempotencyKey, parseLimitOffset } from "../infra/request-utils.js";
+import { fail, ok } from "../infra/http-response.js";
 import {
   canTransitionAssignmentStatus,
   conflict,
@@ -42,6 +44,7 @@ function serializeAssignmentRecord<T extends { descriptionFiles: Prisma.JsonValu
 assignmentsRouter.post("/courses/:courseId/assignments", requireAuth, async (req: Request, res: Response) => {
   const courseId = parseBigIntParam(req.params.courseId, "courseId", res);
   if (courseId === null) return;
+  const idempotencyKey = parseIdempotencyKey(req);
 
   const role = req.user!.role as Role;
   const userId = req.user!.id;
@@ -50,6 +53,27 @@ assignmentsRouter.post("/courses/:courseId/assignments", requireAuth, async (req
   const title = parseSingleString(req.body?.title);
   if (!title) {
     return validationFailed(res, "title is required");
+  }
+
+  if (idempotencyKey) {
+    const existing = await prisma.assignment.findFirst({
+      where: { courseId, title, createdBy: userId },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        courseId: true,
+        title: true,
+        description: true,
+        descriptionFiles: true,
+        status: true,
+        createdBy: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+    if (existing) {
+      return ok(res, serializeAssignmentRecord(existing), 201);
+    }
   }
 
   const description =
@@ -90,12 +114,13 @@ assignmentsRouter.post("/courses/:courseId/assignments", requireAuth, async (req
     },
   });
 
-  res.status(201).json({ ok: true, data: serializeAssignmentRecord(assignment) });
+  ok(res, serializeAssignmentRecord(assignment), 201);
 });
 
 assignmentsRouter.get("/courses/:courseId/assignments", requireAuth, async (req: Request, res: Response) => {
   const courseId = parseBigIntParam(req.params.courseId, "courseId", res);
   if (courseId === null) return;
+  const { limit, offset } = parseLimitOffset(req.query as Record<string, unknown>);
 
   const role = req.user!.role as Role;
   const userId = req.user!.id;
@@ -118,25 +143,31 @@ assignmentsRouter.get("/courses/:courseId/assignments", requireAuth, async (req:
     where.status = { in: [AssignmentStatus.active, AssignmentStatus.archived] };
   }
 
-  const assignments = await prisma.assignment.findMany({
-    where,
-    orderBy: [{ createdAt: "desc" }],
-    select: {
-      id: true,
-      courseId: true,
-      title: true,
-      description: true,
-      descriptionFiles: true,
-      status: true,
-      createdBy: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  });
+  const [assignments, total] = await prisma.$transaction([
+    prisma.assignment.findMany({
+      where,
+      orderBy: [{ createdAt: "desc" }],
+      take: limit,
+      skip: offset,
+      select: {
+        id: true,
+        courseId: true,
+        title: true,
+        description: true,
+        descriptionFiles: true,
+        status: true,
+        createdBy: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    }),
+    prisma.assignment.count({ where }),
+  ]);
 
   res.json({
     ok: true,
     data: assignments.map((assignment) => serializeAssignmentRecord(assignment)),
+    paging: { limit, offset, total, hasMore: offset + assignments.length < total },
   });
 });
 

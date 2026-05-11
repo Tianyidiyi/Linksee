@@ -3,6 +3,7 @@ import { Role } from "@prisma/client";
 import { Router, type Request, type Response } from "express";
 import { prisma } from "../infra/prisma.js";
 import { requireAuth } from "../infra/jwt-middleware.js";
+import { fail, ok } from "../infra/http-response.js";
 import { generatePassword, isStrongPassword } from "./password-utils.js";
 import {
   clearLoginFailures,
@@ -25,11 +26,7 @@ import type {
 } from "./types.js";
 
 function invalidCredentials(res: Response): void {
-  res.status(401).json({
-    ok: false,
-    code: "UNAUTHENTICATED",
-    message: "Invalid userId or password",
-  });
+  fail(res, 401, "UNAUTHENTICATED", "Invalid userId or password");
 }
 
 function isValidUserId(value: string): boolean {
@@ -47,19 +44,11 @@ authRouter.post(
   async (req: Request<unknown, unknown, LoginRequestBody>, res: Response) => {
     const { userId, password } = req.body ?? {};
     if (!userId || !password || !isValidUserId(userId)) {
-      return res.status(400).json({
-        ok: false,
-        code: "VALIDATION_FAILED",
-        message: "userId must be 10 digits and password is required",
-      });
+      return fail(res, 400, "VALIDATION_FAILED", "userId must be 10 digits and password is required");
     }
 
     if (await isLoginLocked(userId)) {
-      return res.status(423).json({
-        ok: false,
-        code: "ACCOUNT_LOCKED",
-        message: "Too many failed attempts. Try again later.",
-      });
+      return fail(res, 423, "CONFLICT", "Too many failed attempts. Try again later.");
     }
 
     const user = await prisma.user.findUnique({
@@ -92,14 +81,11 @@ authRouter.post(
       data: { lastLoginAt: new Date() },
     });
 
-    return res.json({
-      ok: true,
-      data: {
-        accessToken,
-        refreshToken,
-        expiresIn: "30m",
-        forceChangePassword: user.forceChangePassword,
-      },
+    return ok(res, {
+      accessToken,
+      refreshToken,
+      expiresIn: "30m",
+      forceChangePassword: user.forceChangePassword,
     });
   },
 );

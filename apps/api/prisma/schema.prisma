@@ -75,6 +75,10 @@ model User {
   createdStages     AssignmentStage[]
   groupMemberships  GroupMember[]
   createdGroups     Group[]
+  sentGroupJoinRequests GroupJoinRequest[] @relation("JoinRequestApplicant")
+  reviewedGroupJoinRequests GroupJoinRequest[] @relation("JoinRequestReviewer")
+  sentLeaderTransferRequests GroupLeaderTransferRequest[] @relation("LeaderTransferFrom")
+  receivedLeaderTransferRequests GroupLeaderTransferRequest[] @relation("LeaderTransferTo")
   createdMiniTasks  MiniTask[]
   assignedMiniTasks MiniTask[]   @relation("MiniTaskAssignee")
   chatConversations ChatConversation[]
@@ -346,6 +350,8 @@ model Assignment {
   groupConfig  AssignmentGroupConfig?
   stages       AssignmentStage[]
   groups       Group[]
+  groupJoinRequests GroupJoinRequest[]
+  leaderTransferRequests GroupLeaderTransferRequest[]
 
   @@map("assignments")
 }
@@ -447,6 +453,8 @@ model Group {
   assignment        Assignment        @relation(fields: [assignmentId], references: [id])
   creator           User              @relation(fields: [createdBy], references: [id])
   members           GroupMember[]
+  joinRequests      GroupJoinRequest[]
+  leaderTransferRequests GroupLeaderTransferRequest[]
   miniTasks         MiniTask[]
 
   @@unique([assignmentId, groupNo])
@@ -476,6 +484,65 @@ model GroupMember {
   @@unique([assignmentId, userId])
   @@index([groupId])
   @@map("group_members")
+}
+
+enum GroupJoinRequestStatus {
+  pending
+  approved
+  rejected
+  cancelled
+  expired
+}
+
+model GroupJoinRequest {
+  id              BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
+  assignmentId    BigInt                 @db.UnsignedBigInt
+  groupId         BigInt                 @db.UnsignedBigInt
+  applicantUserId String                 @db.VarChar(10)
+  status          GroupJoinRequestStatus @default(pending)
+  reviewedBy      String?                @db.VarChar(10)
+  reviewedAt      DateTime?
+  reason          String?                @db.VarChar(255)
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id])
+  group      Group      @relation(fields: [groupId], references: [id])
+  applicant  User       @relation("JoinRequestApplicant", fields: [applicantUserId], references: [id])
+  reviewer   User?      @relation("JoinRequestReviewer", fields: [reviewedBy], references: [id])
+
+  @@index([groupId, status])
+  @@index([assignmentId, applicantUserId, status])
+  @@map("group_join_requests")
+}
+
+enum GroupLeaderTransferRequestStatus {
+  pending
+  accepted
+  rejected
+  cancelled
+  expired
+}
+
+model GroupLeaderTransferRequest {
+  id           BigInt                           @id @default(autoincrement()) @db.UnsignedBigInt
+  assignmentId BigInt                           @db.UnsignedBigInt
+  groupId      BigInt                           @db.UnsignedBigInt
+  fromUserId   String                           @db.VarChar(10)
+  toUserId     String                           @db.VarChar(10)
+  status       GroupLeaderTransferRequestStatus @default(pending)
+  respondedAt  DateTime?
+  createdAt    DateTime                         @default(now())
+  updatedAt    DateTime                         @updatedAt
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id])
+  group      Group      @relation(fields: [groupId], references: [id])
+  fromUser   User       @relation("LeaderTransferFrom", fields: [fromUserId], references: [id])
+  toUser     User       @relation("LeaderTransferTo", fields: [toUserId], references: [id])
+
+  @@index([groupId, status])
+  @@index([assignmentId, fromUserId, status])
+  @@map("group_leader_transfer_requests")
 }
 
 // ============================================================

@@ -73,3 +73,19 @@
 1. Submission / Review 主业务尚未进入完整实现阶段（当前以规划为主）
 2. 端到端自动化集成测试（integration test）体系尚未建立
 3. OpenAPI 仍需继续与“真实可运行行为”保持同步更新（尤其是错误码与返回结构）
+## 5. Course Contract Rules (2026-05-11)
+1. Response contract for course endpoints is aligned to unified format:
+   - success: `{ ok: true, data }`
+   - error: `{ ok: false, code, message, details, requestId }`
+2. Course status transition is restricted to:
+   - `draft -> active`
+   - `active -> archived`
+   - same-status update allowed
+   - other transitions return `409 CONFLICT`
+3. Assistant binding constraints:
+   - only course teacher can bind/unbind assistants
+   - assistant must belong to current teacher
+   - each course can bind at most 3 assistants
+4. Idempotency key constraints:
+   - header: `Idempotency-Key`
+   - max length: `64`

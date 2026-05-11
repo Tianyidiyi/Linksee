@@ -1,19 +1,17 @@
 export default {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  roots: ['<rootDir>/src'],
-  testMatch: ['**/__tests__/**/*.test.ts'],
+  roots: ['<rootDir>/../../tests'],
+  testMatch: ['**/*.test.ts', '!**/*.integration.test.ts'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
-  testPathIgnorePatterns: [
-    'chat-file-storage.test.ts',
-  ],
+  testPathIgnorePatterns: ['/node_modules/', '/dist/', '/coverage/'],
+  setupFilesAfterEnv: ['<rootDir>/../../tests/setup.ts'],
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/*.d.ts',
     '!src/demo/**',
     '!src/**/*.test.ts',
     '!src/**/*.integration.test.ts',
-    '!src/collaboration/chat-file-storage.ts',
   ],
   coverageThreshold: {
     global: {
@@ -33,8 +31,8 @@ export default {
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
-  globals: {
-    'ts-jest': {
+  transform: {
+    '^.+\\.tsx?$': ['ts-jest', {
       useESM: true,
       tsconfig: {
         module: 'esnext',
@@ -45,6 +43,6 @@ export default {
         strict: false,
         resolveJsonModule: true,
       },
-    },
+    }],
   },
 };

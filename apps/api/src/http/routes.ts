@@ -176,6 +176,48 @@ export const mvpRoutes: HttpRoute[] = [
     module: "group",
   },
   {
+    method: "POST",
+    path: "/api/v1/groups/:groupId/join-requests",
+    authRequired: true,
+    module: "group",
+  },
+  {
+    method: "GET",
+    path: "/api/v1/groups/:groupId/join-requests",
+    authRequired: true,
+    module: "group",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/group-join-requests/:requestId/approve",
+    authRequired: true,
+    module: "group",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/group-join-requests/:requestId/reject",
+    authRequired: true,
+    module: "group",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/groups/:groupId/leader-transfer-requests",
+    authRequired: true,
+    module: "group",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/group-leader-transfer-requests/:requestId/accept",
+    authRequired: true,
+    module: "group",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/group-leader-transfer-requests/:requestId/reject",
+    authRequired: true,
+    module: "group",
+  },
+  {
     method: "DELETE",
     path: "/api/v1/groups/:groupId/members/:userId",
     authRequired: true,

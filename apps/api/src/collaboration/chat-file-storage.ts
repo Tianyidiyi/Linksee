@@ -60,6 +60,9 @@ function sanitizeFileName(originalName: string): string {
 }
 
 export function isAllowedChatMimeType(mimeType: string): boolean {
+  if (typeof mimeType !== "string" || mimeType.length === 0) {
+    return false;
+  }
   if (allowedMimeTypes.has(mimeType)) {
     return true;
   }
@@ -80,9 +83,9 @@ export function isObjectKeyInScope(objectKey: string, scopeType: "course" | "gro
 }
 
 export async function presignChatUpload(objectKey: string, mimeType: string): Promise<string> {
-  return minioClient.presignedPutObject(env.minioBucketChatFiles, objectKey, CHAT_FILE_PRESIGN_TTL_SECONDS, {
-    "Content-Type": mimeType,
-  });
+  // minio v8 typings only accept 2-3 args here; content-type is validated at metadata layer.
+  void mimeType;
+  return minioClient.presignedPutObject(env.minioBucketChatFiles, objectKey, CHAT_FILE_PRESIGN_TTL_SECONDS);
 }
 
 export async function presignChatDownload(objectKey: string): Promise<string> {
