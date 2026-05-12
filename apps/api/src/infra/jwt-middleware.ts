@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import type { Request, Response, NextFunction } from "express";
 import { env } from "./env.js";
+import { fail } from "./http-response.js";
 
 export type AuthUser = {
   id: string;
@@ -8,7 +9,6 @@ export type AuthUser = {
   forceChangePassword: boolean;
 };
 
-// 扩展 Express Request，附加已鉴权用户信息
 declare global {
   namespace Express {
     interface Request {
@@ -17,7 +17,6 @@ declare global {
   }
 }
 
-/** 尝试解析 Bearer Token，成功则挂 req.user，失败/缺失则跳过（不拒绝请求） */
 export function optionalAuth(req: Request, _res: Response, next: NextFunction): void {
   const header = req.header("authorization");
   if (!header?.startsWith("Bearer ")) return next();
@@ -30,29 +29,28 @@ export function optionalAuth(req: Request, _res: Response, next: NextFunction): 
     };
     req.user = { id: payload.sub, role: payload.role, forceChangePassword: payload.forceChangePassword };
   } catch {
-    // 无效 token 忽略，req.user 保持 undefined
+    // ignore invalid optional token
   }
   next();
 }
 
-/** 强制改密门卫：已登录且 forceChangePassword=true 时，除 change-password 外所有接口返回 403 */
 export function forceChangeGuard(req: Request, res: Response, next: NextFunction): void {
-  if (req.user?.forceChangePassword && req.path !== "/api/v1/auth/change-password") {
-    res.status(403).json({
-      ok: false,
-      code: "FORCE_CHANGE_PASSWORD",
-      message: "请修改默认密码后重试",
-    });
+  const passThrough = new Set([
+    "/api/v1/auth/change-password",
+    "/api/v1/auth/logout",
+    "/api/v1/auth/refresh",
+  ]);
+  if (req.user?.forceChangePassword && !passThrough.has(req.path)) {
+    fail(res, 403, "FORCE_CHANGE_PASSWORD", "Password reset required before accessing other resources");
     return;
   }
   next();
 }
 
-/** Bearer Token 鉴权中间件，验证失败直接返回 401 */
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {
   const header = req.header("authorization");
   if (!header?.startsWith("Bearer ")) {
-    res.status(401).json({ ok: false, code: "UNAUTHENTICATED", message: "Missing or malformed token" });
+    fail(res, 401, "UNAUTHENTICATED", "Missing or malformed token");
     return;
   }
 
@@ -66,6 +64,6 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
     req.user = { id: payload.sub, role: payload.role, forceChangePassword: payload.forceChangePassword };
     next();
   } catch {
-    res.status(401).json({ ok: false, code: "UNAUTHENTICATED", message: "Invalid or expired token" });
+    fail(res, 401, "UNAUTHENTICATED", "Invalid or expired token");
   }
 }
