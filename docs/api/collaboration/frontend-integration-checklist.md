@@ -9,6 +9,7 @@
 - [ ] 已获取有效的 JWT token（`Authorization: Bearer {token}`）
 - [ ] WebSocket 已连接，room key 格式确认（`course:xxx` / `group:xxx`）
 - [ ] MinIO 预签名链接功能验证（CORS 配置）
+- [ ] 课程从 `draft` 激活为 `active` 后才会生成课程群会话（由教务前端触发）
 
 ---
 

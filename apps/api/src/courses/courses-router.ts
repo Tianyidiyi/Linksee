@@ -90,6 +90,25 @@ async function ensureCourseConversation(courseId: bigint): Promise<void> {
   });
 }
 
+async function ensureCourseActivationReady(courseId: bigint, res: Response): Promise<boolean> {
+  const [teacherCount, assistantCount] = await Promise.all([
+    prisma.courseTeacher.count({ where: { courseId } }),
+    prisma.assistantBinding.count({ where: { courseId } }),
+  ]);
+
+  if (teacherCount === 0) {
+    fail(res, 409, "CONFLICT", "Course must have at least one teacher before activation");
+    return false;
+  }
+
+  if (assistantCount === 0) {
+    fail(res, 409, "CONFLICT", "Course must have assistants assigned before activation");
+    return false;
+  }
+
+  return true;
+}
+
 // 验证调用方是否能访问该课程（is a member / teacher / assistant / academic）
 async function getCourseWithAccessCheck(
   courseId: bigint,
@@ -248,12 +267,11 @@ coursesRouter.post("/", requireAuth, async (req: Request, res: Response) => {
       academicYear: Number(academicYear),
       semester: Number(semester),
       description: description ?? null,
+      status: CourseStatus.draft,
       createdBy: req.user!.id,
     },
     select: { id: true, courseNo: true, name: true, academicYear: true, semester: true, status: true, createdAt: true },
   });
-
-  await ensureCourseConversation(course.id);
 
   ok(res, serializeBigInt(course), 201);
 });
@@ -314,6 +332,9 @@ coursesRouter.patch("/:id", requireAuth, async (req: Request, res: Response) => 
     if (!canTransitionCourseStatus(existing.status, nextStatus)) {
       return fail(res, 409, "CONFLICT", `Invalid course status transition: ${existing.status} -> ${nextStatus}`);
     }
+    if (existing.status !== CourseStatus.active && nextStatus === CourseStatus.active) {
+      if (!(await ensureCourseActivationReady(courseId, res))) return;
+    }
   }
 
   const updated = await prisma.course.update({
@@ -325,6 +346,13 @@ coursesRouter.patch("/:id", requireAuth, async (req: Request, res: Response) => 
     },
     select: { id: true, courseNo: true, name: true, status: true, updatedAt: true },
   });
+
+  if (status !== undefined) {
+    const nextStatus = status as CourseStatus;
+    if (existing.status !== CourseStatus.active && nextStatus === CourseStatus.active) {
+      await ensureCourseConversation(courseId);
+    }
+  }
 
   ok(res, serializeBigInt(updated));
 });

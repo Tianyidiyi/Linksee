@@ -190,3 +190,21 @@
   - 中期：性能测试（分页、并发、文件上传）与错误场景测试
   - 长期：端到端自动化（Playwright/Cypress）+ CI/CD 集成
 
+2026-05-12 | zkx | refactor(groups+minitasks+courses)+feat(phase5 schema)+docs: 组队/任务拆分与 Phase 5 结构补齐
+  [后端实现]
+  - groups 拆分为 group-details / group-members / group-requests / group-admin 四个路由
+  - 新增 /api/v1/assignments/:assignmentId/groups/conversations 批量生成小组群会话
+  - 新增小组详情与成员管理接口，支持移组、合并与归档
+  - MiniTask API 落地 + 定时提醒任务（1d/1h/overdue）
+  - 课程激活前置校验：需至少 1 位老师 + 助教绑定；激活时创建课程群
+
+  [数据库/Schema]
+  - MiniTask 增加 assigneeIds 与提醒字段，补索引
+  - Phase 5 新增 submissions / submission_files / reviews 表与关联关系
+  - Prisma generate 已成功执行
+
+  [文档]
+  - course-tables-design-v1.md 补齐 Phase 5 设计、会话创建时序、扩展项整理
+  - collaboration README 增补课程群创建逻辑与审查权限建议
+  - 前端状态与联调清单更新（Group/MiniTask 已实现）
+

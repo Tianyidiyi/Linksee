@@ -670,8 +670,8 @@ users (id)
 
 **业务约束**：
 
-- 课程创建时自动创建 `scope_type='course'` 会话
-- 小组创建时自动创建 `scope_type='group'` 会话
+- 课程从 `draft` 变为 `active` 时创建 `scope_type='course'` 会话
+- 老师/助教确认分组后批量创建 `scope_type='group'` 会话
 - `group_no` 变化不影响会话：会话绑定 `groups.id`（稳定主键）
 - `archived` 会话仅历史可读，不再允许发新消息
 
@@ -717,25 +717,149 @@ users (id)
 ```
 assignments (id)
   └── assignment_stages.assignment_id
-
-groups (id)
   ├── mini_tasks.group_id
-  └── chat_conversations(scope_type='group').scope_id
+  └── chat_conversations (scope_type='group')
 
 courses (id)
-  └── chat_conversations(scope_type='course').scope_id
-
-chat_conversations (id)
-  └── chat_messages.conversation_id
-
-assignment_stages (id)
-  └── mini_tasks.stage_id   (可空)
+  └── chat_conversations (scope_type='course')
 
 users (id)
-  ├── mini_tasks.assignee_id
-  ├── mini_tasks.created_by
-  ├── chat_conversations.created_by
-  └── chat_messages.sender_id
+  ├── chat_messages.sender_id
+  └── chat_conversations.created_by
+```
+
+---
+
+## Phase 5：`submissions` / `submission_files` / `reviews`
+
+> 负责范围：
+> - Submission 服务负责 `submissions` / `submission_files`
+> - Grading 服务负责 `reviews`
+
+### 表清单（Phase 5，共 3 张）
+
+| 表名                | 作用                                   |
+| ------------------- | -------------------------------------- |
+| `submissions`     | 小组阶段提交记录（含多次提交历史）   |
+| `submission_files` | 提交附件与材料文件（MinIO 元数据）   |
+| `reviews`         | 老师/助教对提交的评审与评分          |
+
+---
+
+### 一、`submissions`（阶段提交）
+
+**设计原则**：同一小组对同一 Stage 允许多次提交，按 `attempt_no` 递增；最新提交为 `MAX(attempt_no)`。
+
+| 字段             | 类型                              | 说明                                                                 |
+| ---------------- | --------------------------------- | -------------------------------------------------------------------- |
+| `id`           | BIGINT UNSIGNED AUTO_INCREMENT PK | 内部主键                                                             |
+| `group_id`     | BIGINT UNSIGNED NOT NULL          | FK → `groups.id`                                                     |
+| `stage_id`     | BIGINT UNSIGNED NOT NULL          | FK → `assignment_stages.id`                                          |
+| `attempt_no`   | SMALLINT UNSIGNED NOT NULL        | 第几次提交，从 1 开始递增                                             |
+| `status`       | ENUM NOT NULL                     | `draft` / `submitted` / `under_review` / `needs_changes` / `resubmitted` / `approved` / `rejected` |
+| `summary`      | TEXT NULL                         | 提交说明/贡献说明（可空）                                             |
+| `payload`      | JSON NULL                         | 结构化提交字段（如 `repo_url` / `demo_url` / `report_url`）        |
+| `submitted_at` | DATETIME NULL                     | 提交时间（从 draft 变为 submitted/resubmitted 时写入）               |
+| `created_by`   | VARCHAR(10) NOT NULL              | FK → `users.id`，创建草稿的成员                                       |
+| `submitted_by` | VARCHAR(10) NULL                  | FK → `users.id`，最终提交人（可与 created_by 不同）                   |
+| `created_at`   | DATETIME NOT NULL                 | 创建时间                                                             |
+| `updated_at`   | DATETIME NOT NULL                 | 最近更新时间                                                         |
+
+**索引与约束**：
+
+- `UNIQUE(group_id, stage_id, attempt_no)` — 同组同阶段提交序号唯一
+- `INDEX(group_id, stage_id, status)` — 查询小组阶段提交状态
+- `INDEX(stage_id, status)` — 老师/助教按阶段筛提交
+- `INDEX(submitted_at)` — 按提交时间排序
+
+**业务约束**：
+
+- `group_id` 与 `stage_id` 必须属于同一 assignment（应用层校验）
+- 只有组成员可创建/提交；老师/助教只读与批改
+- 截止时间内允许重新提交；超过 `assignment_stages.due_at` 禁止 `resubmitted`
+- 重新提交需事务处理：先删除上一轮提交的 `submission_files`，再写入新文件并更新提交状态
+- `status` 由提交流程驱动：
+
+```
+draft -> submitted -> under_review -> needs_changes -> resubmitted -> approved
+                                           |                                   |
+                                           +-------------- rejected -----------+
+```
+
+---
+
+### 二、`submission_files`（提交附件）
+
+**设计原则**：仅存文件型材料元数据；链接型材料放在 `submissions.payload`。
+
+| 字段              | 类型                              | 说明                                                     |
+| ----------------- | --------------------------------- | -------------------------------------------------------- |
+| `id`            | BIGINT UNSIGNED AUTO_INCREMENT PK | 内部主键                                                 |
+| `submission_id` | BIGINT UNSIGNED NOT NULL          | FK → `submissions.id`                                    |
+| `object_key`    | VARCHAR(255) NOT NULL UNIQUE       | MinIO objectKey                                          |
+| `name`          | VARCHAR(200) NOT NULL             | 文件名                                                   |
+| `size`          | BIGINT UNSIGNED NOT NULL          | 文件大小（bytes）                                        |
+| `mime_type`     | VARCHAR(120) NOT NULL             | MIME 类型                                                |
+| `slot_key`      | VARCHAR(60) NULL                  | 对应提交要求的字段 key（如 `report_pdf`）               |
+| `uploaded_by`   | VARCHAR(10) NOT NULL              | FK → `users.id`                                          |
+| `uploaded_at`   | DATETIME NOT NULL                 | 上传时间                                                 |
+
+**索引**：
+
+- `INDEX(submission_id)` — 读取某次提交的材料清单
+- `INDEX(uploaded_by, uploaded_at)` — 审计/排查上传记录
+
+---
+
+### 三、`reviews`（评审/评分）
+
+**设计原则**：同一提交可被多角色评审；P0 先限定“同一 reviewer 对同一 submission 只有一条记录”。
+
+| 字段             | 类型                              | 说明                                                          |
+| ---------------- | --------------------------------- | ------------------------------------------------------------- |
+| `id`           | BIGINT UNSIGNED AUTO_INCREMENT PK | 内部主键                                                      |
+| `submission_id` | BIGINT UNSIGNED NOT NULL         | FK → `submissions.id`                                         |
+| `reviewer_id`  | VARCHAR(10) NOT NULL              | FK → `users.id`（role=teacher/assistant）                    |
+| `status`       | ENUM NOT NULL                     | `draft` / `submitted`                                         |
+| `decision`     | ENUM NULL                         | `approved` / `needs_changes` / `rejected`                    |
+| `score`        | DECIMAL(6,2) NULL                  | 分数（可空）                                                  |
+| `rubric`       | JSON NULL                         | Rubric 评分细项                                               |
+| `comment`      | TEXT NULL                         | 评语                                                         |
+| `submitted_at` | DATETIME NULL                     | 提交评审时间                                                  |
+| `created_at`   | DATETIME NOT NULL                 | 创建时间                                                      |
+| `updated_at`   | DATETIME NOT NULL                 | 最近更新时间                                                  |
+
+**索引与约束**：
+
+- `UNIQUE(submission_id, reviewer_id)` — 同一 reviewer 只保留一条评审
+- `INDEX(submission_id, status)` — 查询某提交的评审状态
+- `INDEX(reviewer_id, created_at)` — reviewer 工作台列表
+
+**业务约束**：
+
+- `decision` 变化后同步更新 `submissions.status`（同事务内）
+- 助教可初审，老师可终审；若需要“终审覆盖初审”，在业务层定义优先级规则
+
+---
+
+### 四、与上层表的跨表关系
+
+```
+assignment_stages (id)
+  └── submissions.stage_id
+
+groups (id)
+  └── submissions.group_id
+
+submissions (id)
+  ├── submission_files.submission_id
+  └── reviews.submission_id
+
+users (id)
+  ├── submissions.created_by
+  ├── submissions.submitted_by
+  ├── submission_files.uploaded_by
+  └── reviews.reviewer_id
 ```
 
 ---
@@ -819,7 +943,5 @@ users (id)
 
 ### 六、扩展能力（非 P0 强制）
 
-- `chat_message_reads`：已读回执
 - `chat_pins`：置顶消息
-- `chat_mentions`：@ 提及
 - Outbox 重试：`event_outbox` 表保障"写库成功但推送失败"的重放

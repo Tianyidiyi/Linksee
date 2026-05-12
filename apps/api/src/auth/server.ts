@@ -12,6 +12,11 @@ import { assignmentStagesRouter } from "../assignments/assignment-stages-router.
 import { coursesRouter } from "../courses/courses-router.js";
 import { courseMembersRouter } from "../courses/course-members-router.js";
 import { groupsRouter } from "../groups/groups-router.js";
+import { groupDetailsRouter } from "../groups/group-details-router.js";
+import { groupMembersRouter } from "../groups/group-members-router.js";
+import { groupRequestsRouter } from "../groups/group-requests-router.js";
+import { groupAdminRouter } from "../groups/group-admin-router.js";
+import { minitasksRouter } from "../minitasks/minitasks-router.js";
 import { courseChatRouter } from "../collaboration/course-chat-router.js";
 import { groupChatRouter } from "../collaboration/group-chat-router.js";
 import { chatFilesRouter } from "../collaboration/chat-files-router.js";
@@ -55,6 +60,11 @@ export function createApp(): express.Express {
   app.use("/api/v1", assignmentsRouter);
   app.use("/api/v1", assignmentStagesRouter);
   app.use("/api/v1", groupsRouter);
+  app.use("/api/v1", groupDetailsRouter);
+  app.use("/api/v1", groupMembersRouter);
+  app.use("/api/v1", groupRequestsRouter);
+  app.use("/api/v1", groupAdminRouter);
+  app.use("/api/v1", minitasksRouter);
   app.use("/api/v1", courseChatRouter);
   app.use("/api/v1", groupChatRouter);
   app.use("/api/v1", chatFilesRouter);

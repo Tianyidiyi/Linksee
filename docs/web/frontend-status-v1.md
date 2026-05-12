@@ -1,7 +1,7 @@
 # 前端现状与待补清单 v1
 
 > 最近更新：2026-05-07  
-> 对标后端：auth/users/courses/assignments/stages 已实现并可联调；group/minitask/chat/submission/review 仍未实现。  
+> 对标后端：auth/users/courses/assignments/stages 已实现并可联调；group/minitask/chat 已实现接口（待前端对接）；submission/review 仍未实现。  
 > 关联文档：[apps/web/README.md](../../apps/web/README.md) · [design-mapping-checklist.md](../../skills/design-md-ui-workflow/references/design-mapping-checklist.md)
 
 ---
@@ -29,8 +29,8 @@
 | 角色路由分发 | ✅ role 字段在 token / me 响应中 | ❌ dashboard 未按 role 跳转 | 🔴 最紧迫 |
 | Course（Phase 1） | ✅ API 已实现（可联调） | ❌ 无页面 | 🟡 需要联调 |
 | Assignment / Stage（Phase 2） | ✅ API 已实现（可联调） | ❌ 无页面 | 🟡 需要联调 |
-| Groups（Phase 3） | ❌ 未实现 | ❌ 无页面 | ⚪ 等后端实现 |
-| MiniTask / Chat（Phase 4） | ❌ 未实现 | ❌ 无页面 | ⚪ 等后端实现 |
+| Groups（Phase 3） | ✅ API 已实现 | ❌ 无页面 | 🟡 待前端对接 |
+| MiniTask / Chat（Phase 4） | ✅ API 已实现 | ❌ 无页面 | 🟡 待前端对接 |
 | Submissions / Reviews（Phase 5） | ❌ 未设计 / 未实现 | ❌ 无页面 | ⚪ 等后端设计完成 |
 | Socket 业务事件处理 | ✅ 网关/心跳/房间已实现 | ⚠️ 骨架有，无业务处理函数 | 🟡 联调时补 |
 
@@ -97,7 +97,7 @@
 
 ---
 
-### 3.5 小组（Phase 3，后端待实现）
+### 3.5 小组（Phase 3，后端已实现，待前端对接）
 
 | 页面 / 功能 | 对应后端接口 | 要点 |
 | ----------- | ------------ | ---- |
@@ -106,11 +106,11 @@
 
 ---
 
-### 3.6 MiniTask + 群聊（Phase 4，后端待实现）
+### 3.6 MiniTask + 群聊（Phase 4，后端已实现，待前端对接）
 
 | 页面 / 功能 | 对应后端接口 | 要点 |
 | ----------- | ------------ | ---- |
-| MiniTask 看板 | `GET / POST / PATCH /api/v1/groups/:id/tasks` | 三栏（todo / in_progress / done）+ 任务卡片（负责人、截止时间、优先级色标） |
+| MiniTask 看板 | `GET / POST /api/v1/groups/:id/minitasks` + `PATCH /api/v1/minitasks/:taskId` | 三栏（todo / in_progress / done）+ 任务卡片（负责人、截止时间、优先级色标） |
 | 项目组群聊 | `GET /api/v1/conversations/:id/messages`（HTTP 历史）+ socket `group:*` | 消息气泡流 + 文件上传；首屏走 HTTP 拉历史，实时推送靠 socket `group.message.created` 事件 |
 | 课程群聊（P1） | socket `course:*` 房间 + `course.message.created` | P0-A 暂不实现；入口可先隐藏 |
 

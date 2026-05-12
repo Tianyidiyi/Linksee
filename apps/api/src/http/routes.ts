@@ -74,6 +74,12 @@ export const mvpRoutes: HttpRoute[] = [
     module: "assignment",
   },
   {
+    method: "POST",
+    path: "/api/v1/assignments/:assignmentId/status",
+    authRequired: true,
+    module: "assignment",
+  },
+  {
     method: "DELETE",
     path: "/api/v1/assignments/:assignmentId",
     authRequired: true,
@@ -176,8 +182,26 @@ export const mvpRoutes: HttpRoute[] = [
     module: "group",
   },
   {
+    method: "GET",
+    path: "/api/v1/groups/:groupId/members",
+    authRequired: true,
+    module: "group",
+  },
+  {
     method: "POST",
     path: "/api/v1/groups/:groupId/join-requests",
+    authRequired: true,
+    module: "group",
+  },
+  {
+    method: "GET",
+    path: "/api/v1/groups/:groupId",
+    authRequired: true,
+    module: "group",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/assignments/:assignmentId/groups/conversations",
     authRequired: true,
     module: "group",
   },
@@ -220,6 +244,48 @@ export const mvpRoutes: HttpRoute[] = [
   {
     method: "DELETE",
     path: "/api/v1/groups/:groupId/members/:userId",
+    authRequired: true,
+    module: "group",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/groups/:groupId/merge",
+    authRequired: true,
+    module: "group",
+  },
+  {
+    method: "DELETE",
+    path: "/api/v1/groups/:groupId",
+    authRequired: true,
+    module: "group",
+  },
+  {
+    method: "PATCH",
+    path: "/api/v1/groups/:groupId/status",
+    authRequired: true,
+    module: "group",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/groups/:groupId/members/:userId/move",
+    authRequired: true,
+    module: "group",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/groups/:groupId/minitasks",
+    authRequired: true,
+    module: "group",
+  },
+  {
+    method: "GET",
+    path: "/api/v1/groups/:groupId/minitasks",
+    authRequired: true,
+    module: "group",
+  },
+  {
+    method: "PATCH",
+    path: "/api/v1/minitasks/:taskId/status",
     authRequired: true,
     module: "group",
   },
