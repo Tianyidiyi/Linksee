@@ -3,6 +3,18 @@
 > 更新时间：2026-05-11  
 > 以代码与 OpenAPI 为准：`apps/api/src/http/routes.ts`、`docs/api/openapi/linksee-v1.yaml`
 
+## ⚠️ 前端联调必读：分组确认后再建群（高优先级）
+
+- 小组聊天会话**不能**在学生组队过程中自动创建。  
+- 原因：组队中途会发生加人/移人/合组，若提前建群会导致成员同步复杂且容易出现脏状态。  
+- 正确流程：老师（或助教）在分组调整完成后，点击“确认分组并创建群聊”，再调用后端接口批量建群。
+
+**确认分组并建群接口（教学侧）**
+- `POST /api/v1/assignments/:assignmentId/groups/conversations`
+- 权限：`teacher / assistant / academic`（课程可管理角色）
+- 语义：把该作业下现有小组一次性创建/补齐群会话（幂等）
+- 前端建议：将此动作放在教师端“分组管理页”的醒目主按钮，避免遗漏。
+
 ## 1. Course
 - `GET /api/v1/courses`：课程列表（分页/筛选）
 - `POST /api/v1/courses`：创建课程
@@ -40,6 +52,7 @@
 
 ## 4. Group
 - `GET /api/v1/assignments/:assignmentId/groups`：小组列表（分页）
+- `GET /api/v1/assignments/:assignmentId/my-group`：查询当前用户在该作业下的小组
 - `POST /api/v1/assignments/:assignmentId/groups`：创建小组
 - `POST /api/v1/groups/:groupId/members`：手动加组员（教学侧）
 - `DELETE /api/v1/groups/:groupId/members/:userId`：移除组员
@@ -69,7 +82,32 @@
 
 ## 6. Submission / Review
 - `POST /api/v1/stages/:stageId/groups/:groupId/submissions`：阶段提交
+- `GET /api/v1/stages/:stageId/groups/:groupId/submissions`：提交记录列表
+- `POST /api/v1/submissions/:submissionId/reviews/start`：开始评审（submitted -> under_review）
 - `POST /api/v1/submissions/:submissionId/reviews`：评审提交
+- `POST /api/v1/submissions/:submissionId/mark-reviewed`：未提交人工结案（not_submitted -> reviewed）
+- `GET /api/v1/courses/:courseId/pending-reviews`：课程待评审列表（支持 stageId/groupId/reviewerId 筛选）
+- `PATCH /api/v1/reviews/:reviewId`：更新评审
+
+## 6.1 Dashboard
+- `GET /api/v1/courses/:courseId/dashboard`：课程教师看板（进度/待评审/逾期/活跃度）
+
+## 6.2 自动任务
+- `@linksee/worker`：`npm run start:submission-deadline-scheduler -w @linksee/worker`
+  - 周期执行截止扫描，自动写入 `not_submitted`，并推送 `submission.status.updated` 事件
+
+## 6.3 Grading（评分与导出）
+- `POST /api/v1/submissions/:submissionId/grade-drafts`：创建/覆盖评分草稿
+- `PATCH /api/v1/grade-drafts/:gradeId`：更新评分草稿
+- `POST /api/v1/grades/:gradeId/publish`：单条发布成绩（teacher）
+- `POST /api/v1/courses/:courseId/grades/publish-batch`：批量发布成绩（teacher，可返回阻塞明细）
+- `PATCH /api/v1/grades/:gradeId`：发布后成绩调整（teacher）
+- `GET /api/v1/stages/:stageId/groups/:groupId/grade`：查询单组单阶段成绩
+- `GET /api/v1/courses/:courseId/grades`：课程成绩列表（分页筛选）
+- `GET /api/v1/courses/:courseId/grade-drafts`：课程成绩草稿列表（分页筛选）
+- `GET /api/v1/courses/:courseId/grades/export`：导出成绩 CSV
+- `GET /api/v1/courses/:courseId/reviews/export`：导出评审 CSV
+- `GET /api/v1/courses/:courseId/pipeline-health`：课程流水线健康检查（每阶段未交/待评审/草稿/已发布）
 
 ## 7. 当前未覆盖（课程域相关）
 - 组号自动重排（截止后两轮整理）未实现。

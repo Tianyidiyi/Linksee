@@ -42,6 +42,22 @@ function parseIdempotencyKey(req: Request): string | null {
   return key;
 }
 
+function parseCourseStatusFilter(value: unknown): CourseStatus | null {
+  if (value === undefined) return null;
+  if (typeof value !== "string") return null;
+  if (value !== CourseStatus.draft && value !== CourseStatus.active && value !== CourseStatus.archived) return null;
+  return value;
+}
+
+function parseOptionalIntFilter(value: unknown, fieldName: string, res: Response): number | null {
+  if (value === undefined) return null;
+  if (typeof value !== "string" || !/^\d+$/.test(value)) {
+    validationFailed(res, `${fieldName} must be a positive integer`);
+    return null;
+  }
+  return Number(value);
+}
+
 function canTransitionCourseStatus(from: CourseStatus, to: CourseStatus): boolean {
   if (from === to) return true;
   if (from === CourseStatus.draft && to === CourseStatus.active) return true;
@@ -161,13 +177,21 @@ async function ensureAssistantBelongsToTeacher(
 coursesRouter.get("/", requireAuth, async (req: Request, res: Response) => {
   const { id: userId, role } = req.user!;
 
-  const { status, academicYear, semester } = req.query as Record<string, string | undefined>;
+  const { academicYear, semester } = req.query as Record<string, string | undefined>;
+  const status = parseCourseStatusFilter(req.query.status);
+  if (req.query.status !== undefined && status === null) {
+    return validationFailed(res, "status must be draft, active or archived");
+  }
+  const academicYearFilter = parseOptionalIntFilter(academicYear, "academicYear", res);
+  if (academicYear !== undefined && academicYearFilter === null) return;
+  const semesterFilter = parseOptionalIntFilter(semester, "semester", res);
+  if (semester !== undefined && semesterFilter === null) return;
   const { limit, offset } = parseLimitOffset(req.query as Record<string, string | undefined>);
 
   const where: Record<string, unknown> = {};
   if (status) where["status"] = status;
-  if (academicYear) where["academicYear"] = Number(academicYear);
-  if (semester) where["semester"] = Number(semester);
+  if (academicYearFilter !== null) where["academicYear"] = academicYearFilter;
+  if (semesterFilter !== null) where["semester"] = semesterFilter;
 
   let courseIds: bigint[] | undefined;
 

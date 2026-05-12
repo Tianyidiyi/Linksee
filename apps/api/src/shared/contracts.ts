@@ -21,6 +21,7 @@ export type EventName =
   | "submission.created"
   | "submission.status.updated"
   | "review.created"
+  | "review.updated"
   | "grade.published"
   | "course.dashboard.updated"
   | "material.uploaded"
