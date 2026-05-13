@@ -48,6 +48,13 @@ function parseRequiredParam(rawValue: string | string[] | undefined, fieldName: 
   return rawValue;
 }
 
+function parseCourseMemberStatus(value: unknown): CourseMemberStatus | null {
+  if (value === undefined) return CourseMemberStatus.active;
+  if (typeof value !== "string") return null;
+  if (value !== CourseMemberStatus.active && value !== CourseMemberStatus.withdrawn) return null;
+  return value;
+}
+
 // ──────────────────────────────────────────────────────────────
 // GET /api/v1/courses/:id/members
 // ──────────────────────────────────────────────────────────────
@@ -60,7 +67,10 @@ courseMembersRouter.get("/:id/members", requireAuth, async (req: Request, res: R
   if (!access) return;
   const { limit, offset } = parseLimitOffset(req.query as Record<string, unknown>);
 
-  const statusFilter = (req.query.status as CourseMemberStatus | undefined) ?? CourseMemberStatus.active;
+  const statusFilter = parseCourseMemberStatus(req.query.status);
+  if (!statusFilter) {
+    return validationFailed(res, "status must be active or withdrawn");
+  }
 
   const [members, total] = await prisma.$transaction([
     prisma.courseMember.findMany({

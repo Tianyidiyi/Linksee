@@ -133,7 +133,7 @@ groupAdminRouter.post(
       groups.map((group) => ensureGroupConversation(group.id, group.createdBy ?? userId)),
     );
 
-    return ok(res, { assignmentId: assignmentId.toString(), created: groups.length });
+    return ok(res, { assignmentId: assignmentId.toString(), processedCount: groups.length });
   },
 );
 
@@ -179,7 +179,7 @@ groupAdminRouter.patch("/groups/:groupId/status", requireAuth, async (req: Reque
 
   const status = parseGroupStatus(req.body?.status);
   if (!status) {
-    return validationFailed(res, "status must be forming, locked or archived");
+    return validationFailed(res, "status must be forming, active or archived");
   }
 
   const updated = await prisma.group.update({

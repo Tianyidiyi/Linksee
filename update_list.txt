@@ -208,3 +208,39 @@
   - collaboration README 增补课程群创建逻辑与审查权限建议
   - 前端状态与联调清单更新（Group/MiniTask 已实现）
 
+  2026-05-12 | zkx | feat(submission+review): Phase 5 提交与评审接口落地
+    [新增接口]
+    - POST /api/v1/stages/:stageId/groups/:groupId/submissions  创建阶段提交（学生）
+    - POST /api/v1/submissions/:submissionId/reviews            创建评审（老师/助教）
+      - GET  /api/v1/stages/:stageId/groups/:groupId/submissions  获取阶段提交记录
+      - GET  /api/v1/courses/:courseId/pending-reviews            获取待评审列表
+    - PATCH /api/v1/reviews/:reviewId                            更新评审（作者）
+
+  [后端实现]
+  - 新增 submissions-router / reviews-router，接入权限校验、状态流转与参数校验
+  - Review 创建时同步更新 submission.status，并推送 submission/review 事件
+  - Submission 支持附件上传（MinIO），重交时事务内替换 submission_files
+
+2026-05-12 | zkx | fix(review+courses validation)+feat(grading export/pipeline): 增量修复与收口
+  [新增接口]
+  - GET  /api/v1/courses/:courseId/pipeline-health           课程流水线健康检查（按阶段聚合未交/待评审/评分草稿/已发布）
+  - GET  /api/v1/courses/:courseId/grades/export             成绩 CSV 导出
+  - GET  /api/v1/courses/:courseId/reviews/export            评审 CSV 导出
+
+  [接口增强]
+  - POST /api/v1/courses/:courseId/grades/publish-batch      支持 blocked 明细返回与 strict 模式
+  - GET  /api/v1/courses/:courseId/grade-drafts              课程评分草稿列表（分页筛选）
+  - POST /api/v1/submissions/:submissionId/grade-drafts      增加前置约束：仅 approved/reviewed 可评分
+
+  [修复]
+  - 统一 review 事件语义：创建发 review.created，更新发 review.updated
+  - 同步事件契约：shared/contracts 与 event-catalog 增加 review.updated
+  - 修复课程成员列表 status 参数校验（active/withdrawn），非法入参返回 400
+  - 修复课程列表筛选 status/academicYear/semester 参数校验，避免非法值进入查询
+  - 修复 review 创建幂等分支：仅命中缓存复用，未命中但已存在评审返回冲突
+  - 优化分组确认建群返回语义：created -> processedCount（幂等 upsert 语义更清晰）
+  - 修复 admin 初始化缺失 profile 时的 realName 兜底校验，避免空名写入
+
+  [文档]
+  - docs/api/course-backend-endpoints-overview-v1.md 增加“老师确认分组后建群”醒目说明与新增评分/导出接口列表
+

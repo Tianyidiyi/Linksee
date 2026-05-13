@@ -382,6 +382,21 @@ adminRouter.patch("/:id", requireAuth, async (req: Request, res: Response) => {
     return res.status(400).json({ ok: false, code: "VALIDATION_FAILED", message: "isActive must be a boolean" });
   }
 
+  const willWriteProfile = [realName, bio, location, email, accountNo].some((v) => v !== undefined);
+  if (willWriteProfile) {
+    const existingProfile = await prisma.userProfile.findUnique({
+      where: { userId: targetId },
+      select: { userId: true },
+    });
+    if (!existingProfile && realName === undefined) {
+      return res.status(400).json({
+        ok: false,
+        code: "VALIDATION_FAILED",
+        message: "realName is required when initializing a missing user profile",
+      });
+    }
+  }
+
   await prisma.$transaction(async (tx) => {
     if (isActive !== undefined) {
       await tx.user.update({ where: { id: targetId }, data: { isActive } });
