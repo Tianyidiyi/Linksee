@@ -1,13 +1,24 @@
 body.app-shell {
-    display: flex;
     width: 100vw;
     height: 100vh;
     overflow: hidden;
     position: relative;
 }
 
+.sidebar-trigger {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 16px;
+    height: 100vh;
+    z-index: 12;
+    cursor: pointer;
+    background: transparent;
+}
+
 .sidebar {
     width: 360px;
+    height: 100vh;
     border-right: 1px solid rgba(255, 255, 255, 0.45);
     background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(248, 250, 252, 0.74)),
@@ -15,10 +26,22 @@ body.app-shell {
     backdrop-filter: blur(28px) saturate(135%);
     padding: var(--space-8) var(--space-6);
     overflow-y: auto;
-    flex-shrink: 0;
     display: flex;
     flex-direction: column;
     box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.5);
+    position: fixed;
+    top: 0;
+    left: 0;
+    transform: translateX(-100%);
+    transition: transform var(--motion-base) var(--ease-standard);
+    z-index: 14;
+}
+
+.sidebar:hover,
+.sidebar:focus-within,
+.sidebar-trigger:hover+.sidebar,
+.sidebar-trigger:focus+.sidebar {
+    transform: translateX(0);
 }
 
 .workspace {
@@ -72,7 +95,15 @@ body.app-shell {
         overflow: auto;
     }
 
+    .sidebar-trigger {
+        display: none;
+    }
+
     .sidebar {
+        position: static;
+        height: auto;
+        transform: none;
+        transition: none;
         width: auto;
         border-right: 0;
         border-bottom: 1px solid var(--border);

@@ -122,25 +122,16 @@ async function revokeAllRefreshTokensForTargetUsers(userIds: string[]): Promise<
   }
 }
 
+export async function revokeAllRefreshTokensForUsers(userIds: string[]): Promise<void> {
+  await revokeAllRefreshTokensForTargetUsers(userIds);
+}
+
 export async function revokeAllUserRefreshTokens(userId: string): Promise<void> {
   try {
     await revokeAllRefreshTokensForTargetUsers([userId]);
   } catch {
     for (const [key, entry] of memoryRefreshTokens.entries()) {
       if (entry.userId === userId) {
-        memoryRefreshTokens.delete(key);
-      }
-    }
-  }
-}
-
-export async function revokeAllRefreshTokensForUsers(userIds: string[]): Promise<void> {
-  try {
-    await revokeAllRefreshTokensForTargetUsers(userIds);
-  } catch {
-    const targetUserIds = new Set(userIds);
-    for (const [key, entry] of memoryRefreshTokens.entries()) {
-      if (targetUserIds.has(entry.userId)) {
         memoryRefreshTokens.delete(key);
       }
     }
