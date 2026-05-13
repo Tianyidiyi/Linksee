@@ -75,8 +75,16 @@ model User {
   createdStages     AssignmentStage[]
   groupMemberships  GroupMember[]
   createdGroups     Group[]
+  sentGroupJoinRequests GroupJoinRequest[] @relation("JoinRequestApplicant")
+  reviewedGroupJoinRequests GroupJoinRequest[] @relation("JoinRequestReviewer")
+  sentLeaderTransferRequests GroupLeaderTransferRequest[] @relation("LeaderTransferFrom")
+  receivedLeaderTransferRequests GroupLeaderTransferRequest[] @relation("LeaderTransferTo")
   createdMiniTasks  MiniTask[]
   assignedMiniTasks MiniTask[]   @relation("MiniTaskAssignee")
+  createdSubmissions Submission[] @relation("SubmissionCreator")
+  submittedSubmissions Submission[] @relation("SubmissionSubmitter")
+  createdReviews    Review[]      @relation("ReviewAuthor")
+  uploadedSubmissionFiles SubmissionFile[] @relation("SubmissionUploader")
   chatConversations ChatConversation[]
   chatMessages      ChatMessage[]
   chatConversationReads ChatConversationRead[]
@@ -346,6 +354,8 @@ model Assignment {
   groupConfig  AssignmentGroupConfig?
   stages       AssignmentStage[]
   groups       Group[]
+  groupJoinRequests GroupJoinRequest[]
+  leaderTransferRequests GroupLeaderTransferRequest[]
 
   @@map("assignments")
 }
@@ -411,6 +421,7 @@ model AssignmentStage {
   assignment Assignment  @relation(fields: [assignmentId], references: [id])
   creator    User        @relation(fields: [createdBy], references: [id])
   miniTasks  MiniTask[]
+  submissions Submission[]
 
   @@unique([assignmentId, stageNo])
   @@index([assignmentId, stageNo])
@@ -447,7 +458,10 @@ model Group {
   assignment        Assignment        @relation(fields: [assignmentId], references: [id])
   creator           User              @relation(fields: [createdBy], references: [id])
   members           GroupMember[]
+  joinRequests      GroupJoinRequest[]
+  leaderTransferRequests GroupLeaderTransferRequest[]
   miniTasks         MiniTask[]
+  submissions       Submission[]
 
   @@unique([assignmentId, groupNo])
   @@map("groups")
@@ -478,6 +492,65 @@ model GroupMember {
   @@map("group_members")
 }
 
+enum GroupJoinRequestStatus {
+  pending
+  approved
+  rejected
+  cancelled
+  expired
+}
+
+model GroupJoinRequest {
+  id              BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
+  assignmentId    BigInt                 @db.UnsignedBigInt
+  groupId         BigInt                 @db.UnsignedBigInt
+  applicantUserId String                 @db.VarChar(10)
+  status          GroupJoinRequestStatus @default(pending)
+  reviewedBy      String?                @db.VarChar(10)
+  reviewedAt      DateTime?
+  reason          String?                @db.VarChar(255)
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id])
+  group      Group      @relation(fields: [groupId], references: [id])
+  applicant  User       @relation("JoinRequestApplicant", fields: [applicantUserId], references: [id])
+  reviewer   User?      @relation("JoinRequestReviewer", fields: [reviewedBy], references: [id])
+
+  @@index([groupId, status])
+  @@index([assignmentId, applicantUserId, status])
+  @@map("group_join_requests")
+}
+
+enum GroupLeaderTransferRequestStatus {
+  pending
+  accepted
+  rejected
+  cancelled
+  expired
+}
+
+model GroupLeaderTransferRequest {
+  id           BigInt                           @id @default(autoincrement()) @db.UnsignedBigInt
+  assignmentId BigInt                           @db.UnsignedBigInt
+  groupId      BigInt                           @db.UnsignedBigInt
+  fromUserId   String                           @db.VarChar(10)
+  toUserId     String                           @db.VarChar(10)
+  status       GroupLeaderTransferRequestStatus @default(pending)
+  respondedAt  DateTime?
+  createdAt    DateTime                         @default(now())
+  updatedAt    DateTime                         @updatedAt
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id])
+  group      Group      @relation(fields: [groupId], references: [id])
+  fromUser   User       @relation("LeaderTransferFrom", fields: [fromUserId], references: [id])
+  toUser     User       @relation("LeaderTransferTo", fields: [toUserId], references: [id])
+
+  @@index([groupId, status])
+  @@index([assignmentId, fromUserId, status])
+  @@map("group_leader_transfer_requests")
+}
+
 // ============================================================
 // PHASE 4 — mini_tasks / chat_conversations / chat_messages
 // ============================================================
@@ -506,9 +579,13 @@ model MiniTask {
   title       String          @db.VarChar(120)
   description String?         @db.Text
   assigneeId  String?         @db.VarChar(10)
+  assigneeIds Json?
   priority    MiniTaskPriority @default(medium)
   status      MiniTaskStatus  @default(todo)
   dueAt       DateTime?
+  reminder1dSentAt DateTime?
+  reminder1hSentAt DateTime?
+  overdueSentAt DateTime?
 
   /// FK → users.id，创建人
   createdBy   String          @db.VarChar(10)
@@ -523,6 +600,7 @@ model MiniTask {
 
   @@index([groupId, stageId])
   @@index([groupId, status])
+  @@index([dueAt, status])
   @@index([assigneeId])
   @@map("mini_tasks")
 }
@@ -631,4 +709,98 @@ model ChatConversationRead {
   @@id([conversationId, userId])
   @@index([userId, lastReadAt])
   @@map("chat_conversation_reads")
+}
+
+// ============================================================
+// PHASE 5 — submissions / submission_files / reviews
+// ============================================================
+
+enum SubmissionStatus {
+  draft
+  submitted
+  under_review
+  needs_changes
+  resubmitted
+  approved
+  rejected
+}
+
+enum ReviewStatus {
+  draft
+  submitted
+}
+
+enum ReviewDecision {
+  approved
+  needs_changes
+  rejected
+}
+
+model Submission {
+  id         BigInt          @id @default(autoincrement()) @db.UnsignedBigInt
+  groupId    BigInt          @db.UnsignedBigInt
+  stageId    BigInt          @db.UnsignedBigInt
+  attemptNo  Int             @db.UnsignedSmallInt
+  status     SubmissionStatus @default(draft)
+  summary    String?         @db.Text
+  payload    Json?
+  submittedAt DateTime?
+  createdBy  String          @db.VarChar(10)
+  submittedBy String?        @db.VarChar(10)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  group     Group           @relation(fields: [groupId], references: [id])
+  stage     AssignmentStage @relation(fields: [stageId], references: [id])
+  creator   User            @relation("SubmissionCreator", fields: [createdBy], references: [id])
+  submitter User?           @relation("SubmissionSubmitter", fields: [submittedBy], references: [id])
+  files     SubmissionFile[]
+  reviews   Review[]
+
+  @@unique([groupId, stageId, attemptNo])
+  @@index([groupId, stageId, status])
+  @@index([stageId, status])
+  @@index([submittedAt])
+  @@map("submissions")
+}
+
+model SubmissionFile {
+  id           BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  submissionId BigInt   @db.UnsignedBigInt
+  objectKey    String   @unique @db.VarChar(255)
+  name         String   @db.VarChar(200)
+  size         BigInt   @db.UnsignedBigInt
+  mimeType     String   @db.VarChar(120)
+  slotKey      String?  @db.VarChar(60)
+  uploadedBy   String   @db.VarChar(10)
+  uploadedAt   DateTime @default(now())
+
+  submission Submission @relation(fields: [submissionId], references: [id])
+  uploader   User       @relation("SubmissionUploader", fields: [uploadedBy], references: [id])
+
+  @@index([submissionId])
+  @@index([uploadedBy, uploadedAt])
+  @@map("submission_files")
+}
+
+model Review {
+  id           BigInt        @id @default(autoincrement()) @db.UnsignedBigInt
+  submissionId BigInt        @db.UnsignedBigInt
+  reviewerId   String        @db.VarChar(10)
+  status       ReviewStatus  @default(draft)
+  decision     ReviewDecision?
+  score        Decimal?      @db.Decimal(6, 2)
+  rubric       Json?
+  comment      String?       @db.Text
+  submittedAt  DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  submission Submission @relation(fields: [submissionId], references: [id])
+  reviewer   User       @relation("ReviewAuthor", fields: [reviewerId], references: [id])
+
+  @@unique([submissionId, reviewerId])
+  @@index([submissionId, status])
+  @@index([reviewerId, createdAt])
+  @@map("reviews")
 }

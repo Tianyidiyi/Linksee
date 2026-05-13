@@ -2,6 +2,8 @@ import { Prisma, Role } from "@prisma/client";
 import { Router, type Request, type Response } from "express";
 import { requireAuth } from "../infra/jwt-middleware.js";
 import { prisma } from "../infra/prisma.js";
+import { parseIdempotencyKey, parseLimitOffset } from "../infra/request-utils.js";
+import { fail, ok } from "../infra/http-response.js";
 import { parseBigIntParam, serializeBigInt, validationFailed } from "../assignments/assignment-access.js";
 import { ensureCourseMemberActive, getGroupAccess } from "../groups/group-access.js";
 import { createEventEnvelope } from "../events/event-builder.js";
@@ -12,7 +14,6 @@ import {
   getConversationId,
   normalizeMentions,
   parseCursorParam,
-  parseLimit,
   resolveMessageType,
 } from "./chat-helpers.js";
 import {
@@ -44,7 +45,7 @@ const messageSelect = {
 } as unknown as Prisma.ChatMessageSelect;
 
 function forbidden(res: Response, message = "Insufficient permissions"): void {
-  res.status(403).json({ ok: false, code: "FORBIDDEN", message });
+  fail(res, 403, "FORBIDDEN", message);
 }
 
 function parseOptionalMessageId(rawValue: unknown, res: Response, fieldName: string): bigint | null {
@@ -59,14 +60,6 @@ function parseOptionalMessageId(rawValue: unknown, res: Response, fieldName: str
     validationFailed(res, `${fieldName} is invalid`);
     return null;
   }
-}
-
-function parseIdempotencyKey(req: Request): string | null {
-  const header = req.header("Idempotency-Key");
-  if (!header || header.length > 64) {
-    return null;
-  }
-  return header;
 }
 
 async function ensureGroupMentions(
@@ -152,7 +145,7 @@ groupChatRouter.get("/groups/:groupId/messages", requireAuth, async (req: Reques
     }
   }
 
-  const limit = parseLimit(req.query.limit);
+  const { limit } = parseLimitOffset(req.query as Record<string, unknown>);
   const where = {
     conversationId,
     ...(cursor
@@ -248,7 +241,7 @@ groupChatRouter.post("/groups/:groupId/messages", requireAuth, async (req: Reque
 
   const conversationId = await getConversationId("group", groupId);
   if (!conversationId) {
-    return res.status(500).json({ ok: false, code: "INTERNAL_ERROR", message: "Conversation not found" });
+    return fail(res, 500, "INTERNAL_ERROR", "Conversation not found");
   }
 
   if (replyToId) {
@@ -268,10 +261,7 @@ groupChatRouter.post("/groups/:groupId/messages", requireAuth, async (req: Reque
       select: messageSelect,
     });
     if (existing && existing.conversationId === conversationId) {
-      return res.status(201).json({
-        ok: true,
-        data: serializeBigInt({ ...existing, messageType: resolveMessageType(existing.files, existing.content) }),
-      });
+      return ok(res, serializeBigInt({ ...existing, messageType: resolveMessageType(existing.files, existing.content) }), 201);
     }
   }
 
@@ -330,10 +320,7 @@ groupChatRouter.post("/groups/:groupId/messages", requireAuth, async (req: Reque
 
   await pushSocketEvent(`group:${groupId.toString()}`, outboundEvent);
 
-  res.status(201).json({
-    ok: true,
-    data: serializeBigInt({ ...message, messageType: resolveMessageType(message.files, message.content) }),
-  });
+  ok(res, serializeBigInt({ ...message, messageType: resolveMessageType(message.files, message.content) }), 201);
 });
 
 // ──────────────────────────────────────────────────────────────
@@ -359,7 +346,7 @@ groupChatRouter.post("/groups/:groupId/announcements", requireAuth, async (req: 
 
   const conversationId = await getConversationId("group", groupId);
   if (!conversationId) {
-    return res.status(500).json({ ok: false, code: "INTERNAL_ERROR", message: "Conversation not found" });
+    return fail(res, 500, "INTERNAL_ERROR", "Conversation not found");
   }
 
   const files = { type: "announcement" };
@@ -397,10 +384,7 @@ groupChatRouter.post("/groups/:groupId/announcements", requireAuth, async (req: 
 
   await pushSocketEvent(`group:${groupId.toString()}`, outboundEvent);
 
-  res.status(201).json({
-    ok: true,
-    data: serializeBigInt({ ...message, messageType: "announcement" }),
-  });
+  ok(res, serializeBigInt({ ...message, messageType: "announcement" }), 201);
 });
 
 // ──────────────────────────────────────────────────────────────
@@ -428,7 +412,7 @@ groupChatRouter.get("/groups/:groupId/messages/search", requireAuth, async (req:
     return res.json({ ok: true, data: [] });
   }
 
-  const limit = parseLimit(req.query.limit);
+  const { limit } = parseLimitOffset(req.query as Record<string, unknown>);
   const messages = await prisma.chatMessage.findMany({
     where: {
       conversationId,

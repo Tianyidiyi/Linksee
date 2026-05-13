@@ -1,18 +1,31 @@
-import { GroupStatus, GroupMemberRole, Role } from "@prisma/client";
+import {
+  GroupMemberRole,
+  GroupStatus,
+  Role,
+} from "@prisma/client";
 import { Router, type Request, type Response } from "express";
 import { requireAuth } from "../infra/jwt-middleware.js";
 import { prisma } from "../infra/prisma.js";
 import { parseBigIntParam, serializeBigInt, validationFailed, conflict } from "../assignments/assignment-access.js";
+import { parseIdempotencyKey, parseLimitOffset } from "../infra/request-utils.js";
+import { fail, ok } from "../infra/http-response.js";
 import {
   ensureAssignmentManageable,
   ensureCourseMemberActive,
-  ensureGroupManageable,
   type AssignmentCourseRecord,
 } from "./group-access.js";
-import { createEventEnvelope } from "../events/event-builder.js";
-import { pushSocketEvent, removeUserFromRoom } from "../events/realtime-publisher.js";
+import { isBeforeStudentDeadline, isStudent, parseOptionalString } from "./group-utils.js";
 
 export const groupsRouter = Router();
+
+type AssignmentContext = {
+  id: bigint;
+  courseId: bigint;
+  groupConfig: {
+    groupFormEnd: Date | null;
+    groupMaxSize: number;
+  } | null;
+};
 
 function parseOptionalGroupNo(value: unknown): number | null {
   if (value === undefined || value === null) return null;
@@ -22,24 +35,24 @@ function parseOptionalGroupNo(value: unknown): number | null {
   return value;
 }
 
-function parseOptionalString(value: unknown): string | null {
-  if (value === undefined || value === null) return null;
-  if (typeof value !== "string" || value.trim() === "") return null;
-  return value.trim();
-}
 
-async function ensureGroupConversation(groupId: bigint, createdBy: string): Promise<void> {
-  await prisma.chatConversation.upsert({
-    where: { scopeType_scopeId: { scopeType: "group", scopeId: groupId } },
-    update: {},
-    create: {
-      scopeType: "group",
-      scopeId: groupId,
-      roomKey: `group:${groupId.toString()}`,
-      createdBy,
+async function getAssignmentContext(assignmentId: bigint): Promise<AssignmentContext | null> {
+  return prisma.assignment.findUnique({
+    where: { id: assignmentId },
+    select: {
+      id: true,
+      courseId: true,
+      groupConfig: {
+        select: {
+          groupFormEnd: true,
+          groupMaxSize: true,
+        },
+      },
     },
   });
 }
+
+
 
 async function createGroupAndMaybeLeader(
   assignment: AssignmentCourseRecord,
@@ -83,27 +96,47 @@ async function createGroupAndMaybeLeader(
 groupsRouter.get("/assignments/:assignmentId/groups", requireAuth, async (req: Request, res: Response) => {
   const assignmentId = parseBigIntParam(req.params.assignmentId, "assignmentId", res);
   if (assignmentId === null) return;
+  const { limit, offset } = parseLimitOffset(req.query as Record<string, unknown>);
+  const role = req.user!.role as Role;
+  const userId = req.user!.id;
 
-  const assignment = await ensureAssignmentManageable(assignmentId, req.user!.id, req.user!.role as Role, res);
-  if (!assignment) return;
+  const assignment = await getAssignmentContext(assignmentId);
+  if (!assignment) {
+    return fail(res, 404, "NOT_FOUND", "Assignment not found");
+  }
+  if (isStudent(role)) {
+    if (!(await ensureCourseMemberActive(assignment.courseId, userId, res))) return;
+  } else {
+    const manageable = await ensureAssignmentManageable(assignmentId, userId, role, res);
+    if (!manageable) return;
+  }
 
-  const groups = await prisma.group.findMany({
-    where: { assignmentId },
-    orderBy: [{ groupNo: "asc" }],
-    select: {
-      id: true,
-      assignmentId: true,
-      groupNo: true,
-      name: true,
-      status: true,
-      createdBy: true,
-      createdAt: true,
-      updatedAt: true,
-      _count: { select: { members: true } },
-    },
+  const [groups, total] = await prisma.$transaction([
+    prisma.group.findMany({
+      where: { assignmentId },
+      orderBy: [{ groupNo: "asc" }],
+      take: limit,
+      skip: offset,
+      select: {
+        id: true,
+        assignmentId: true,
+        groupNo: true,
+        name: true,
+        status: true,
+        createdBy: true,
+        createdAt: true,
+        updatedAt: true,
+        _count: { select: { members: true } },
+      },
+    }),
+    prisma.group.count({ where: { assignmentId } }),
+  ]);
+
+  res.json({
+    ok: true,
+    data: serializeBigInt(groups),
+    paging: { limit, offset, total, hasMore: offset + groups.length < total },
   });
-
-  res.json({ ok: true, data: serializeBigInt(groups) });
 });
 
 // ──────────────────────────────────────────────────────────────
@@ -114,11 +147,30 @@ groupsRouter.get("/assignments/:assignmentId/groups", requireAuth, async (req: R
 groupsRouter.post("/assignments/:assignmentId/groups", requireAuth, async (req: Request, res: Response) => {
   const assignmentId = parseBigIntParam(req.params.assignmentId, "assignmentId", res);
   if (assignmentId === null) return;
+  const idempotencyKey = parseIdempotencyKey(req);
 
   const role = req.user!.role as Role;
   const userId = req.user!.id;
-  const assignment = await ensureAssignmentManageable(assignmentId, userId, role, res);
-  if (!assignment) return;
+  const assignment = await getAssignmentContext(assignmentId);
+  if (!assignment) {
+    return fail(res, 404, "NOT_FOUND", "Assignment not found");
+  }
+  if (isStudent(role)) {
+    if (!(await ensureCourseMemberActive(assignment.courseId, userId, res))) return;
+    if (!isBeforeStudentDeadline(assignment.groupConfig?.groupFormEnd ?? null)) {
+      return conflict(res, "Group self-service is closed after groupFormEnd");
+    }
+    const existingMembership = await prisma.groupMember.findUnique({
+      where: { assignmentId_userId: { assignmentId, userId } },
+      select: { id: true },
+    });
+    if (existingMembership) {
+      return conflict(res, "Student already belongs to a group in this assignment");
+    }
+  } else {
+    const manageable = await ensureAssignmentManageable(assignmentId, userId, role, res);
+    if (!manageable) return;
+  }
 
   const name = parseOptionalString(req.body?.name);
   const requestedGroupNo = parseOptionalGroupNo(req.body?.groupNo);
@@ -143,119 +195,23 @@ groupsRouter.post("/assignments/:assignmentId/groups", requireAuth, async (req: 
     return conflict(res, `groupNo ${groupNo} already exists`);
   }
 
+  if (idempotencyKey) {
+    const dup = await prisma.group.findFirst({
+      where: { assignmentId, groupNo, createdBy: userId },
+      select: { id: true, assignmentId: true, groupNo: true, name: true },
+    });
+    if (dup) {
+      return ok(res, serializeBigInt(dup), 201);
+    }
+  }
+
   const created = await createGroupAndMaybeLeader(assignment, groupNo, name, userId, role);
-  await ensureGroupConversation(created.groupId, userId);
 
-  res.status(201).json({
-    ok: true,
-    data: {
-      id: created.groupId.toString(),
-      assignmentId: assignmentId.toString(),
-      groupNo: created.groupNo,
-      name,
-    },
-  });
+  ok(res, {
+    id: created.groupId.toString(),
+    assignmentId: assignmentId.toString(),
+    groupNo: created.groupNo,
+    name,
+  }, 201);
 });
 
-// ──────────────────────────────────────────────────────────────
-// POST /api/v1/groups/:groupId/members
-// 添加小组成员（老师/助教/教务）
-// ──────────────────────────────────────────────────────────────
-
-groupsRouter.post("/groups/:groupId/members", requireAuth, async (req: Request, res: Response) => {
-  const groupId = parseBigIntParam(req.params.groupId, "groupId", res);
-  if (groupId === null) return;
-
-  const group = await ensureGroupManageable(groupId, req.user!.id, req.user!.role as Role, res);
-  if (!group) return;
-
-  const targetUserId = parseOptionalString(req.body?.userId);
-  if (!targetUserId) {
-    return validationFailed(res, "userId is required");
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { id: targetUserId },
-    select: { role: true },
-  });
-  if (!user || user.role !== Role.student) {
-    return validationFailed(res, "userId must be a student");
-  }
-
-  if (!(await ensureCourseMemberActive(group.courseId, targetUserId, res))) return;
-
-  const existing = await prisma.groupMember.findUnique({
-    where: { assignmentId_userId: { assignmentId: group.assignmentId, userId: targetUserId } },
-    select: { groupId: true },
-  });
-  if (existing) {
-    return conflict(res, "Student already belongs to a group in this assignment");
-  }
-
-  const member = await prisma.groupMember.create({
-    data: {
-      groupId,
-      assignmentId: group.assignmentId,
-      userId: targetUserId,
-      role: GroupMemberRole.member,
-    },
-    select: { id: true, userId: true, groupId: true },
-  });
-
-  const event = createEventEnvelope("group.member.updated", {
-    groupId: groupId.toString(),
-    assignmentId: group.assignmentId.toString(),
-    courseId: group.courseId.toString(),
-    userId: targetUserId,
-    action: "added",
-    operatorId: req.user!.id,
-  });
-  await pushSocketEvent(`group:${groupId.toString()}`, event);
-  await pushSocketEvent(`course:${group.courseId.toString()}`, event);
-
-  res.status(201).json({ ok: true, data: serializeBigInt(member) });
-});
-
-// ──────────────────────────────────────────────────────────────
-// DELETE /api/v1/groups/:groupId/members/:userId
-// 移除小组成员（老师/助教/教务）
-// ──────────────────────────────────────────────────────────────
-
-groupsRouter.delete("/groups/:groupId/members/:userId", requireAuth, async (req: Request, res: Response) => {
-  const groupId = parseBigIntParam(req.params.groupId, "groupId", res);
-  if (groupId === null) return;
-
-  const targetUserId = parseOptionalString(req.params.userId);
-  if (!targetUserId) {
-    return validationFailed(res, "userId is required");
-  }
-
-  const group = await ensureGroupManageable(groupId, req.user!.id, req.user!.role as Role, res);
-  if (!group) return;
-
-  const existing = await prisma.groupMember.findFirst({
-    where: { groupId, userId: targetUserId },
-    select: { id: true },
-  });
-  if (!existing) {
-    return res.status(404).json({ ok: false, code: "NOT_FOUND", message: "Group member not found" });
-  }
-
-  await prisma.groupMember.delete({
-    where: { id: existing.id },
-  });
-
-  const event = createEventEnvelope("group.member.updated", {
-    groupId: groupId.toString(),
-    assignmentId: group.assignmentId.toString(),
-    courseId: group.courseId.toString(),
-    userId: targetUserId,
-    action: "removed",
-    operatorId: req.user!.id,
-  });
-  await pushSocketEvent(`group:${groupId.toString()}`, event);
-  await pushSocketEvent(`course:${group.courseId.toString()}`, event);
-  await removeUserFromRoom(targetUserId, `group:${groupId.toString()}`);
-
-  res.json({ ok: true });
-});

@@ -2,6 +2,7 @@ import { Prisma, Role } from "@prisma/client";
 import { Router, type Request, type Response } from "express";
 import { requireAuth } from "../infra/jwt-middleware.js";
 import { prisma } from "../infra/prisma.js";
+import { parseLimitOffset } from "../infra/request-utils.js";
 import { parseBigIntParam, serializeBigInt, validationFailed } from "../assignments/assignment-access.js";
 import { ensureCourseReadable } from "../courses/course-access.js";
 import { createEventEnvelope } from "../events/event-builder.js";
@@ -395,7 +396,7 @@ courseChatRouter.get("/courses/:courseId/messages/search", requireAuth, async (r
     return res.json({ ok: true, data: [] });
   }
 
-  const limit = parseLimit(req.query.limit);
+  const { limit } = parseLimitOffset(req.query as Record<string, unknown>);
   const messages = await prisma.chatMessage.findMany({
     where: {
       conversationId,

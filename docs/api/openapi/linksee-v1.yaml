@@ -39,6 +39,35 @@ paths:
       operationId: listCourses
       security:
         - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/CourseStatus"
+        - name: academicYear
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: semester
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
       responses:
         "200":
           description: 课程列表获取成功
@@ -53,6 +82,8 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/Course"
+                  paging:
+                    $ref: "#/components/schemas/Paging"
               example:
                 ok: true
                 data:
@@ -767,6 +798,191 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "422":
           $ref: "#/components/responses/ValidationFailed"
+
+  /groups/{groupId}/join-requests:
+    post:
+      tags:
+        - Groups
+      summary: 学生申请加入小组
+      operationId: createGroupJoinRequest
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  maxLength: 255
+      responses:
+        "201":
+          description: 申请创建成功
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    get:
+      tags:
+        - Groups
+      summary: 查看小组入组申请（组长/课程教学侧）
+      operationId: listGroupJoinRequests
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupId"
+      responses:
+        "200":
+          description: 申请列表
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /group-join-requests/{requestId}/approve:
+    post:
+      tags:
+        - Groups
+      summary: 组长同意入组申请
+      operationId: approveGroupJoinRequest
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestId"
+      responses:
+        "200":
+          description: 审批成功
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /group-join-requests/{requestId}/reject:
+    post:
+      tags:
+        - Groups
+      summary: 组长拒绝入组申请
+      operationId: rejectGroupJoinRequest
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  maxLength: 255
+      responses:
+        "200":
+          description: 拒绝成功
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /groups/{groupId}/leader-transfer-requests:
+    post:
+      tags:
+        - Groups
+      summary: 组长发起组长转让申请
+      operationId: createLeaderTransferRequest
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - toUserId
+              properties:
+                toUserId:
+                  type: string
+      responses:
+        "201":
+          description: 转让申请创建成功
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /group-leader-transfer-requests/{requestId}/accept:
+    post:
+      tags:
+        - Groups
+      summary: 被转让人同意成为组长
+      operationId: acceptLeaderTransferRequest
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestId"
+      responses:
+        "200":
+          description: 转让成功
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /group-leader-transfer-requests/{requestId}/reject:
+    post:
+      tags:
+        - Groups
+      summary: 被转让人拒绝成为组长
+      operationId: rejectLeaderTransferRequest
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RequestId"
+      responses:
+        "200":
+          description: 已拒绝
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
 
   /stages/{stageId}/groups/{groupId}/submissions:
     post:
@@ -1567,6 +1783,12 @@ components:
       required: true
       schema:
         type: string
+    RequestId:
+      name: requestId
+      in: path
+      required: true
+      schema:
+        type: string
       description: Submission ID。
     IdempotencyKey:
       name: Idempotency-Key
@@ -1575,7 +1797,7 @@ components:
       schema:
         type: string
         minLength: 8
-        maxLength: 128
+        maxLength: 64
       description: 写操作幂等键，建议使用 UUID。
 
   responses:
@@ -1586,10 +1808,11 @@ components:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
           example:
-            error:
-              code: UNAUTHENTICATED
-              message: Authentication token is missing or invalid.
-              traceId: trace_20260430_001
+            ok: false
+            code: UNAUTHENTICATED
+            message: Authentication token is missing or invalid.
+            details: null
+            requestId: trace_20260430_001
     Forbidden:
       description: 当前用户无权访问该资源或执行该操作
       content:
@@ -1597,10 +1820,11 @@ components:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
           example:
-            error:
-              code: FORBIDDEN
-              message: Current user is not allowed to perform this operation.
-              traceId: trace_20260430_002
+            ok: false
+            code: FORBIDDEN
+            message: Current user is not allowed to perform this operation.
+            details: null
+            requestId: trace_20260430_002
     NotFound:
       description: 资源不存在
       content:
@@ -1608,10 +1832,11 @@ components:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
           example:
-            error:
-              code: NOT_FOUND
-              message: Requested resource was not found.
-              traceId: trace_20260430_003
+            ok: false
+            code: NOT_FOUND
+            message: Requested resource was not found.
+            details: null
+            requestId: trace_20260430_003
     Conflict:
       description: 当前资源状态与请求操作冲突
       content:
@@ -1619,10 +1844,11 @@ components:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
           example:
-            error:
-              code: CONFLICT
-              message: Resource state conflicts with this operation.
-              traceId: trace_20260430_004
+            ok: false
+            code: CONFLICT
+            message: Resource state conflicts with this operation.
+            details: null
+            requestId: trace_20260430_004
     ValidationFailed:
       description: 请求字段校验失败
       content:
@@ -1630,37 +1856,40 @@ components:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
           example:
-            error:
-              code: VALIDATION_FAILED
-              message: Request payload validation failed.
-              traceId: trace_20260430_005
+            ok: false
+            code: VALIDATION_FAILED
+            message: Request payload validation failed.
+            details: null
+            requestId: trace_20260430_005
 
   schemas:
     ErrorResponse:
       type: object
       required:
-        - error
+        - ok
+        - code
+        - message
       properties:
-        error:
-          type: object
-          required:
-            - code
-            - message
-            - traceId
-          properties:
-            code:
-              type: string
-              enum:
-                - UNAUTHENTICATED
-                - FORBIDDEN
-                - NOT_FOUND
-                - CONFLICT
-                - VALIDATION_FAILED
-                - INTERNAL_ERROR
-            message:
-              type: string
-            traceId:
-              type: string
+        ok:
+          type: boolean
+          enum: [false]
+        code:
+          type: string
+          enum:
+            - UNAUTHENTICATED
+            - FORBIDDEN
+            - NOT_FOUND
+            - CONFLICT
+            - VALIDATION_FAILED
+            - INTERNAL_ERROR
+            - FORCE_CHANGE_PASSWORD
+        message:
+          type: string
+        details:
+          nullable: true
+        requestId:
+          type: string
+          nullable: true
 
     CreateAssignmentRequest:
       type: object
@@ -1698,6 +1927,9 @@ components:
         - draft
         - active
         - archived
+      description: >
+        Allowed transitions: draft->active, active->archived, and same-status update.
+        Archived assignments are read-only for content and material updates.
 
     Assignment:
       type: object
@@ -1743,6 +1975,9 @@ components:
         - draft
         - active
         - archived
+      description: >
+        Allowed transitions: draft->active, active->archived, and same-status update.
+        Other transitions return 409 CONFLICT.
 
     Course:
       type: object
@@ -1874,6 +2109,30 @@ components:
         - open
         - closed
         - archived
+      description: >
+        Allowed transitions: planned->open->closed->archived and same-status update.
+        Archived stages are read-only for content and material updates.
+
+    Paging:
+      type: object
+      required:
+        - limit
+        - offset
+        - total
+        - hasMore
+      properties:
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+        offset:
+          type: integer
+          minimum: 0
+        total:
+          type: integer
+          minimum: 0
+        hasMore:
+          type: boolean
 
     Stage:
       type: object

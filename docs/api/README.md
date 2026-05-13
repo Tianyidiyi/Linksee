@@ -1,24 +1,22 @@
-# docs/api 目录说明
+# docs/api 文档导航
 
-| 子目录 | 存放内容 |
-|--------|---------|
-| `auth/` | 认证与鉴权设计：登录、改密、token 生命周期、RBAC 权限表、数据表结构 |
-| `contracts/` | 通信契约：HTTP 接口契约、Socket 事件契约、错误码规范 |
-| `openapi/` | 机器可读 API schema：OpenAPI YAML、后续可接 Swagger UI / Redoc |
+## 1. 核心文档
+- [课程后端接口总览 v1](./course-backend-endpoints-overview-v1.md)
+- [OpenAPI（v1）](./openapi/linksee-v1.yaml)
+- [课程表结构设计 v1](./courses/course-tables-design-v1.md)
+- [课程表结构设计 v2（当前实现）](./courses/course-tables-design-v2.md)
 
-## 当前入口
+## 2. 认证与用户
+- [认证设计 v2](./auth/auth-design-v2.md)
+- [认证相关表结构 v2](./auth/auth-tables-design-v2.md)
+- [Users API v1](./auth/users-api-v1.md)
 
-- [鉴权与权限基线设计 v2](auth/auth-design-v2.md)
-- [数据表结构设计 v2](auth/auth-tables-design-v2.md)
-- [Users 模块 API 契约 v1](auth/users-api-v1.md)
-- [HTTP + Socket + Worker 通信契约 v1](contracts/communication-contract-v1.md)
-- [群聊消息增强 v1](collaboration/chat-messages-v1.md)
-- [OpenAPI schema v1](openapi/linksee-v1.yaml)
-- [前后端联调记录模板](前后端联调记录模板.md)
+## 3. 协作与通信
+- [通信契约（HTTP + Socket + Worker）](./contracts/communication-contract-v1.md)
+- [协作消息接口说明 v1](./collaboration/chat-messages-v1.md)
+- [前后端联调对齐说明](./前后端联调对齐说明.md)
+- [前后端联调记录模板](./前后端联调记录模板.md)
 
-## 新增文档命名规范
-
-```
-{模块}-{类型}-v{版本}.md
-例：auth-design-v2.md / assignment-contract-v1.md / review-contract-v1.md
-```
+## 4. 说明
+- v1 文档保留为原始版本，v2 文档用于表达“当前代码真实状态”。
+- 具体接口字段与示例以 OpenAPI 为最终准绳。

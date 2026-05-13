@@ -155,3 +155,92 @@
   [风险]
   - Prisma 变更已用 db push（无迁移历史），后续上线需补 migration
   - ACK/重放依赖 Redis，可用性需保证
+
+2026-05-10 | zkx | test(collaboration) + docs(verification): 单元测试框架 + 前端联调与接口验收清单
+  [测试框架]
+  - 安装 jest 29.7.0 + ts-jest + supertest
+  - 新增 jest.config.js 配置 ESM + TypeScript 支持
+  - 新增 npm test / npm run test:watch / npm run test:coverage 脚本
+
+  [单元测试]
+  - 新增 src/collaboration/__tests__/chat-helpers.test.ts（19 个测试，87.75% 覆盖率）
+    · 测试 parseLimit / parseCursorParam / resolveMessageType / normalizeMentions 等纯函数
+    · 边界情况：缺失值、无效类型、上限截断、去重等
+  - 新增 src/collaboration/__tests__/course-chat-router.integration.test.ts（集成测试框架，18 个场景）
+    · 框架已建立，占位符就绪，待实现完整 HTTP + Socket 端到端测试
+
+  [文档]
+  - 新增 docs/api/collaboration/frontend-integration-checklist.md（前端完整自检清单）
+    · 所有 8+ 接口的参数、响应、权限、错误处理
+    · Socket 事件结构与消息推送预期
+    · 性能指标与容限要求
+    · 前端推荐库与 UI 交互建议
+  - 新增 docs/api/collaboration/api-acceptance-checklist.md（后端接口验收清单）
+    · 11 大接口群组的完整验收场景
+    · 每个场景的输入、期望、实际结果对标
+    · 权限边界、幂等性、Socket 事件验证
+    · 性能与错误处理检查项
+  - 新增 docs/api/collaboration/test-coverage-report.md（测试覆盖率报告）
+    · 单元测试 37/37 通过，chat-helpers 87.75% 覆盖率
+    · 集成测试框架就绪，后续迭代计划（短中长期）
+    · 测试执行命令与覆盖率阈值配置说明
+
+  [后续计划]
+  - 短期：完善集成测试，实现真实 HTTP + Socket + DB 端到端验证
+  - 中期：性能测试（分页、并发、文件上传）与错误场景测试
+  - 长期：端到端自动化（Playwright/Cypress）+ CI/CD 集成
+
+2026-05-12 | zkx | refactor(groups+minitasks+courses)+feat(phase5 schema)+docs: 组队/任务拆分与 Phase 5 结构补齐
+  [后端实现]
+  - groups 拆分为 group-details / group-members / group-requests / group-admin 四个路由
+  - 新增 /api/v1/assignments/:assignmentId/groups/conversations 批量生成小组群会话
+  - 新增小组详情与成员管理接口，支持移组、合并与归档
+  - MiniTask API 落地 + 定时提醒任务（1d/1h/overdue）
+  - 课程激活前置校验：需至少 1 位老师 + 助教绑定；激活时创建课程群
+
+  [数据库/Schema]
+  - MiniTask 增加 assigneeIds 与提醒字段，补索引
+  - Phase 5 新增 submissions / submission_files / reviews 表与关联关系
+  - Prisma generate 已成功执行
+
+  [文档]
+  - course-tables-design-v1.md 补齐 Phase 5 设计、会话创建时序、扩展项整理
+  - collaboration README 增补课程群创建逻辑与审查权限建议
+  - 前端状态与联调清单更新（Group/MiniTask 已实现）
+
+  2026-05-12 | zkx | feat(submission+review): Phase 5 提交与评审接口落地
+    [新增接口]
+    - POST /api/v1/stages/:stageId/groups/:groupId/submissions  创建阶段提交（学生）
+    - POST /api/v1/submissions/:submissionId/reviews            创建评审（老师/助教）
+      - GET  /api/v1/stages/:stageId/groups/:groupId/submissions  获取阶段提交记录
+      - GET  /api/v1/courses/:courseId/pending-reviews            获取待评审列表
+    - PATCH /api/v1/reviews/:reviewId                            更新评审（作者）
+
+  [后端实现]
+  - 新增 submissions-router / reviews-router，接入权限校验、状态流转与参数校验
+  - Review 创建时同步更新 submission.status，并推送 submission/review 事件
+  - Submission 支持附件上传（MinIO），重交时事务内替换 submission_files
+
+2026-05-12 | zkx | fix(review+courses validation)+feat(grading export/pipeline): 增量修复与收口
+  [新增接口]
+  - GET  /api/v1/courses/:courseId/pipeline-health           课程流水线健康检查（按阶段聚合未交/待评审/评分草稿/已发布）
+  - GET  /api/v1/courses/:courseId/grades/export             成绩 CSV 导出
+  - GET  /api/v1/courses/:courseId/reviews/export            评审 CSV 导出
+
+  [接口增强]
+  - POST /api/v1/courses/:courseId/grades/publish-batch      支持 blocked 明细返回与 strict 模式
+  - GET  /api/v1/courses/:courseId/grade-drafts              课程评分草稿列表（分页筛选）
+  - POST /api/v1/submissions/:submissionId/grade-drafts      增加前置约束：仅 approved/reviewed 可评分
+
+  [修复]
+  - 统一 review 事件语义：创建发 review.created，更新发 review.updated
+  - 同步事件契约：shared/contracts 与 event-catalog 增加 review.updated
+  - 修复课程成员列表 status 参数校验（active/withdrawn），非法入参返回 400
+  - 修复课程列表筛选 status/academicYear/semester 参数校验，避免非法值进入查询
+  - 修复 review 创建幂等分支：仅命中缓存复用，未命中但已存在评审返回冲突
+  - 优化分组确认建群返回语义：created -> processedCount（幂等 upsert 语义更清晰）
+  - 修复 admin 初始化缺失 profile 时的 realName 兜底校验，避免空名写入
+
+  [文档]
+  - docs/api/course-backend-endpoints-overview-v1.md 增加“老师确认分组后建群”醒目说明与新增评分/导出接口列表
+

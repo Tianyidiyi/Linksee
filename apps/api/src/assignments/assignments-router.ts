@@ -1,7 +1,9 @@
-import { AssignmentStatus, Prisma, Role } from "@prisma/client";
+import { AssignmentStatus, Prisma, Role, StageStatus } from "@prisma/client";
 import { Router, type Request, type Response } from "express";
 import { requireAuth } from "../infra/jwt-middleware.js";
 import { prisma } from "../infra/prisma.js";
+import { parseIdempotencyKey, parseLimitOffset } from "../infra/request-utils.js";
+import { fail, ok } from "../infra/http-response.js";
 import {
   canTransitionAssignmentStatus,
   conflict,
@@ -42,6 +44,7 @@ function serializeAssignmentRecord<T extends { descriptionFiles: Prisma.JsonValu
 assignmentsRouter.post("/courses/:courseId/assignments", requireAuth, async (req: Request, res: Response) => {
   const courseId = parseBigIntParam(req.params.courseId, "courseId", res);
   if (courseId === null) return;
+  const idempotencyKey = parseIdempotencyKey(req);
 
   const role = req.user!.role as Role;
   const userId = req.user!.id;
@@ -50,6 +53,27 @@ assignmentsRouter.post("/courses/:courseId/assignments", requireAuth, async (req
   const title = parseSingleString(req.body?.title);
   if (!title) {
     return validationFailed(res, "title is required");
+  }
+
+  if (idempotencyKey) {
+    const existing = await prisma.assignment.findFirst({
+      where: { courseId, title, createdBy: userId },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        courseId: true,
+        title: true,
+        description: true,
+        descriptionFiles: true,
+        status: true,
+        createdBy: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+    if (existing) {
+      return ok(res, serializeAssignmentRecord(existing), 201);
+    }
   }
 
   const description =
@@ -90,12 +114,13 @@ assignmentsRouter.post("/courses/:courseId/assignments", requireAuth, async (req
     },
   });
 
-  res.status(201).json({ ok: true, data: serializeAssignmentRecord(assignment) });
+  ok(res, serializeAssignmentRecord(assignment), 201);
 });
 
 assignmentsRouter.get("/courses/:courseId/assignments", requireAuth, async (req: Request, res: Response) => {
   const courseId = parseBigIntParam(req.params.courseId, "courseId", res);
   if (courseId === null) return;
+  const { limit, offset } = parseLimitOffset(req.query as Record<string, unknown>);
 
   const role = req.user!.role as Role;
   const userId = req.user!.id;
@@ -118,25 +143,31 @@ assignmentsRouter.get("/courses/:courseId/assignments", requireAuth, async (req:
     where.status = { in: [AssignmentStatus.active, AssignmentStatus.archived] };
   }
 
-  const assignments = await prisma.assignment.findMany({
-    where,
-    orderBy: [{ createdAt: "desc" }],
-    select: {
-      id: true,
-      courseId: true,
-      title: true,
-      description: true,
-      descriptionFiles: true,
-      status: true,
-      createdBy: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  });
+  const [assignments, total] = await prisma.$transaction([
+    prisma.assignment.findMany({
+      where,
+      orderBy: [{ createdAt: "desc" }],
+      take: limit,
+      skip: offset,
+      select: {
+        id: true,
+        courseId: true,
+        title: true,
+        description: true,
+        descriptionFiles: true,
+        status: true,
+        createdBy: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    }),
+    prisma.assignment.count({ where }),
+  ]);
 
   res.json({
     ok: true,
     data: assignments.map((assignment) => serializeAssignmentRecord(assignment)),
+    paging: { limit, offset, total, hasMore: offset + assignments.length < total },
   });
 });
 
@@ -226,6 +257,7 @@ assignmentsRouter.delete("/assignments/:assignmentId", requireAuth, async (req: 
     select: {
       id: true,
       courseId: true,
+      status: true,
       descriptionFiles: true,
       _count: { select: { stages: true, groups: true } },
       groupConfig: { select: { assignmentId: true } },
@@ -236,6 +268,10 @@ assignmentsRouter.delete("/assignments/:assignmentId", requireAuth, async (req: 
   }
 
   if (!(await getCourseWriteAccess(assignment.courseId, req.user!.id, req.user!.role as Role, res))) return;
+
+  if (assignment.status !== AssignmentStatus.draft) {
+    return conflict(res, "Only draft assignments can be deleted");
+  }
 
   if (assignment._count.stages > 0 || assignment._count.groups > 0 || assignment.groupConfig) {
     return conflict(res, "Cannot delete assignment with existing stages, groups or grouping configuration");
@@ -250,6 +286,59 @@ assignmentsRouter.delete("/assignments/:assignmentId", requireAuth, async (req: 
   await Promise.all(files.map((file) => removeCourseMaterialObject(file.objectKey)));
 
   res.json({ ok: true });
+});
+
+assignmentsRouter.post("/assignments/:assignmentId/status", requireAuth, async (req: Request, res: Response) => {
+  const assignmentId = parseBigIntParam(req.params.assignmentId, "assignmentId", res);
+  if (assignmentId === null) return;
+
+  const assignment = await getAssignmentWriteAccess(assignmentId, req.user!.id, req.user!.role as Role, res);
+  if (!assignment) return;
+
+  const nextStatus = parseAssignmentStatus(req.body?.status);
+  if (!nextStatus) {
+    return validationFailed(res, "status must be draft, active or archived");
+  }
+  if (!canTransitionAssignmentStatus(assignment.status, nextStatus)) {
+    return conflict(res, `Invalid assignment status transition: ${assignment.status} -> ${nextStatus}`);
+  }
+
+  if (nextStatus === AssignmentStatus.active) {
+    const stageCount = await prisma.assignmentStage.count({ where: { assignmentId } });
+    if (stageCount === 0) {
+      return conflict(res, "Cannot activate assignment without at least one stage");
+    }
+  }
+
+  if (nextStatus === AssignmentStatus.archived) {
+    const openStageCount = await prisma.assignmentStage.count({
+      where: {
+        assignmentId,
+        status: { in: [StageStatus.planned, StageStatus.open] },
+      },
+    });
+    if (openStageCount > 0) {
+      return conflict(res, "Cannot archive assignment while planned/open stages exist");
+    }
+  }
+
+  const updated = await prisma.assignment.update({
+    where: { id: assignmentId },
+    data: { status: nextStatus },
+    select: {
+      id: true,
+      courseId: true,
+      title: true,
+      description: true,
+      descriptionFiles: true,
+      status: true,
+      createdBy: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  return ok(res, serializeAssignmentRecord(updated));
 });
 
 assignmentsRouter.post(

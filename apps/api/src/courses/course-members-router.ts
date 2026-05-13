@@ -5,6 +5,8 @@ import { requireAuth } from "../infra/jwt-middleware.js";
 import { ensureCourseExists, ensureCourseReadable } from "./course-access.js";
 import { createEventEnvelope } from "../events/event-builder.js";
 import { pushSocketEvent, removeUserFromRoom } from "../events/realtime-publisher.js";
+import { fail, ok } from "../infra/http-response.js";
+import { parseIdempotencyKey, parseLimitOffset } from "../infra/request-utils.js";
 
 export const courseMembersRouter = Router();
 
@@ -13,15 +15,15 @@ function serializeBigInt<T>(obj: T): T {
 }
 
 function validationFailed(res: Response, message: string): void {
-  res.status(400).json({ ok: false, code: "VALIDATION_FAILED", message });
+  fail(res, 400, "VALIDATION_FAILED", message);
 }
 
 function forbidden(res: Response, message = "Insufficient permissions"): void {
-  res.status(403).json({ ok: false, code: "FORBIDDEN", message });
+  fail(res, 403, "FORBIDDEN", message);
 }
 
 function notFound(res: Response): void {
-  res.status(404).json({ ok: false, code: "NOT_FOUND", message: "Course not found" });
+  fail(res, 404, "NOT_FOUND", "Course not found");
 }
 
 function parseCourseId(rawValue: string | string[] | undefined, res: Response): bigint | null {
@@ -46,6 +48,13 @@ function parseRequiredParam(rawValue: string | string[] | undefined, fieldName: 
   return rawValue;
 }
 
+function parseCourseMemberStatus(value: unknown): CourseMemberStatus | null {
+  if (value === undefined) return CourseMemberStatus.active;
+  if (typeof value !== "string") return null;
+  if (value !== CourseMemberStatus.active && value !== CourseMemberStatus.withdrawn) return null;
+  return value;
+}
+
 // ──────────────────────────────────────────────────────────────
 // GET /api/v1/courses/:id/members
 // ──────────────────────────────────────────────────────────────
@@ -56,27 +65,40 @@ courseMembersRouter.get("/:id/members", requireAuth, async (req: Request, res: R
 
   const access = await ensureCourseReadable(courseId, req.user!.id, req.user!.role as Role, res);
   if (!access) return;
+  const { limit, offset } = parseLimitOffset(req.query as Record<string, unknown>);
 
-  const statusFilter = (req.query.status as CourseMemberStatus | undefined) ?? CourseMemberStatus.active;
+  const statusFilter = parseCourseMemberStatus(req.query.status);
+  if (!statusFilter) {
+    return validationFailed(res, "status must be active or withdrawn");
+  }
 
-  const members = await prisma.courseMember.findMany({
-    where: { courseId, status: statusFilter },
-    select: {
-      id: true,
-      status: true,
-      joinedAt: true,
-      user: {
-        select: {
-          id: true,
-          profile: { select: { realName: true, accountNo: true, avatarUrl: true } },
-          studentProfile: { select: { stuNo: true, grade: true, adminClass: true } },
+  const [members, total] = await prisma.$transaction([
+    prisma.courseMember.findMany({
+      where: { courseId, status: statusFilter },
+      select: {
+        id: true,
+        status: true,
+        joinedAt: true,
+        user: {
+          select: {
+            id: true,
+            profile: { select: { realName: true, accountNo: true, avatarUrl: true } },
+            studentProfile: { select: { stuNo: true, grade: true, adminClass: true } },
+          },
         },
       },
-    },
-    orderBy: { joinedAt: "asc" },
-  });
+      orderBy: { joinedAt: "asc" },
+      skip: offset,
+      take: limit,
+    }),
+    prisma.courseMember.count({ where: { courseId, status: statusFilter } }),
+  ]);
 
-  res.json({ ok: true, data: serializeBigInt(members) });
+  res.json({
+    ok: true,
+    data: serializeBigInt(members),
+    paging: { limit, offset, total, hasMore: offset + members.length < total },
+  });
 });
 
 // ──────────────────────────────────────────────────────────────
@@ -88,7 +110,8 @@ courseMembersRouter.post("/:id/members/batch", requireAuth, async (req: Request,
 
   const courseId = parseCourseId(req.params.id, res);
   if (courseId === null) return;
-  if (!(await ensureCourseExists(courseId, res))) return;
+  if (!(await ensureCourseExists(courseId, res))) return notFound(res);
+  const idempotencyKey = parseIdempotencyKey(req);
 
   const { userIds } = req.body ?? {};
   if (!Array.isArray(userIds) || userIds.length === 0) {
@@ -109,6 +132,15 @@ courseMembersRouter.post("/:id/members/batch", requireAuth, async (req: Request,
     return validationFailed(res, `The following user IDs are not valid students: ${invalidIds.join(", ")}`);
   }
 
+  if (idempotencyKey) {
+    const existingActive = await prisma.courseMember.count({
+      where: { courseId, userId: { in: userIds }, status: CourseMemberStatus.active },
+    });
+    if (existingActive === userIds.length) {
+      return ok(res, { imported: userIds.length, idempotent: true }, 201);
+    }
+  }
+
   await prisma.$transaction(
     userIds.map((uid: string) =>
       prisma.courseMember.upsert({
@@ -127,7 +159,7 @@ courseMembersRouter.post("/:id/members/batch", requireAuth, async (req: Request,
   });
   await pushSocketEvent(`course:${courseId.toString()}`, batchEvent);
 
-  res.status(201).json({ ok: true, data: { imported: userIds.length } });
+  ok(res, { imported: userIds.length }, 201);
 });
 
 // ──────────────────────────────────────────────────────────────
@@ -140,6 +172,7 @@ courseMembersRouter.post("/:id/members", requireAuth, async (req: Request, res: 
   const courseId = parseCourseId(req.params.id, res);
   if (courseId === null) return;
   if (!(await ensureCourseExists(courseId, res))) return;
+  const idempotencyKey = parseIdempotencyKey(req);
 
   const { userId } = req.body ?? {};
   if (typeof userId !== "string" || userId.length === 0) {
@@ -152,6 +185,16 @@ courseMembersRouter.post("/:id/members", requireAuth, async (req: Request, res: 
   });
   if (!user || !user.isActive || user.role !== Role.student) {
     return validationFailed(res, "User is not an active student");
+  }
+
+  if (idempotencyKey) {
+    const existing = await prisma.courseMember.findUnique({
+      where: { courseId_userId: { courseId, userId } },
+      select: { id: true, courseId: true, userId: true, status: true, joinedAt: true },
+    });
+    if (existing && existing.status === CourseMemberStatus.active) {
+      return ok(res, serializeBigInt(existing), 201);
+    }
   }
 
   const member = await prisma.courseMember.upsert({
@@ -169,7 +212,7 @@ courseMembersRouter.post("/:id/members", requireAuth, async (req: Request, res: 
   });
   await pushSocketEvent(`course:${courseId.toString()}`, event);
 
-  res.status(201).json({ ok: true, data: serializeBigInt(member) });
+  ok(res, serializeBigInt(member), 201);
 });
 
 // ──────────────────────────────────────────────────────────────
@@ -189,7 +232,7 @@ courseMembersRouter.delete("/:id/members/:userId", requireAuth, async (req: Requ
     where: { courseId_userId: { courseId, userId } },
   });
   if (!member || member.status === CourseMemberStatus.withdrawn) {
-    return res.status(404).json({ ok: false, code: "NOT_FOUND", message: "Member not found in this course" });
+    return fail(res, 404, "NOT_FOUND", "Member not found in this course");
   }
 
   await prisma.courseMember.update({
@@ -206,5 +249,5 @@ courseMembersRouter.delete("/:id/members/:userId", requireAuth, async (req: Requ
   await pushSocketEvent(`course:${courseId.toString()}`, event);
   await removeUserFromRoom(userId, `course:${courseId.toString()}`);
 
-  res.json({ ok: true });
+  ok(res, { success: true });
 });
