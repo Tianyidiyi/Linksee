@@ -2,9 +2,10 @@
 import { prisma } from "../infra/prisma.js";
 
 const SEED_ACCOUNTS = [
-  { id: "2023010001", password: "ChangeMe123!", role: "student" as const, forceChangePassword: true },
-  { id: "1000000001", password: "Academic@2026", role: "academic" as const, forceChangePassword: false },
-  { id: "2000000001", password: "Teacher@2026", role: "teacher" as const, forceChangePassword: false },
+  { id: "2022000001", password: "ChangeMe123!", role: "academic" as const, forceChangePassword: false },
+  { id: "2023000001", password: "ChangeMe123!", role: "teacher" as const, forceChangePassword: false },
+  { id: "2023019001", password: "ChangeMe123!", role: "assistant" as const, forceChangePassword: false },
+  { id: "2023010001", password: "ChangeMe123!", role: "student" as const, forceChangePassword: false },
 ] as const;
 
 async function main(): Promise<void> {
