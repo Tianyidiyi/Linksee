@@ -249,6 +249,7 @@ Failure Examples:
   - title: string
   - description?: string
   - fileIds?: string[]
+  - files?: file[] (multipart/form-data)
   - links?: string[]
   - repositoryUrl?: string
   - contributionNote?: string
@@ -256,7 +257,7 @@ Failure Examples:
   - id: string
   - stageId: string
   - groupId: string
-  - status: submitted | resubmitted
+  - status: submitted
   - submittedBy: string
   - submittedAt: string
 
@@ -267,10 +268,11 @@ Field Constraints:
 - title: 必填，1 到 100 个字符，去除首尾空格后不能为空。
 - description: 可选，最多 3000 个字符，用于填写提交说明。
 - fileIds: 可选，最多 20 个文件 ID；文件必须已上传且归属当前 Group 或当前 Submission 草稿。
+- files: 可选，multipart/form-data 字段名为 files；最多 20 个文件，单文件 20MB。
 - links: 可选，最多 10 个 URL，必须使用 `http://` 或 `https://`。
 - repositoryUrl: 可选，必须是合法 URL；MVP 只记录链接，不自动统计 commit。
 - contributionNote: 可选，最多 3000 个字符，用于填写人工贡献说明。
-- status: 服务端根据历史状态生成，首次提交为 `submitted`，需修改后再次提交为 `resubmitted`。
+- status: 服务端写入 `submitted`。截止前允许重复提交（生成新 attempt 并覆盖上一轮文件）；截止后不开放学生端补交。
 - submittedBy / submittedAt: 服务端根据 token 和提交时间写入。
 
 Success Example:
@@ -298,11 +300,19 @@ Failure Examples:
 }
 ```
 
+### 1.4.1 获取阶段提交记录
+
+- Method: GET
+- Path: /api/v1/stages/{stageId}/groups/{groupId}/submissions
+- Headers:
+  - Authorization: Bearer `<token>`
+- Response: Submission[]
+
 ```json
 {
   "error": {
     "code": "CONFLICT",
-    "message": "Submission has already been approved and cannot be resubmitted.",
+    "message": "Submission is pending review.",
     "traceId": "trace_20260430_008"
   }
 }
@@ -310,13 +320,27 @@ Failure Examples:
 
 ### 1.5 教师反馈与评分
 
+### 1.5.0 开始评审（进入 under_review）
+
+- Method: POST
+- Path: /api/v1/submissions/{submissionId}/reviews/start
+- Headers:
+  - Authorization: Bearer `<token>`
+- Response:
+  - submissionId: string
+  - status: under_review
+
+说明：
+- 仅老师/助教可操作。
+- 仅 `submitted` 状态允许进入 `under_review`。
+
 - Method: POST
 - Path: /api/v1/submissions/{submissionId}/reviews
 - Headers:
   - Authorization: Bearer `<token>`
   - Idempotency-Key: `<uuid>`
 - Request:
-  - status: needs_changes | approved
+  - status: needs_changes | approved | rejected
   - comment: string
   - rubricScores?: Array<{ item: string; score: number; maxScore: number }>
 - Response:
@@ -330,7 +354,7 @@ Failure Examples:
 Field Constraints:
 
 - submissionId: 必须是当前老师或助教授权课程内的 Submission ID。
-- status: 必填，只允许 `needs_changes` 或 `approved`。
+- status: 必填，只允许 `needs_changes` / `approved` / `rejected`。
 - comment: 必填，1 到 3000 个字符；当 status 为 `needs_changes` 时必须说明修改要求。
 - rubricScores: 可选，最多 10 项；每一项的 item 必填且最多 80 个字符。
 - rubricScores.score: 必须是 0 到 maxScore 之间的数字。
@@ -363,6 +387,18 @@ Failure Examples:
 }
 ```
 
+### 1.5.1 更新教师反馈
+
+- Method: PATCH
+- Path: /api/v1/reviews/{reviewId}
+- Headers:
+  - Authorization: Bearer `<token>`
+- Request:
+  - status: needs_changes | approved | rejected
+  - comment: string
+  - rubricScores?: Array<{ item: string; score: number; maxScore: number }>
+- Response: Review
+
 ```json
 {
   "error": {
@@ -372,6 +408,20 @@ Failure Examples:
   }
 }
 ```
+
+### 1.5.2 标记未提交已处理
+
+- Method: POST
+- Path: /api/v1/submissions/{submissionId}/mark-reviewed
+- Headers:
+  - Authorization: Bearer `<token>`
+- Response:
+  - submissionId: string
+  - status: reviewed
+
+说明：
+- 仅老师/助教可操作。
+- 仅 `not_submitted` 状态允许标记为 `reviewed`。
 
 ### 1.6 教师课程看板
 
@@ -463,17 +513,21 @@ Failure Examples:
 Submission 状态统一为：
 
 ```text
-not_submitted -> submitted -> needs_changes -> resubmitted -> approved
+not_submitted -> reviewed
+not_submitted -> submitted -> under_review -> needs_changes -> submitted
+not_submitted -> submitted -> under_review -> approved | rejected
 ```
 
 说明：
 
-- `not_submitted`：尚未提交，可由看板根据 Stage 和 Group 推导，不一定落库。
+- `not_submitted`：到达 Stage 截止时间且无提交时由系统自动落库。
 - `submitted`：首次提交，等待老师或助教查看。
+- `under_review`：老师或助教开始处理评审过程中的中间态。
 - `needs_changes`：老师或助教要求修改。
-- `resubmitted`：学生按反馈重新提交。
+- `submitted`（再次出现）：学生在截止前按反馈重新提交，形成下一次 attempt。
 - `approved`：老师确认通过。
-- P0 暂不使用 `rejected` 作为常规状态；不通过原因写入 Review.comment。
+- `rejected`：老师或助教明确判定不通过。
+- `reviewed`：老师或助教将 `not_submitted` 人工标记为“已处理”。
 
 ## 4. Socket 契约（示例）
 

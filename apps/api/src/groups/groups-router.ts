@@ -140,6 +140,64 @@ groupsRouter.get("/assignments/:assignmentId/groups", requireAuth, async (req: R
 });
 
 // ──────────────────────────────────────────────────────────────
+// GET /api/v1/assignments/:assignmentId/my-group
+// 学生查询自己在该作业下的小组
+// ──────────────────────────────────────────────────────────────
+groupsRouter.get("/assignments/:assignmentId/my-group", requireAuth, async (req: Request, res: Response) => {
+  const assignmentId = parseBigIntParam(req.params.assignmentId, "assignmentId", res);
+  if (assignmentId === null) return;
+
+  const role = req.user!.role as Role;
+  const userId = req.user!.id;
+
+  const assignment = await getAssignmentContext(assignmentId);
+  if (!assignment) {
+    return fail(res, 404, "NOT_FOUND", "Assignment not found");
+  }
+
+  if (!isStudent(role)) {
+    const manageable = await ensureAssignmentManageable(assignmentId, userId, role, res);
+    if (!manageable) return;
+  } else {
+    if (!(await ensureCourseMemberActive(assignment.courseId, userId, res))) return;
+  }
+
+  const membership = await prisma.groupMember.findUnique({
+    where: { assignmentId_userId: { assignmentId, userId } },
+    select: { groupId: true, role: true, joinedAt: true },
+  });
+
+  if (!membership) {
+    return fail(res, 404, "NOT_FOUND", "Group not found for current user");
+  }
+
+  const group = await prisma.group.findUnique({
+    where: { id: membership.groupId },
+    select: {
+      id: true,
+      assignmentId: true,
+      groupNo: true,
+      name: true,
+      status: true,
+      createdBy: true,
+      createdAt: true,
+      updatedAt: true,
+      _count: { select: { members: true } },
+    },
+  });
+
+  if (!group) {
+    return fail(res, 404, "NOT_FOUND", "Group not found");
+  }
+
+  return ok(res, serializeBigInt({
+    ...group,
+    myRole: membership.role,
+    joinedAt: membership.joinedAt,
+  }));
+});
+
+// ──────────────────────────────────────────────────────────────
 // POST /api/v1/assignments/:assignmentId/groups
 // 创建小组（老师/助教/教务）
 // ──────────────────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 # 前端现状与待补清单 v1
 
 > 最近更新：2026-05-07  
-> 对标后端：auth/users/courses/assignments/stages 已实现并可联调；group/minitask/chat 已实现接口（待前端对接）；submission/review 仍未实现。  
+> 对标后端：auth/users/courses/assignments/stages 已实现并可联调；group/minitask/chat 已实现接口（待前端对接）；submission/review 已实现核心接口（待前端对接）。  
 > 关联文档：[apps/web/README.md](../../apps/web/README.md) · [design-mapping-checklist.md](../../skills/design-md-ui-workflow/references/design-mapping-checklist.md)
 
 ---
@@ -31,7 +31,7 @@
 | Assignment / Stage（Phase 2） | ✅ API 已实现（可联调） | ❌ 无页面 | 🟡 需要联调 |
 | Groups（Phase 3） | ✅ API 已实现 | ❌ 无页面 | 🟡 待前端对接 |
 | MiniTask / Chat（Phase 4） | ✅ API 已实现 | ❌ 无页面 | 🟡 待前端对接 |
-| Submissions / Reviews（Phase 5） | ❌ 未设计 / 未实现 | ❌ 无页面 | ⚪ 等后端设计完成 |
+| Submissions / Reviews（Phase 5） | ✅ 后端已实现 | ❌ 无页面 | 🟡 待前端对接 |
 | Socket 业务事件处理 | ✅ 网关/心跳/房间已实现 | ⚠️ 骨架有，无业务处理函数 | 🟡 联调时补 |
 
 ---
@@ -121,7 +121,8 @@
 | 页面 / 功能 | 对应后端接口 | 要点 |
 | ----------- | ------------ | ---- |
 | 提交台 | `POST /api/v1/stages/:id/submissions` | 当前 Stage 要求说明 → 上传文件 → 填仓库链接 → 贡献说明 → 提交；状态流转明确展示 |
-| 批改台（老师 / 助教） | `POST /api/v1/submissions/:id/reviews` | 两栏：左侧提交物预览（文件列表 + 链接），右侧 Review 输入 + 评分 + 状态操作 |
+| 批改台（老师 / 助教） | `POST /api/v1/submissions/:id/reviews` + `PATCH /api/v1/reviews/:id` | 两栏：左侧提交物预览（文件列表 + 链接），右侧 Review 输入 + 评分 + 状态操作 |
+| 待评审列表 | `GET /api/v1/courses/:id/pending-reviews` | 老师/助教查看待处理提交 |
 | 助教检查台 | 同上，筛选视图 | 待检查 / 缺材料 / 需复核 / 已处理 四态快速筛选 |
 | 老师看板 | `GET /api/v1/courses/:id/dashboard` | 4 个数字卡片：未提交小组 / 待批改 / 已延期 / 协作不活跃；可点击钻取 |
 

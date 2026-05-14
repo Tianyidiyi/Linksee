@@ -14,4 +14,10 @@ afterAll(async () => {
   } catch {
     // ignore teardown errors
   }
+
+  try {
+    redis.disconnect();
+  } catch {
+    // ignore teardown errors
+  }
 });

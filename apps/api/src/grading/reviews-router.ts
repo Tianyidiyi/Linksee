@@ -12,6 +12,7 @@ import { canTransitionSubmissionStatus, reviewDecisionToSubmissionStatus } from 
 import { getIdempotentResponse, saveIdempotentResponse } from "../infra/idempotency-store.js";
 
 export const reviewsRouter = Router();
+const REVIEWED_STATUS = "reviewed" as SubmissionStatus;
 
 type RubricItem = {
   item: string;
@@ -227,7 +228,7 @@ reviewsRouter.post("/submissions/:submissionId/reviews", requireAuth, async (req
         status: ReviewStatus.submitted,
         decision,
         score: totalScore === null ? null : new Prisma.Decimal(totalScore),
-        rubric: rubricScores ? (rubricScores as Prisma.InputJsonValue) : null,
+        rubric: rubricScores ? (rubricScores as Prisma.InputJsonValue) : Prisma.DbNull,
         comment,
         submittedAt: now,
       },
@@ -444,7 +445,7 @@ reviewsRouter.patch("/reviews/:reviewId", requireAuth, async (req: Request, res:
         status: ReviewStatus.submitted,
         decision,
         score: totalScore === null ? null : new Prisma.Decimal(totalScore),
-        rubric: rubricScores ? (rubricScores as Prisma.InputJsonValue) : null,
+        rubric: rubricScores ? (rubricScores as Prisma.InputJsonValue) : Prisma.DbNull,
         comment,
         submittedAt: new Date(),
       },
@@ -524,13 +525,13 @@ reviewsRouter.post("/submissions/:submissionId/mark-reviewed", requireAuth, asyn
   const course = await ensureCourseReadable(courseId, req.user!.id, role, res);
   if (!course) return;
 
-  if (!canTransitionSubmissionStatus(submission.status, SubmissionStatus.reviewed)) {
+  if (!canTransitionSubmissionStatus(submission.status, REVIEWED_STATUS)) {
     return conflict(res, "Only not_submitted status can be marked reviewed");
   }
 
   await prisma.submission.update({
     where: { id: submissionId },
-    data: { status: SubmissionStatus.reviewed },
+    data: { status: REVIEWED_STATUS },
   });
 
   const statusEvent = createEventEnvelope("submission.status.updated", {
@@ -538,13 +539,13 @@ reviewsRouter.post("/submissions/:submissionId/mark-reviewed", requireAuth, asyn
     groupId: submission.groupId.toString(),
     stageId: submission.stageId.toString(),
     courseId: courseId.toString(),
-    status: SubmissionStatus.reviewed,
+    status: REVIEWED_STATUS,
   });
 
   await pushSocketEvent(`group:${submission.groupId.toString()}`, statusEvent);
   await pushSocketEvent(`course:${courseId.toString()}`, statusEvent);
 
-  return ok(res, { submissionId: submissionId.toString(), status: SubmissionStatus.reviewed });
+  return ok(res, { submissionId: submissionId.toString(), status: REVIEWED_STATUS });
 });
 
 reviewsRouter.get("/courses/:courseId/reviews/export", requireAuth, async (req: Request, res: Response) => {

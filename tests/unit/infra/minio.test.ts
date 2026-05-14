@@ -48,9 +48,10 @@ describe("infra/minio", () => {
     bucketExists.mockResolvedValueOnce(false as any);
     bucketExists.mockResolvedValueOnce(false as any);
     bucketExists.mockResolvedValueOnce(false as any);
+    bucketExists.mockResolvedValueOnce(false as any);
 
     await ensureBuckets();
-    expect(makeBucket).toHaveBeenCalledTimes(3);
+    expect(makeBucket).toHaveBeenCalledTimes(4);
     expect(setPolicy).toHaveBeenCalledTimes(2);
   });
 
