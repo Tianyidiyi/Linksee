@@ -531,13 +531,22 @@ button {
     gap: var(--space-2);
 }
 
+.sidebar-actions {
+    margin-top: auto;
+    padding-top: var(--space-6);
+}
+
 .nav-item {
-    text-align: left;
-    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 14px 18px;
     border-radius: var(--radius-sm);
     color: var(--muted);
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 600;
+    line-height: 1.4;
     background: transparent;
     border: 1px solid transparent;
     transition:
@@ -561,4 +570,15 @@ button {
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.72),
         0 8px 18px rgba(37, 99, 235, 0.08);
+}
+
+.nav-item-logout {
+    width: 100%;
+    color: var(--ink);
+    border-color: var(--border);
+    background: rgba(255, 255, 255, 0.72);
+}
+
+.nav-item-logout:hover {
+    background: rgba(255, 255, 255, 0.92);
 }
