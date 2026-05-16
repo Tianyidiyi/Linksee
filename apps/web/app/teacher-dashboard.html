@@ -38,8 +38,7 @@
             <div class="page-panel is-active" id="panel-overview">
                 <section class="card">
                     <div class="dashboard-section-intro">
-                        <div class="dashboard-kicker">Teaching Snapshot</div>
-                        <h1 class="card-title">课程概览 <span class="badge badge-active">active</span></h1>
+                        <h1 class="card-title">课程概览 <span class="badge badge-active">进行中</span></h1>
                         <p>聚焦当前学期的开课密度、发布节奏和批改压力，便于快速判断当天工作重点。</p>
                     </div>
                     <div class="meta" id="metaInfo">正在加载登录信息...</div>
@@ -64,9 +63,8 @@
                 <section class="card">
                     <div class="dashboard-toolbar-row">
                         <div class="dashboard-section-intro">
-                            <div class="dashboard-kicker">Review Queue</div>
                             <h2 class="card-title dashboard-title-reset">待批改列表 <span
-                                    class="badge badge-reviewing">needs_review</span></h2>
+                                    class="badge badge-reviewing">待批改</span></h2>
                             <p>按照提交优先级、时间和风险程度筛选，先处理最影响课程节奏的作业。</p>
                         </div>
                         <select class="dashboard-select">
@@ -80,55 +78,55 @@
                             <div class="list-main">
                                 <div class="list-row">
                                     <strong>需求调研报告</strong>
-                                    <span class="chip">group_id=31</span>
+                                    <span class="chip">小组 31</span>
                                 </div>
-                                <div class="muted">status=submitted · submitted_at=2026-03-19 ·
-                                    student_id=2023010031</div>
+                                <div class="muted">状态：已提交 · 提交时间：2026-03-19 ·
+                                    学生：2023010031</div>
                             </div>
-                            <span class="badge badge-pending">selected</span>
+                            <span class="badge badge-pending">当前选中</span>
                         </div>
 
                         <div class="list-item dashboard-list-item-interactive">
                             <div class="list-main">
                                 <div class="list-row">
                                     <strong>原型评审材料</strong>
-                                    <span class="chip">group_id=32</span>
+                                    <span class="chip">小组 32</span>
                                 </div>
-                                <div class="muted">status=submitted · submitted_at=2026-03-27 ·
-                                    student_id=2023010032</div>
+                                <div class="muted">状态：已提交 · 提交时间：2026-03-27 ·
+                                    学生：2023010032</div>
                             </div>
-                            <span class="badge badge-submitted">new</span>
+                            <span class="badge badge-submitted">新提交</span>
                         </div>
 
                         <div class="list-item dashboard-list-item-interactive">
                             <div class="list-main">
                                 <div class="list-row">
                                     <strong>课程总结报告</strong>
-                                    <span class="chip">group_id=33</span>
+                                    <span class="chip">小组 33</span>
                                 </div>
-                                <div class="muted">status=submitted · submitted_at=2026-03-29 ·
-                                    student_id=2023010033</div>
+                                <div class="muted">状态：已提交 · 提交时间：2026-03-29 ·
+                                    学生：2023010033</div>
                             </div>
-                            <span class="badge badge-submitted">new</span>
+                            <span class="badge badge-submitted">新提交</span>
                         </div>
 
                         <div class="list-item dashboard-list-item-interactive">
                             <div class="list-main">
                                 <div class="list-row">
                                     <strong>数据库架构设计</strong>
-                                    <span class="chip">course_id=14</span>
+                                    <span class="chip">课程 14</span>
                                 </div>
-                                <div class="muted">status=resubmitted · submitted_at=2026-04-02 ·
-                                    student_id=2023010088</div>
+                                <div class="muted">状态：重新提交 · 提交时间：2026-04-02 ·
+                                    学生：2023010088</div>
                             </div>
-                            <span class="badge badge-urgent">urgent</span>
+                            <span class="badge badge-urgent">紧急</span>
                         </div>
                     </div>
                     <div class="dashboard-filter-bar">
                         <div class="dashboard-filter-meta">
                             <span>队列共 4 条</span>
-                            <span class="dashboard-filter-tag">selected: 需求调研报告</span>
-                            <span class="dashboard-filter-tag">urgent: 1</span>
+                            <span class="dashboard-filter-tag">当前选中: 需求调研报告</span>
+                            <span class="dashboard-filter-tag">紧急项: 1</span>
                         </div>
                         <span class="dashboard-soft-note">点击条目可切换右侧批改上下文</span>
                     </div>
@@ -140,7 +138,6 @@
                     <div class="teacher-main-col">
                         <section class="card">
                             <div class="dashboard-section-intro">
-                                <div class="dashboard-kicker">Grading Console</div>
                                 <h2 class="card-title">批改控制台</h2>
                                 <p>在一个视图里完成附件查看、打分和反馈，减少在不同工具间跳转。</p>
                             </div>
@@ -176,7 +173,6 @@
                     <div class="teacher-side-col">
                         <section class="card">
                             <div class="dashboard-section-intro">
-                                <div class="dashboard-kicker">Current Context</div>
                                 <h2 class="card-title">当前待批改上下文</h2>
                                 <p>右侧固定展示当前被选中的提交上下文，便于评分时始终保留参照。</p>
                             </div>
@@ -185,11 +181,11 @@
                                     <div class="list-main">
                                         <div class="list-row">
                                             <strong>需求调研报告</strong>
-                                            <span class="chip">group_id=31</span>
+                                            <span class="chip">小组 31</span>
                                         </div>
-                                        <div class="muted">student_id=2023010031 · submitted_at=2026-03-19</div>
+                                        <div class="muted">学生：2023010031 · 提交时间：2026-03-19</div>
                                     </div>
-                                    <span class="badge badge-pending">selected</span>
+                                    <span class="badge badge-pending">当前选中</span>
                                 </div>
                             </div>
                         </section>
@@ -200,6 +196,7 @@
     </div>
 
     <script src="./scripts/dashboard-shell.js"></script>
+    <script src="./scripts/leaf-pile.js"></script>
     <script src="./scripts/teacher-dashboard.js"></script>
     <script>
         initDashboardShell({

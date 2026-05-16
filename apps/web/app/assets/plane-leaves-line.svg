@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 980" fill="none">
+  <defs>
+    <g id="sycamore-leaf-a" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M0 0L-10 -6L-20 -4L-28 -12L-42 -10L-54 -18L-76 -18L-60 -28L-70 -42L-54 -40L-42 -52L-56 -60L-50 -72L-62 -86L-42 -82L-30 -92L-24 -74L-14 -88L-10 -104L0 -126L10 -104L14 -88L24 -74L30 -92L42 -82L62 -86L50 -72L56 -60L42 -52L54 -40L70 -42L60 -28L76 -18L54 -18L42 -10L28 -12L20 -4L10 -6Z"/>
+      <path d="M0 0L0 -126"/>
+      <path d="M0 0L-62 -86"/>
+      <path d="M0 0L62 -86"/>
+      <path d="M0 0L-76 -18"/>
+      <path d="M0 0L76 -18"/>
+      <path d="M0 -36L-15 -50"/>
+      <path d="M0 -36L15 -50"/>
+      <path d="M0 -70L-20 -92"/>
+      <path d="M0 -70L20 -92"/>
+      <path d="M-30 -42L-48 -54"/>
+      <path d="M30 -42L48 -54"/>
+      <path d="M0 0L0 24"/>
+    </g>
+
+    <g id="sycamore-leaf-b" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M0 0L-12 -8L-24 -6L-34 -16L-48 -14L-62 -24L-88 -22L-68 -34L-80 -50L-62 -48L-50 -62L-66 -72L-58 -86L-72 -102L-48 -96L-34 -108L-26 -86L-16 -100L-12 -118L0 -142L12 -118L16 -100L26 -86L34 -108L48 -96L72 -102L58 -86L66 -72L50 -62L62 -48L80 -50L68 -34L88 -22L62 -24L48 -14L34 -16L24 -6L12 -8Z"/>
+      <path d="M0 0L0 -142"/>
+      <path d="M0 0L-72 -102"/>
+      <path d="M0 0L72 -102"/>
+      <path d="M0 0L-88 -22"/>
+      <path d="M0 0L88 -22"/>
+      <path d="M0 -42L-18 -58"/>
+      <path d="M0 -42L18 -58"/>
+      <path d="M0 -82L-22 -108"/>
+      <path d="M0 -82L22 -108"/>
+      <path d="M-36 -48L-56 -62"/>
+      <path d="M36 -48L56 -62"/>
+      <path d="M0 0L0 28"/>
+    </g>
+
+    <g id="sycamore-leaf-c" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M0 0L-8 -6L-18 -4L-26 -12L-36 -10L-48 -18L-68 -18L-54 -28L-62 -40L-48 -38L-36 -50L-48 -58L-44 -70L-56 -82L-36 -78L-24 -88L-18 -70L-10 -82L-8 -96L0 -116L8 -96L10 -82L18 -70L24 -88L36 -78L56 -82L44 -70L48 -58L36 -50L48 -38L62 -40L54 -28L68 -18L48 -18L36 -10L26 -12L18 -4L8 -6Z"/>
+      <path d="M0 0L0 -116"/>
+      <path d="M0 0L-56 -82"/>
+      <path d="M0 0L56 -82"/>
+      <path d="M0 0L-68 -18"/>
+      <path d="M0 0L68 -18"/>
+      <path d="M0 -34L-14 -46"/>
+      <path d="M0 -34L14 -46"/>
+      <path d="M0 -64L-18 -84"/>
+      <path d="M0 -64L18 -84"/>
+      <path d="M-26 -40L-42 -52"/>
+      <path d="M26 -40L42 -52"/>
+      <path d="M0 0L0 22"/>
+    </g>
+  </defs>
+
+  <g opacity="0.9">
+    <path d="M80 936C310 924 486 944 684 934C914 922 1070 948 1518 932" stroke="#EEDCAC" stroke-width="1.1" opacity="0.28"/>
+    <path d="M134 962C438 950 698 966 954 954C1172 944 1326 962 1510 950" stroke="#E8CF89" stroke-width="0.9" opacity="0.22"/>
+
+    <g transform="translate(96 952) rotate(82) scale(0.38 0.2)" stroke="#E1B85C" stroke-width="0.62">
+      <use href="#sycamore-leaf-a"/>
+    </g>
+    <g transform="translate(184 922) rotate(116) scale(0.28 0.15)" stroke="#F0DEAB" stroke-width="0.52">
+      <use href="#sycamore-leaf-c"/>
+    </g>
+    <g transform="translate(278 956) rotate(72) scale(0.52 0.24)" stroke="#D5A64D" stroke-width="0.72">
+      <use href="#sycamore-leaf-b"/>
+    </g>
+    <g transform="translate(372 930) rotate(104) scale(0.24 0.14)" stroke="#F3E6C4" stroke-width="0.48">
+      <use href="#sycamore-leaf-c"/>
+    </g>
+    <g transform="translate(470 966) rotate(64) scale(0.4 0.2)" stroke="#E8C87A" stroke-width="0.58">
+      <use href="#sycamore-leaf-a"/>
+    </g>
+    <g transform="translate(566 940) rotate(128) scale(0.3 0.16)" stroke="#EED596" stroke-width="0.5">
+      <use href="#sycamore-leaf-c"/>
+    </g>
+    <g transform="translate(650 958) rotate(88) scale(0.58 0.26)" stroke="#CC9841" stroke-width="0.72">
+      <use href="#sycamore-leaf-b"/>
+    </g>
+    <g transform="translate(760 934) rotate(54) scale(0.26 0.14)" stroke="#F0DFAF" stroke-width="0.48">
+      <use href="#sycamore-leaf-a"/>
+    </g>
+    <g transform="translate(846 966) rotate(112) scale(0.46 0.22)" stroke="#E0BA65" stroke-width="0.62">
+      <use href="#sycamore-leaf-c"/>
+    </g>
+    <g transform="translate(952 942) rotate(78) scale(0.32 0.16)" stroke="#F4E9CA" stroke-width="0.46">
+      <use href="#sycamore-leaf-c"/>
+    </g>
+    <g transform="translate(1046 962) rotate(132) scale(0.54 0.24)" stroke="#D6A34A" stroke-width="0.7">
+      <use href="#sycamore-leaf-a"/>
+    </g>
+    <g transform="translate(1150 930) rotate(68) scale(0.3 0.16)" stroke="#EFDCA5" stroke-width="0.5">
+      <use href="#sycamore-leaf-c"/>
+    </g>
+    <g transform="translate(1238 956) rotate(96) scale(0.44 0.22)" stroke="#DFB766" stroke-width="0.58">
+      <use href="#sycamore-leaf-b"/>
+    </g>
+    <g transform="translate(1328 934) rotate(148) scale(0.24 0.13)" stroke="#F3E8C4" stroke-width="0.44">
+      <use href="#sycamore-leaf-a"/>
+    </g>
+    <g transform="translate(1416 962) rotate(74) scale(0.5 0.22)" stroke="#D7A750" stroke-width="0.68">
+      <use href="#sycamore-leaf-b"/>
+    </g>
+    <g transform="translate(1516 944) rotate(118) scale(0.34 0.16)" stroke="#EED79A" stroke-width="0.5">
+      <use href="#sycamore-leaf-c"/>
+    </g>
+
+    <g transform="translate(214 980) rotate(48) scale(0.3 0.13)" stroke="#F4E6C1" stroke-width="0.44">
+      <use href="#sycamore-leaf-a"/>
+    </g>
+    <g transform="translate(420 982) rotate(138) scale(0.34 0.16)" stroke="#E6C579" stroke-width="0.5">
+      <use href="#sycamore-leaf-c"/>
+    </g>
+    <g transform="translate(736 986) rotate(72) scale(0.42 0.18)" stroke="#D9AB54" stroke-width="0.58">
+      <use href="#sycamore-leaf-a"/>
+    </g>
+    <g transform="translate(1122 984) rotate(108) scale(0.36 0.15)" stroke="#EEDCA8" stroke-width="0.46">
+      <use href="#sycamore-leaf-c"/>
+    </g>
+    <g transform="translate(1374 984) rotate(58) scale(0.4 0.18)" stroke="#E4BF70" stroke-width="0.54">
+      <use href="#sycamore-leaf-a"/>
+    </g>
+  </g>
+</svg>

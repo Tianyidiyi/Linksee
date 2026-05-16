@@ -1,9 +1,5 @@
 {
   "app": "worker",
-<<<<<<< HEAD
-  "builtAt": "2026-05-07T14:32:33.505Z",
-=======
-  "builtAt": "2026-05-08T14:14:36.484Z",
->>>>>>> origin/main
+  "builtAt": "2026-05-16T05:42:58.146Z",
   "notes": "MVP async worker scaffold build artifact"
 }

@@ -42,38 +42,37 @@
 
                         <section class="card">
                             <div class="dashboard-section-intro">
-                                <div class="dashboard-kicker">Student Focus</div>
-                                <h2 class="card-title">我的待办 (Up Next) <span class="badge badge-pending">todo</span></h2>
+                                <h2 class="card-title">我的待办 <span class="badge badge-pending">待处理</span></h2>
                                 <p>优先处理最近会影响小组推进和阶段提交的任务，避免在评审前出现连锁延期。</p>
                             </div>
                             <div class="timeline">
                                 <div class="timeline-item is-overdue">
                                     <div class="timeline-meta">
                                         <strong>完成需求访谈记录</strong>
-                                        <span class="muted">due_at=2026-03-18 · status=in_progress</span>
+                                        <span class="muted">截止时间：2026-03-18 · 状态：进行中</span>
                                     </div>
-                                    <span class="badge badge-urgent">urgent</span>
+                                    <span class="badge badge-urgent">紧急</span>
                                 </div>
                                 <div class="timeline-item">
                                     <div class="timeline-meta">
                                         <strong>原型评审准备</strong>
-                                        <span class="muted">due_at=2026-03-26 · status=todo</span>
+                                        <span class="muted">截止时间：2026-03-26 · 状态：待处理</span>
                                     </div>
-                                    <span class="badge badge-pending">3 days</span>
+                                    <span class="badge badge-pending">3 天后</span>
                                 </div>
                                 <div class="timeline-item">
                                     <div class="timeline-meta">
                                         <strong>提交阶段材料</strong>
-                                        <span class="muted">due_at=2026-04-01 · status=todo</span>
+                                        <span class="muted">截止时间：2026-04-01 · 状态：待处理</span>
                                     </div>
-                                    <span class="badge badge-pending">9 days</span>
+                                    <span class="badge badge-pending">9 天后</span>
                                 </div>
                                 <div class="timeline-item">
                                     <div class="timeline-meta">
                                         <strong>课程项目总结</strong>
-                                        <span class="muted">due_at=2026-04-10 · status=todo</span>
+                                        <span class="muted">截止时间：2026-04-10 · 状态：待处理</span>
                                     </div>
-                                    <span class="badge badge-pending">18 days</span>
+                                    <span class="badge badge-pending">18 天后</span>
                                 </div>
                             </div>
                         </section>
@@ -83,8 +82,7 @@
 
                         <section class="card">
                             <div class="dashboard-section-intro">
-                                <div class="dashboard-kicker">Learning Overview</div>
-                                <h1 class="card-title">学习概览 <span class="badge badge-active">overview</span></h1>
+                                <h1 class="card-title">学习概览 <span class="badge badge-active">本周概览</span></h1>
                                 <p>这里是你本周最关键的课程节奏、任务压力和协作入口。</p>
                             </div>
                             <div class="meta" id="metaInfo">正在加载登录信息...</div>
@@ -106,7 +104,6 @@
 
                         <section class="card">
                             <div class="dashboard-section-intro">
-                                <div class="dashboard-kicker">Quick Access</div>
                                 <h2 class="card-title">快速入口</h2>
                                 <p>把最常用的协作和提交入口前置，减少在多个页面之间来回跳转。</p>
                             </div>
@@ -123,7 +120,6 @@
             <div class="page-panel" id="panel-grades">
                 <section class="card">
                     <div class="dashboard-section-intro">
-                        <div class="dashboard-kicker">Scores & Feedback</div>
                         <h2 class="card-title">最近成绩与反馈</h2>
                         <p>汇总最近一次评审结果，帮助你快速判断是否需要立即返工。</p>
                     </div>
@@ -132,21 +128,21 @@
                             <div class="list-main">
                                 <div class="list-row">
                                     <strong>需求调研报告</strong>
-                                    <span class="chip">score=92</span>
+                                    <span class="chip">分数 92</span>
                                 </div>
-                                <div class="muted">reviewed_at=2026-03-22 · feedback=结构清晰</div>
+                                <div class="muted">评审时间：2026-03-22 · 反馈：结构清晰</div>
                             </div>
-                            <span class="badge badge-approved">approved</span>
+                            <span class="badge badge-approved">已通过</span>
                         </div>
                         <div class="list-item">
                             <div class="list-main">
                                 <div class="list-row">
                                     <strong>上阶段提交</strong>
-                                    <span class="chip">score=85</span>
+                                    <span class="chip">分数 85</span>
                                 </div>
-                                <div class="muted">reviewed_at=2026-03-10 · status=needs_changes</div>
+                                <div class="muted">评审时间：2026-03-10 · 状态：待修改</div>
                             </div>
-                            <span class="badge badge-pending">pending</span>
+                            <span class="badge badge-pending">待处理</span>
                         </div>
                     </div>
                 </section>
@@ -156,7 +152,6 @@
                 <div class="course-panel-grid">
                     <section class="card">
                         <div class="dashboard-section-intro">
-                            <div class="dashboard-kicker">Collaboration</div>
                             <h2 class="card-title">小组与群聊</h2>
                             <p>当前小组状态、角色分工和即时沟通入口集中展示在这里。</p>
                         </div>
@@ -164,9 +159,9 @@
                             <div class="list-item dashboard-list-item-vertical">
                                 <div class="dashboard-split-row">
                                     <strong>第 3 组 · 原型推进组</strong>
-                                    <span class="badge badge-active">active</span>
+                                    <span class="badge badge-active">进行中</span>
                                 </div>
-                                <div class="muted">role=leader · members=6</div>
+                                <div class="muted">角色：组长 · 成员：6 人</div>
                             </div>
                         </div>
                         <a class="btn btn-secondary academic-btn-block" href="./chat-hub.html">💬 进入小组群聊</a>
@@ -174,7 +169,6 @@
 
                     <section class="card">
                         <div class="dashboard-section-intro">
-                            <div class="dashboard-kicker">Courses</div>
                             <h2 class="card-title">我的课程</h2>
                             <p>快速查看你本学期仍在推进中的课程和阶段归属。</p>
                         </div>
@@ -182,16 +176,16 @@
                             <div class="list-item dashboard-list-item-vertical">
                                 <div class="dashboard-split-row">
                                     <strong>软件工程实践</strong>
-                                    <span class="badge badge-active">active</span>
+                                    <span class="badge badge-active">进行中</span>
                                 </div>
-                                <div class="muted">course=12 · semester=1</div>
+                                <div class="muted">课程编号：12 · 学期：1</div>
                             </div>
                             <div class="list-item dashboard-list-item-vertical">
                                 <div class="dashboard-split-row">
                                     <strong>Web 应用开发</strong>
-                                    <span class="badge badge-active">active</span>
+                                    <span class="badge badge-active">进行中</span>
                                 </div>
-                                <div class="muted">course=19 · semester=2</div>
+                                <div class="muted">课程编号：19 · 学期：2</div>
                             </div>
                         </div>
                     </section>
@@ -201,6 +195,7 @@
     </div>
 
     <script src="./scripts/dashboard-shell.js"></script>
+    <script src="./scripts/leaf-pile.js"></script>
     <script>
         initDashboardShell({
             avatarStorageKey: "student_avatar_data_url",

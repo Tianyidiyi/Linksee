@@ -1,37 +1,36 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap");
 
 :root {
     color-scheme: light;
-    /* Baseline inference: Linear x Notion */
-    --bg: #eef2f7;
-    --bg-subtle: #f8fafc;
-    --bg-deep: #e3eaf4;
-    --surface: rgba(255, 255, 255, 0.82);
-    --surface-strong: #ffffff;
-    --surface-muted: #f4f7fb;
-    --surface-raised: rgba(255, 255, 255, 0.94);
+    --bg: #fbf5ec;
+    --bg-subtle: #fffdf8;
+    --bg-deep: #f1e6d7;
+    --surface: rgba(255, 255, 255, 0.76);
+    --surface-strong: rgba(255, 255, 255, 0.92);
+    --surface-muted: rgba(255, 255, 255, 0.66);
+    --surface-raised: rgba(255, 255, 255, 0.97);
     --card: var(--surface-strong);
-    --ink: #0f172a;
-    --ink-soft: #334155;
-    --muted: #64748b;
-    --muted-strong: #475569;
-    --accent: #2563eb;
-    --accent-strong: #1e40af;
-    --accent-bright: #7dd3fc;
-    --accent-soft: rgba(37, 99, 235, 0.11);
-    --accent-outline: rgba(37, 99, 235, 0.18);
-    --success-soft: #dcfce7;
-    --success-ink: #166534;
-    --warning-soft: #fef3c7;
+    --ink: #1d2422;
+    --ink-soft: #2f3d39;
+    --muted: #5d6a66;
+    --muted-strong: #46534f;
+    --accent: #0f766e;
+    --accent-strong: #0b4f49;
+    --accent-bright: #2dd4bf;
+    --accent-soft: rgba(15, 118, 110, 0.1);
+    --accent-outline: rgba(15, 118, 110, 0.18);
+    --success-soft: rgba(5, 150, 105, 0.12);
+    --success-ink: #065f46;
+    --warning-soft: rgba(245, 158, 11, 0.14);
     --warning-ink: #92400e;
-    --danger-soft: #fee2e2;
+    --danger-soft: rgba(220, 38, 38, 0.1);
     --danger-ink: #991b1b;
-    --border: rgba(15, 23, 42, 0.08);
-    --border-strong: rgba(15, 23, 42, 0.14);
+    --border: rgba(29, 36, 34, 0.08);
+    --border-strong: rgba(29, 36, 34, 0.14);
     --shadow-xs: 0 1px 1px rgba(15, 23, 42, 0.04);
-    --shadow-sm: 0 6px 16px rgba(15, 23, 42, 0.06);
-    --shadow-soft: 0 18px 48px rgba(15, 23, 42, 0.08);
-    --shadow: 0 28px 80px rgba(15, 23, 42, 0.12);
+    --shadow-sm: 0 16px 36px rgba(15, 23, 42, 0.08);
+    --shadow-soft: 0 24px 56px rgba(15, 23, 42, 0.12);
+    --shadow: 0 30px 80px rgba(28, 37, 44, 0.16);
     --radius-xl: 24px;
     --radius-lg: 18px;
     --radius-md: 12px;
@@ -46,8 +45,8 @@
     --space-8: 32px;
     --space-10: 40px;
     --space-12: 48px;
-    --font-ui: "Inter", "IBM Plex Sans", "Noto Sans SC", "Segoe UI", sans-serif;
-    --font-display: "IBM Plex Sans", "Inter", "Noto Sans SC", "Segoe UI", sans-serif;
+    --font-ui: "IBM Plex Sans", "Noto Sans SC", "Segoe UI", sans-serif;
+    --font-display: "Space Grotesk", "IBM Plex Sans", "Noto Sans SC", "Segoe UI", sans-serif;
     --motion-fast: 160ms;
     --motion-base: 220ms;
     --motion-slow: 320ms;
@@ -61,10 +60,8 @@
 body {
     margin: 0;
     font-family: var(--font-ui);
-    background:
-        radial-gradient(circle at top left, rgba(59, 130, 246, 0.16), transparent 30%),
-        radial-gradient(circle at top right, rgba(125, 211, 252, 0.16), transparent 24%),
-        linear-gradient(180deg, var(--bg-subtle), var(--bg));
+    background: var(--bg);
     color: var(--ink);
     min-height: 100vh;
+    position: relative;
 }

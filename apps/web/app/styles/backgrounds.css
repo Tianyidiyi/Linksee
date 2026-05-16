@@ -1,0 +1,91 @@
+.app-shell,
+.dashboard-shell-background,
+.academic-shell,
+.teacher-shell,
+.student-shell,
+.assistant-shell {
+    background: linear-gradient(180deg, #e6f7f2 0%, #dbf2ec 40%, #d0ecea 74%, #c8e6e7 88%, #bedce3 94%, #96bdd9 100%);
+    background-attachment: fixed;
+}
+
+.app-shell::before,
+.dashboard-shell-background::before,
+.academic-shell::before,
+.teacher-shell::before,
+.student-shell::before,
+.assistant-shell::before {
+    content: none;
+}
+
+.app-shell::after,
+.dashboard-shell-background::after,
+.academic-shell::after,
+.teacher-shell::after,
+.student-shell::after,
+.assistant-shell::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+     background-image:
+         url("../assets/seu-song-calligraphy.svg"),
+         url("../assets/seu-auditorium-line.svg");
+     background-position:
+         right -26px top 10vh,
+         right -108px bottom -6px;
+    background-repeat:
+        no-repeat,
+        no-repeat;
+    background-size:
+        min(26vw, 420px) auto,
+        min(40vw, 600px) auto;
+    opacity: 0.72;
+}
+
+@media (max-width: 720px) {
+    .app-shell::after,
+    .dashboard-shell-background::after,
+    .academic-shell::after,
+    .teacher-shell::after,
+    .student-shell::after,
+    .assistant-shell::after {
+         background-size:
+             0 0,
+             min(62vw, 360px) auto;
+         background-position:
+             right -10px top 7vh,
+             right -54px bottom -4px;
+         opacity: 0.62;
+     }
+ }
+
+.leaf-pile-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.leaf-pile-layer svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.leaf-pile-ground {
+    opacity: 0.32;
+}
+
+.leaf-pile-leaf {
+    transform-box: fill-box;
+    transform-origin: center;
+    will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .leaf-pile-layer {
+        display: none;
+    }
+}

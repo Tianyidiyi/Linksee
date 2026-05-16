@@ -1,9 +1,5 @@
 {
   "app": "web",
-<<<<<<< HEAD
-  "builtAt": "2026-05-07T14:32:33.386Z",
-=======
-  "builtAt": "2026-05-08T14:14:36.378Z",
->>>>>>> origin/main
+  "builtAt": "2026-05-16T05:42:58.038Z",
   "notes": "MVP web scaffold build artifact"
 }

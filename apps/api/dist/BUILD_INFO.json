@@ -1,9 +1,5 @@
 {
   "app": "api",
-<<<<<<< HEAD
-  "builtAt": "2026-05-07T14:32:33.259Z",
-=======
-  "builtAt": "2026-05-09T06:55:50.293Z",
->>>>>>> origin/main
+  "builtAt": "2026-05-16T05:42:57.929Z",
   "notes": "MVP communication framework scaffold build artifact"
 }

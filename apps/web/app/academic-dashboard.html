@@ -24,8 +24,7 @@
         </div>
 
         <nav class="side-nav" aria-label="教务功能导航">
-            <button class="nav-item is-active" data-target="panel-overview" type="button">教务总览</button>
-            <button class="nav-item" data-target="panel-courses" type="button">课程管理</button>
+            <button class="nav-item is-active" data-target="panel-courses" type="button">课程管理</button>
             <button class="nav-item" data-target="panel-users" type="button">人员库</button>
             <button class="nav-item" data-target="panel-assignments" type="button">项目监控</button>
         </nav>
@@ -36,151 +35,9 @@
 
     <div class="workspace">
         <div class="content-container">
-            <div class="page-panel is-active" id="panel-overview">
-                <div class="academic-workspace-layout">
-                    <div class="academic-hero">
-                        <section class="card academic-hero-card academic-hero-card--spotlight">
-                            <div class="academic-hero-eyebrow">Academic Control Center</div>
-                            <h1 class="academic-hero-title">把课程、师资和名单导入放在一个决策视图里处理。</h1>
-                            <p class="academic-hero-lead">
-                                当前进入 2026 春季排课与导入窗口。优先关注待指派教师课程、仍未完成导入的班级，以及配置尚未闭环的课程模板。
-                            </p>
-                            <div class="meta" id="metaInfo">正在加载登录信息...</div>
-                            <div class="academic-kpi-strip">
-                                <div class="academic-kpi">
-                                    <div class="academic-kpi-value">6</div>
-                                    <div class="academic-kpi-label">本学期课程</div>
-                                    <div class="academic-kpi-meta">2 门新开课待上线</div>
-                                </div>
-                                <div class="academic-kpi">
-                                    <div class="academic-kpi-value">4</div>
-                                    <div class="academic-kpi-label">待指派老师</div>
-                                    <div class="academic-kpi-meta">其中 2 门为核心课</div>
-                                </div>
-                                <div class="academic-kpi">
-                                    <div class="academic-kpi-value">2</div>
-                                    <div class="academic-kpi-label">待导入名单</div>
-                                    <div class="academic-kpi-meta">建议本周内完成</div>
-                                </div>
-                            </div>
-                            <div class="academic-hero-actions">
-                                <a class="btn academic-btn-light" href="#create-course">新建课程</a>
-                                <a class="btn academic-btn-ghost-light" href="#system-settings">系统设置</a>
-                            </div>
-                        </section>
-
-                        <section class="card academic-hero-card academic-overview-card">
-                            <h2 class="card-title">执行节奏</h2>
-                            <div class="academic-mini-stack">
-                                <div class="academic-mini-panel">
-                                    <div class="academic-mini-label">今日最先处理</div>
-                                    <div class="academic-mini-value academic-stat-value-danger">师资指派</div>
-                                    <div class="academic-mini-note">软件工程实践、数据库系统仍未完成负责教师绑定。</div>
-                                </div>
-                                <div class="academic-mini-panel">
-                                    <div class="academic-mini-label">数据导入窗口</div>
-                                    <div class="academic-mini-value academic-stat-value-warning">48h</div>
-                                    <div class="academic-mini-note">2026 春季两个班级名单尚未入库，影响学生分组与提交空间开通。</div>
-                                </div>
-                                <div class="academic-mini-panel">
-                                    <div class="academic-mini-label">配置闭环率</div>
-                                    <div class="academic-mini-value">83%</div>
-                                    <div class="academic-mini-note">剩余缺口集中在考核权重、课程模板和阶段发布时间。</div>
-                                </div>
-                            </div>
-                        </section>
-                    </div>
-
-                    <div class="academic-top-dashboard">
-                        <section class="card">
-                            <div class="dashboard-section-intro">
-                                <div class="dashboard-kicker">Operational Watchlist</div>
-                                <h2 class="card-title">待处理事项</h2>
-                                <p>把会阻塞课程开通、教师协作和学生入场的事项放在最前面，优先清掉链路上的高风险节点。</p>
-                            </div>
-                            <div class="config-stack">
-                                <div class="config-item">
-                                    <div class="config-meta">
-                                        <strong>4 门课程待指派教师</strong>
-                                        <span class="muted">优先处理 2026 春季新开课班级，避免阶段配置无法下发。</span>
-                                    </div>
-                                    <span class="badge badge-error">urgent</span>
-                                </div>
-                                <div class="config-item">
-                                    <div class="config-meta">
-                                        <strong>2 个班级名单待导入</strong>
-                                        <span class="muted">建议在本周五前完成学生基线同步，以便分组和提交空间即时生效。</span>
-                                    </div>
-                                    <span class="badge badge-pending">pending</span>
-                                </div>
-                                <div class="config-item">
-                                    <div class="config-meta">
-                                        <strong>1 项课程配置待审核</strong>
-                                        <span class="muted">数据库系统课程仍缺少考核权重设置，当前无法发布阶段评分说明。</span>
-                                    </div>
-                                    <span class="badge badge-active">review</span>
-                                </div>
-                            </div>
-                        </section>
-
-                        <section class="card">
-                            <div class="dashboard-section-intro">
-                                <div class="dashboard-kicker">Command Shortcuts</div>
-                                <h2 class="card-title">快速操作</h2>
-                                <p>适合用于处理当前窗口内最高频的教务动作，不需要再进入下层配置页。</p>
-                            </div>
-                            <div class="academic-quick-actions">
-                                <a class="btn btn-primary" href="#assign-teacher">指派教师</a>
-                                <a class="btn btn-secondary" href="#import-students">批量导入</a>
-                            </div>
-                            <div class="academic-mini-stack">
-                                <div class="academic-mini-panel">
-                                    <div class="academic-mini-label">下一步建议</div>
-                                    <div class="academic-mini-note">先完成教师绑定，再批量导入学生名单，最后统一检查课程评分模板。</div>
-                                </div>
-                            </div>
-                        </section>
-                    </div>
-
-                    <div class="academic-bottom-panel">
-                        <section class="card">
-                            <div class="dashboard-section-intro">
-                                <div class="dashboard-kicker">Recent Signals</div>
-                                <h2 class="card-title">最近动态</h2>
-                                <p>最近 24 小时内与排课、导入、配置变更相关的关键动作，方便快速回看。</p>
-                            </div>
-                            <div class="timeline">
-                                <div class="timeline-item">
-                                    <div class="timeline-meta">
-                                        <strong>软件工程实践课程模板已更新阶段节点</strong>
-                                        <span class="muted">15 分钟前 · updated_by=2023000001</span>
-                                    </div>
-                                    <span class="badge badge-active">updated</span>
-                                </div>
-                                <div class="timeline-item">
-                                    <div class="timeline-meta">
-                                        <strong>数据库系统课程等待考核权重确认</strong>
-                                        <span class="muted">1 小时前 · status=blocked</span>
-                                    </div>
-                                    <span class="badge badge-pending">watch</span>
-                                </div>
-                                <div class="timeline-item is-overdue">
-                                    <div class="timeline-meta">
-                                        <strong>2026 春季 2 班学生名单仍未导入</strong>
-                                        <span class="muted">超过 36 小时未处理 · import_queue=pending</span>
-                                    </div>
-                                    <span class="badge badge-urgent">late</span>
-                                </div>
-                            </div>
-                        </section>
-                    </div>
-                </div>
-            </div>
-
-            <div class="page-panel" id="panel-courses">
+            <div class="page-panel is-active" id="panel-courses">
                 <section class="card">
                     <div class="dashboard-section-intro">
-                        <div class="dashboard-kicker">Course Registry</div>
                         <h2 class="card-title">课程管理</h2>
                         <p>按课程状态、负责人和开课节奏筛选，优先处理会影响阶段发布的课程配置。</p>
                     </div>
@@ -213,21 +70,21 @@
                             <span><span class="chip">BSJ084-2026-1-01</span></span>
                             <span><strong>软件工程实践</strong></span>
                             <span>2023000001</span>
-                            <span><span class="badge badge-active">active</span></span>
+                            <span><span class="badge badge-active">进行中</span></span>
                             <span><a class="btn btn-secondary academic-row-action">编辑</a></span>
                         </div>
                         <div class="data-grid-row">
                             <span><span class="chip">DBS102-2026-1-02</span></span>
                             <span><strong>数据库系统</strong></span>
                             <span>2023000012</span>
-                            <span><span class="badge badge-draft">draft</span></span>
+                            <span><span class="badge badge-draft">草稿</span></span>
                             <span><a class="btn btn-secondary academic-row-action">编辑</a></span>
                         </div>
                         <div class="data-grid-row">
                             <span><span class="chip">PYS091-2026-1-03</span></span>
                             <span><strong>Python 高级编程</strong></span>
                             <span>2023000023</span>
-                            <span><span class="badge badge-active">active</span></span>
+                            <span><span class="badge badge-active">进行中</span></span>
                             <span><a class="btn btn-secondary academic-row-action">编辑</a></span>
                         </div>
                     </div>
@@ -237,7 +94,6 @@
             <div class="page-panel" id="panel-users">
                 <section class="card">
                     <div class="dashboard-section-intro">
-                        <div class="dashboard-kicker">People Directory</div>
                         <h2 class="card-title">人员库</h2>
                         <p>统一查看教师、助教与学生的角色归属，方便在导入前先校验身份和课程绑定。</p>
                     </div>
@@ -254,7 +110,7 @@
                         <div class="dashboard-filter-meta">
                             <span>当前展示 3 条重点记录</span>
                             <span class="dashboard-filter-tag">角色: 全部</span>
-                            <span class="dashboard-filter-tag">状态: Active</span>
+                            <span class="dashboard-filter-tag">状态: 正常</span>
                         </div>
                         <span class="dashboard-soft-note">支持批量导入后再次校验去重</span>
                     </div>
@@ -264,35 +120,30 @@
                                 <strong>2023000001</strong>
                                 <span class="muted">教师 · 软件工程实践</span>
                             </div>
-                            <span class="badge badge-active">active</span>
+                            <span class="badge badge-active">正常</span>
                         </div>
                         <div class="config-item">
                             <div class="config-meta">
                                 <strong>2023019001</strong>
                                 <span class="muted">助教 · 软件工程实践</span>
                             </div>
-                            <span class="badge badge-active">active</span>
+                            <span class="badge badge-active">正常</span>
                         </div>
                         <div class="config-item">
                             <div class="config-meta">
                                 <strong>2023010001</strong>
                                 <span class="muted">学生 · 原型推进组</span>
                             </div>
-                            <span class="badge badge-active">active</span>
+                            <span class="badge badge-active">正常</span>
                         </div>
                     </div>
                     <a class="btn btn-primary academic-btn-block" href="#import">批量导入人员</a>
-                    <div class="dashboard-empty-state">
-                        <strong>暂无待处理的异常身份数据</strong>
-                        <p>当前人员库没有检测到角色冲突、重复账号或导入失败记录，后续导入可直接走批量流程。</p>
-                    </div>
                 </section>
             </div>
 
             <div class="page-panel" id="panel-assignments">
                 <section class="card">
                     <div class="dashboard-section-intro">
-                        <div class="dashboard-kicker">Campus Monitor</div>
                         <h2 class="card-title">全校项目监控</h2>
                         <p>快速识别进度异常、评审堵点和需要教务介入的课程阶段。</p>
                     </div>
@@ -308,23 +159,23 @@
                         <div class="config-item">
                             <div class="config-meta">
                                 <strong>软件工程实践 · 阶段 2 · 原型评审</strong>
-                                <span class="muted">submitted=28 · under_review=5 · approved=18</span>
+                                <span class="muted">已提交 28 · 评审中 5 · 已通过 18</span>
                             </div>
-                            <span class="badge badge-active">on track</span>
+                            <span class="badge badge-active">正常推进</span>
                         </div>
                         <div class="config-item">
                             <div class="config-meta">
                                 <strong>数据库系统 · 阶段 1 · 需求分析</strong>
-                                <span class="muted">submitted=18 · under_review=2 · approved=12</span>
+                                <span class="muted">已提交 18 · 评审中 2 · 已通过 12</span>
                             </div>
-                            <span class="badge badge-pending">watch</span>
+                            <span class="badge badge-pending">需关注</span>
                         </div>
                         <div class="config-item">
                             <div class="config-meta">
                                 <strong>Python 高级编程 · 阶段 3 · 代码复审</strong>
-                                <span class="muted">submitted=15 · under_review=3 · needs_revision=2</span>
+                                <span class="muted">已提交 15 · 评审中 3 · 待修改 2</span>
                             </div>
-                            <span class="badge badge-error">at risk</span>
+                            <span class="badge badge-error">高风险</span>
                         </div>
                     </div>
                 </section>
@@ -333,6 +184,7 @@
     </div>
 
     <script src="./scripts/dashboard-shell.js"></script>
+    <script src="./scripts/leaf-pile.js"></script>
     <script>
         initDashboardShell({
             avatarStorageKey: "academic_avatar_data_url",
