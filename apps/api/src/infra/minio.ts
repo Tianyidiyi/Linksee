@@ -38,6 +38,7 @@ export async function ensureBuckets(): Promise<void> {
   await ensureBucketReady(env.minioBucketAvatars, true);
   await ensureBucketReady(env.minioBucketCourseMaterials, true);
   await ensureBucketReady(env.minioBucketChatFiles, false);
+  await ensureBucketReady(env.minioBucketSubmissionFiles, false);
 }
 
 export function buildBucketPublicUrl(bucket: string, objectName: string): string {

@@ -1,11 +1,25 @@
 import dotenv from "dotenv";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import fs from "node:fs";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, "../../../..");
-const dockerEnvPath = path.join(repoRoot, "infra", "docker", ".env");
+function resolveDockerEnvPath(): string {
+  const cwd = process.cwd();
+  const candidates = [
+    path.join(cwd, "infra", "docker", ".env"),
+    path.join(cwd, "..", "..", "infra", "docker", ".env"),
+    path.join(cwd, "..", "..", "..", "infra", "docker", ".env"),
+  ];
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return path.resolve(candidate);
+    }
+  }
+
+  return path.resolve(candidates[0]);
+}
+
+const dockerEnvPath = resolveDockerEnvPath();
 
 dotenv.config({ path: dockerEnvPath });
 dotenv.config();
@@ -18,6 +32,14 @@ function readEnv(name: string, fallback?: string): string {
   return value;
 }
 
+function resolveRefreshTtlFallbackSeconds(): string {
+  const refreshDaysRaw = process.env.JWT_REFRESH_EXPIRES_DAYS;
+  if (refreshDaysRaw === undefined || refreshDaysRaw === "") {
+    return String(7 * 86400);
+  }
+  return String(Number(refreshDaysRaw) * 86400);
+}
+
 export const env = {
   databaseUrl: readEnv("DATABASE_URL"),
   redisUrl: readEnv("REDIS_URL"),
@@ -26,7 +48,7 @@ export const env = {
   jwtRefreshTtlSeconds: Number(
     readEnv(
       "JWT_REFRESH_TTL_SECONDS",
-      String(Number(process.env.JWT_REFRESH_EXPIRES_DAYS || 7) * 86400),
+      resolveRefreshTtlFallbackSeconds(),
     ),
   ),
   authPort: Number(readEnv("AUTH_PORT", "3001")),
@@ -40,4 +62,5 @@ export const env = {
   minioBucketAvatars: readEnv("MINIO_BUCKET_AVATARS", "avatars"),
   minioBucketCourseMaterials: readEnv("MINIO_BUCKET_COURSE_MATERIALS", "course-materials"),
   minioBucketChatFiles: readEnv("MINIO_BUCKET_CHAT_FILES", "chat-files"),
+  minioBucketSubmissionFiles: readEnv("MINIO_BUCKET_SUBMISSION_FILES", "submission-files"),
 };

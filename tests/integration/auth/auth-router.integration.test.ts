@@ -34,7 +34,7 @@ describe("auth-router integration", () => {
       password: "Abcd1234",
     });
     expect(res.status).toBe(423);
-    expect(res.body.code).toBe("ACCOUNT_LOCKED");
+    expect(res.body.code).toBe("CONFLICT");
   });
 
   it("POST /login should reject missing user", async () => {

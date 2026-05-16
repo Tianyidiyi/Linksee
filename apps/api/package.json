@@ -11,6 +11,7 @@
     "start:auth": "tsx ./src/auth/server.ts",
     "seed:auth-user": "tsx ./src/auth/seed-test-user.ts",
     "cleanup:chat-files": "tsx ./src/collaboration/chat-files-cleanup.ts",
+    "job:submission-deadline": "tsx ./scripts/submission-deadline-cli.ts",
     "test": "jest --config ./jest.config.js",
     "test:unit": "jest --config ./jest.config.js --testMatch='**/unit/**/*.test.ts'",
     "test:integration": "jest --config ./jest.config.js --testMatch='**/integration/**/*.integration.test.ts'",

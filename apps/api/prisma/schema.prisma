@@ -85,6 +85,9 @@ model User {
   submittedSubmissions Submission[] @relation("SubmissionSubmitter")
   createdReviews    Review[]      @relation("ReviewAuthor")
   uploadedSubmissionFiles SubmissionFile[] @relation("SubmissionUploader")
+  gradedStageGrades StageGrade[]   @relation("StageGradeGrader")
+  publishedStageGrades StageGrade[] @relation("StageGradePublisher")
+  stageGradeLogs StageGradeLog[]   @relation("StageGradeLogOperator")
   chatConversations ChatConversation[]
   chatMessages      ChatMessage[]
   chatConversationReads ChatConversationRead[]
@@ -270,6 +273,7 @@ model Course {
   members          CourseMember[]
   assistantBindings AssistantBinding[]
   assignments      Assignment[]
+  stageGrades      StageGrade[]
 
   @@index([academicYear, semester])
   @@map("courses")
@@ -422,6 +426,7 @@ model AssignmentStage {
   creator    User        @relation(fields: [createdBy], references: [id])
   miniTasks  MiniTask[]
   submissions Submission[]
+  stageGrades StageGrade[]
 
   @@unique([assignmentId, stageNo])
   @@index([assignmentId, stageNo])
@@ -462,6 +467,7 @@ model Group {
   leaderTransferRequests GroupLeaderTransferRequest[]
   miniTasks         MiniTask[]
   submissions       Submission[]
+  stageGrades       StageGrade[]
 
   @@unique([assignmentId, groupNo])
   @@map("groups")
@@ -717,10 +723,11 @@ model ChatConversationRead {
 
 enum SubmissionStatus {
   draft
+  not_submitted
   submitted
   under_review
   needs_changes
-  resubmitted
+  reviewed
   approved
   rejected
 }
@@ -756,6 +763,7 @@ model Submission {
   submitter User?           @relation("SubmissionSubmitter", fields: [submittedBy], references: [id])
   files     SubmissionFile[]
   reviews   Review[]
+  grade     StageGrade?
 
   @@unique([groupId, stageId, attemptNo])
   @@index([groupId, stageId, status])
@@ -798,9 +806,69 @@ model Review {
 
   submission Submission @relation(fields: [submissionId], references: [id])
   reviewer   User       @relation("ReviewAuthor", fields: [reviewerId], references: [id])
+  sourceGrades StageGrade[] @relation("StageGradeSourceReview")
 
   @@unique([submissionId, reviewerId])
   @@index([submissionId, status])
   @@index([reviewerId, createdAt])
   @@map("reviews")
+}
+
+enum GradeStatus {
+  draft
+  published
+}
+
+enum GradeAction {
+  created
+  updated
+  published
+  adjusted
+}
+
+model StageGrade {
+  id             BigInt      @id @default(autoincrement()) @db.UnsignedBigInt
+  submissionId   BigInt      @unique @db.UnsignedBigInt
+  groupId        BigInt      @db.UnsignedBigInt
+  stageId        BigInt      @db.UnsignedBigInt
+  courseId       BigInt      @db.UnsignedBigInt
+  score          Decimal?    @db.Decimal(6, 2)
+  status         GradeStatus @default(draft)
+  graderId       String      @db.VarChar(10)
+  publishedBy    String?     @db.VarChar(10)
+  publishedAt    DateTime?
+  sourceReviewId BigInt?     @db.UnsignedBigInt
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  submission   Submission     @relation(fields: [submissionId], references: [id])
+  group        Group          @relation(fields: [groupId], references: [id])
+  stage        AssignmentStage @relation(fields: [stageId], references: [id])
+  course       Course         @relation(fields: [courseId], references: [id])
+  grader       User           @relation("StageGradeGrader", fields: [graderId], references: [id])
+  publisher    User?          @relation("StageGradePublisher", fields: [publishedBy], references: [id])
+  sourceReview Review?        @relation("StageGradeSourceReview", fields: [sourceReviewId], references: [id])
+  logs         StageGradeLog[]
+
+  @@index([courseId, stageId, status])
+  @@index([groupId, stageId])
+  @@map("stage_grades")
+}
+
+model StageGradeLog {
+  id           BigInt      @id @default(autoincrement()) @db.UnsignedBigInt
+  stageGradeId BigInt      @db.UnsignedBigInt
+  action       GradeAction
+  beforeScore  Decimal?    @db.Decimal(6, 2)
+  afterScore   Decimal?    @db.Decimal(6, 2)
+  operatorId   String      @db.VarChar(10)
+  reason       String?     @db.VarChar(500)
+  createdAt    DateTime    @default(now())
+
+  stageGrade StageGrade @relation(fields: [stageGradeId], references: [id])
+  operator   User       @relation("StageGradeLogOperator", fields: [operatorId], references: [id])
+
+  @@index([stageGradeId, createdAt])
+  @@index([operatorId, createdAt])
+  @@map("stage_grade_logs")
 }

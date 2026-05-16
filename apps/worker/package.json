@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "node --preserve-symlinks-main ./scripts/build.mjs",
-    "pack": "npm pack"
+    "pack": "npm pack",
+    "start:submission-deadline-scheduler": "tsx ./src/submission-deadline-scheduler.ts"
   },
   "files": [
     "dist"

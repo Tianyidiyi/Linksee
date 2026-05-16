@@ -1,0 +1,2 @@
+-- Baseline marker migration.
+-- Existing database schema is already in place before Prisma Migrate adoption.

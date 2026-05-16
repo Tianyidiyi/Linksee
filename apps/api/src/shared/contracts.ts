@@ -23,6 +23,7 @@ export type EventName =
   | "review.created"
   | "review.updated"
   | "grade.published"
+  | "grade.updated"
   | "course.dashboard.updated"
   | "material.uploaded"
   | "material.process.requested"

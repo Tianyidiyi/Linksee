@@ -65,6 +65,10 @@ export const eventCatalog: Record<EventName, { channel: "socket" | "worker"; des
     channel: "socket",
     description: "老师发布最终成绩后推送给对应小组",
   },
+  "grade.updated": {
+    channel: "socket",
+    description: "老师调整已发布成绩后推送给对应小组",
+  },
   "course.dashboard.updated": {
     channel: "socket",
     description: "课程看板聚合数据更新后推送给老师和助教",
