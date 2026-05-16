@@ -366,7 +366,7 @@ planned -> open -> closed -> archived
 
 **计算态展示（不落库）**：
 
-- `grading`：当该 Stage 存在 `submitted/under_review/resubmitted` 等未完成提交流程时，前端可展示“批改中”
+- `grading`：当该 Stage 存在 `submitted/under_review` 等待处理提交流程时，前端可展示“批改中”
 - `completed`：当该 Stage 覆盖的目标小组都达到 `approved`（或等价完成态）时，前端可展示“已完成”
 
 **开始时间语义**：
@@ -404,7 +404,8 @@ users (id)
 建议的 Stage 提交流转（小组视角）：
 
 ```
-not_started -> draft -> submitted -> under_review -> needs_changes -> resubmitted -> approved
+not_started -> not_submitted
+not_started -> submitted -> under_review -> needs_changes | approved | rejected
 ```
 
 实现建议：
@@ -748,18 +749,18 @@ users (id)
 
 ### 一、`submissions`（阶段提交）
 
-**设计原则**：同一小组对同一 Stage 允许多次提交，按 `attempt_no` 递增；最新提交为 `MAX(attempt_no)`。
+**设计原则**：同一小组对同一 Stage 允许多次提交，按 `attempt_no` 递增；逾期未交由系统自动标记 `not_submitted`。
 
 | 字段             | 类型                              | 说明                                                                 |
 | ---------------- | --------------------------------- | -------------------------------------------------------------------- |
 | `id`           | BIGINT UNSIGNED AUTO_INCREMENT PK | 内部主键                                                             |
 | `group_id`     | BIGINT UNSIGNED NOT NULL          | FK → `groups.id`                                                     |
 | `stage_id`     | BIGINT UNSIGNED NOT NULL          | FK → `assignment_stages.id`                                          |
-| `attempt_no`   | SMALLINT UNSIGNED NOT NULL        | 第几次提交，从 1 开始递增                                             |
-| `status`       | ENUM NOT NULL                     | `draft` / `submitted` / `under_review` / `needs_changes` / `resubmitted` / `approved` / `rejected` |
+| `attempt_no`   | SMALLINT UNSIGNED NOT NULL        | 第几次提交，从 1 开始递增                                              |
+| `status`       | ENUM NOT NULL                     | `draft` / `not_submitted` / `submitted` / `under_review` / `needs_changes` / `reviewed` / `approved` / `rejected` |
 | `summary`      | TEXT NULL                         | 提交说明/贡献说明（可空）                                             |
 | `payload`      | JSON NULL                         | 结构化提交字段（如 `repo_url` / `demo_url` / `report_url`）        |
-| `submitted_at` | DATETIME NULL                     | 提交时间（从 draft 变为 submitted/resubmitted 时写入）               |
+| `submitted_at` | DATETIME NULL                     | 提交时间（从 draft/not_submitted 进入 submitted 时写入）             |
 | `created_by`   | VARCHAR(10) NOT NULL              | FK → `users.id`，创建草稿的成员                                       |
 | `submitted_by` | VARCHAR(10) NULL                  | FK → `users.id`，最终提交人（可与 created_by 不同）                   |
 | `created_at`   | DATETIME NOT NULL                 | 创建时间                                                             |
@@ -776,14 +777,15 @@ users (id)
 
 - `group_id` 与 `stage_id` 必须属于同一 assignment（应用层校验）
 - 只有组成员可创建/提交；老师/助教只读与批改
-- 截止时间内允许重新提交；超过 `assignment_stages.due_at` 禁止 `resubmitted`
-- 重新提交需事务处理：先删除上一轮提交的 `submission_files`，再写入新文件并更新提交状态
+- 到达 `assignment_stages.due_at` 且仍无提交时，系统自动创建 `not_submitted` 记录
+- 截止前允许重复提交（新建下一次 attempt），并清理上一轮提交文件元数据
+- 截止后不开放学生端补交（线下联系老师/助教）
 - `status` 由提交流程驱动：
 
 ```
-draft -> submitted -> under_review -> needs_changes -> resubmitted -> approved
-                                           |                                   |
-                                           +-------------- rejected -----------+
+not_submitted -> reviewed
+not_submitted -> submitted -> under_review -> needs_changes -> submitted
+not_submitted -> submitted -> under_review -> approved | rejected
 ```
 
 ---

@@ -20,6 +20,13 @@ function createRes(withGetHeader = true) {
 }
 
 describe("infra/http-response", () => {
+  it("ok should default to status 200", () => {
+    const { res, state } = createRes();
+    ok(res, { ok: 1 });
+    expect(state.status).toBe(200);
+    expect(state.body).toEqual({ ok: true, data: { ok: 1 } });
+  });
+
   it("ok should emit success payload with status", () => {
     const { res, state } = createRes();
     ok(res, { a: 1 }, 201);
@@ -48,6 +55,32 @@ describe("infra/http-response", () => {
       ok: false,
       code: "UNAUTHENTICATED",
       message: "no token",
+      details: null,
+      requestId: null,
+    });
+  });
+
+  it("fail should set requestId to null when getHeader exists but has no id", () => {
+    const state: { status?: number; body?: unknown } = {};
+    const res: any = {
+      status(code: number) {
+        state.status = code;
+        return this;
+      },
+      json(body: unknown) {
+        state.body = body;
+        return this;
+      },
+      getHeader() {
+        return undefined;
+      },
+    };
+    fail(res, 500, "INTERNAL_ERROR", "oops");
+    expect(state.status).toBe(500);
+    expect(state.body).toEqual({
+      ok: false,
+      code: "INTERNAL_ERROR",
+      message: "oops",
       details: null,
       requestId: null,
     });

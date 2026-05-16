@@ -4,4 +4,5 @@ import { env } from "./env.js";
 export const redis = new Redis(env.redisUrl, {
   maxRetriesPerRequest: 3,
   enableReadyCheck: true,
+  lazyConnect: true,
 });

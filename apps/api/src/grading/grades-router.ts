@@ -337,7 +337,7 @@ gradesRouter.post("/courses/:courseId/grades/publish-batch", requireAuth, async 
 
   const rowById = new Map(grades.map((row) => [row.id.toString(), row]));
   const blocked: Array<{ gradeId: string; reason: string }> = [];
-  const publishable = [];
+  const publishable: Array<(typeof grades)[number]> = [];
 
   for (const gradeId of gradeIds) {
     const key = gradeId.toString();

@@ -41,6 +41,27 @@ describe("token-service", () => {
     expect(setSpy).toHaveBeenCalledTimes(1);
   });
 
+  it("store/consume should fallback to memory when redis unavailable", async () => {
+    jest.spyOn(redis, "set").mockRejectedValue(new Error("redis down"));
+    jest.spyOn(redis, "get").mockRejectedValue(new Error("redis down"));
+    jest.spyOn(redis, "del").mockRejectedValue(new Error("redis down"));
+
+    await storeRefreshToken("raw-token-memory-1", "u-memory-1");
+    await expect(consumeRefreshToken("raw-token-memory-1")).resolves.toBe("u-memory-1");
+    await expect(consumeRefreshToken("raw-token-memory-1")).resolves.toBeNull();
+  });
+
+  it("consume should return null when memory refresh token is expired", async () => {
+    const nowSpy = jest.spyOn(Date, "now");
+    nowSpy.mockReturnValueOnce(1_000);
+    jest.spyOn(redis, "set").mockRejectedValue(new Error("redis down"));
+    await storeRefreshToken("raw-token-memory-expire", "u-memory-expire");
+
+    nowSpy.mockReturnValue(1_000 + env.jwtRefreshTtlSeconds * 1000 + 1);
+    jest.spyOn(redis, "get").mockRejectedValue(new Error("redis down"));
+    await expect(consumeRefreshToken("raw-token-memory-expire")).resolves.toBeNull();
+  });
+
   it("consumeRefreshToken should return null when not found", async () => {
     jest.spyOn(redis, "get").mockResolvedValue(null as any);
     await expect(consumeRefreshToken("raw-token")).resolves.toBeNull();
@@ -58,6 +79,17 @@ describe("token-service", () => {
     const delSpy = jest.spyOn(redis, "del").mockResolvedValue(1 as any);
     await revokeRefreshToken("raw-token");
     expect(delSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("revokeRefreshToken should remove fallback memory token when redis delete fails", async () => {
+    jest.spyOn(redis, "set").mockRejectedValue(new Error("redis down"));
+    await storeRefreshToken("raw-token-memory-2", "u-memory-2");
+
+    jest.spyOn(redis, "del").mockRejectedValue(new Error("redis down"));
+    await revokeRefreshToken("raw-token-memory-2");
+
+    jest.spyOn(redis, "get").mockRejectedValue(new Error("redis down"));
+    await expect(consumeRefreshToken("raw-token-memory-2")).resolves.toBeNull();
   });
 
   it("revokeAllRefreshTokensForUsers should no-op on empty input", async () => {
@@ -110,5 +142,54 @@ describe("token-service", () => {
     const delSpy = jest.spyOn(redis, "del").mockResolvedValue(1 as any);
     await revokeAllUserRefreshTokens("u1");
     expect(delSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("revokeAllUserRefreshTokens should fallback to memory cleanup on redis failure", async () => {
+    jest.spyOn(redis, "set").mockRejectedValue(new Error("redis down"));
+    await storeRefreshToken("raw-token-memory-3", "u-memory-3");
+    await storeRefreshToken("raw-token-memory-4", "u-memory-other");
+
+    jest.spyOn(redis, "scanStream").mockImplementation(() => {
+      throw new Error("redis down");
+    });
+
+    await revokeAllUserRefreshTokens("u-memory-3");
+
+    jest.spyOn(redis, "get").mockRejectedValue(new Error("redis down"));
+    await expect(consumeRefreshToken("raw-token-memory-3")).resolves.toBeNull();
+    await expect(consumeRefreshToken("raw-token-memory-4")).resolves.toBe("u-memory-other");
+  });
+
+  it("revokeAllRefreshTokensForUsers should fallback to memory cleanup on redis failure", async () => {
+    jest.spyOn(redis, "set").mockRejectedValue(new Error("redis down"));
+    await storeRefreshToken("raw-token-memory-5", "u-memory-5");
+    await storeRefreshToken("raw-token-memory-6", "u-memory-6");
+
+    jest.spyOn(redis, "scanStream").mockImplementation(() => {
+      throw new Error("redis down");
+    });
+
+    await revokeAllRefreshTokensForUsers(["u-memory-5"]);
+
+    jest.spyOn(redis, "get").mockRejectedValue(new Error("redis down"));
+    await expect(consumeRefreshToken("raw-token-memory-5")).resolves.toBeNull();
+    await expect(consumeRefreshToken("raw-token-memory-6")).resolves.toBe("u-memory-6");
+  });
+
+  it("revokeAllRefreshTokensForUsers should cleanup memory tokens on successful redis scan flow", async () => {
+    jest.spyOn(redis, "set").mockRejectedValue(new Error("redis down"));
+    await storeRefreshToken("raw-token-memory-7", "u-memory-7");
+    await storeRefreshToken("raw-token-memory-8", "u-memory-8");
+
+    async function* keyStream() {
+      yield [];
+    }
+    jest.spyOn(redis, "scanStream").mockReturnValue(keyStream() as any);
+
+    await revokeAllRefreshTokensForUsers(["u-memory-7"]);
+
+    jest.spyOn(redis, "get").mockRejectedValue(new Error("redis down"));
+    await expect(consumeRefreshToken("raw-token-memory-7")).resolves.toBeNull();
+    await expect(consumeRefreshToken("raw-token-memory-8")).resolves.toBe("u-memory-8");
   });
 });

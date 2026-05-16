@@ -1011,6 +1011,31 @@ paths:
                 - https://example.com/prototype
               repositoryUrl: https://github.com/example/linksee-demo
               contributionNote: 张三负责需求文档，李四负责原型，王五负责接口草案。
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - title
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                links:
+                  type: array
+                  items:
+                    type: string
+                    format: uri
+                repositoryUrl:
+                  type: string
+                  format: uri
+                contributionNote:
+                  type: string
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
       responses:
         "200":
           description: 阶段成果提交创建成功
@@ -1022,6 +1047,8 @@ paths:
                 id: submission_001
                 stageId: stage_001
                 groupId: group_001
+                attemptNo: 2
+                replacedSubmissionId: submission_000
                 status: submitted
                 submittedBy: student_001
                 submittedAt: "2026-05-15T21:30:00+08:00"
@@ -1033,6 +1060,31 @@ paths:
           $ref: "#/components/responses/Conflict"
         "422":
           $ref: "#/components/responses/ValidationFailed"
+    get:
+      tags:
+        - Submissions
+      summary: 获取阶段成果提交列表
+      operationId: listStageSubmissions
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/StageId"
+        - $ref: "#/components/parameters/GroupId"
+      responses:
+        "200":
+          description: 阶段成果提交列表
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Submission"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /submissions/{submissionId}/reviews:
     post:
@@ -1075,6 +1127,151 @@ paths:
                 score: 82
                 reviewerId: teacher_001
                 createdAt: "2026-05-16T09:30:00+08:00"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+
+  /submissions/{submissionId}/reviews/start:
+    post:
+      tags:
+        - Reviews
+      summary: 开始评审（将 submitted 标记为 under_review）
+      operationId: startReview
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/SubmissionId"
+      responses:
+        "200":
+          description: 标记成功
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /assignments/{assignmentId}/my-group:
+    get:
+      tags:
+        - Groups
+      summary: 查询当前用户在该作业下的小组
+      operationId: getMyGroupInAssignment
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AssignmentId"
+      responses:
+        "200":
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    type: object
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /submissions/{submissionId}/mark-reviewed:
+    post:
+      tags:
+        - Reviews
+      summary: 教师/助教将未提交记录标记为已处理
+      operationId: markNotSubmittedReviewed
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/SubmissionId"
+      responses:
+        "200":
+          description: 标记成功
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /courses/{courseId}/pending-reviews:
+    get:
+      tags:
+        - Reviews
+      summary: 获取课程待评审列表
+      operationId: listPendingReviews
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+        - $ref: "#/components/parameters/StageId"
+        - $ref: "#/components/parameters/GroupId"
+        - name: reviewerId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 待评审列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Submission"
+                  paging:
+                    $ref: "#/components/schemas/Paging"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /reviews/{reviewId}:
+    patch:
+      tags:
+        - Reviews
+      summary: 更新教师或助教反馈
+      operationId: updateReview
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ReviewId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReviewRequest"
+      responses:
+        "200":
+          description: Review 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Review"
         "401":
           $ref: "#/components/responses/Unauthenticated"
         "403":
@@ -1741,6 +1938,277 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
 
+  /courses/{courseId}/announcements:
+    post:
+      tags: [Groups]
+      summary: 课程公告（仅课程管理侧）
+      operationId: createCourseAnnouncement
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content:
+                  type: string
+      responses:
+        "201": { description: 创建成功 }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /courses/{courseId}/messages/search:
+    get:
+      tags: [Groups]
+      summary: 检索课程群消息
+      operationId: searchCourseMessages
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+        - name: q
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: 检索成功 }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+
+  /courses/{courseId}/messages/{messageId}:
+    patch:
+      tags: [Groups]
+      summary: 编辑课程群消息
+      operationId: editCourseMessage
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+        - name: messageId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: 更新成功 }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [Groups]
+      summary: 删除课程群消息
+      operationId: deleteCourseMessage
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+        - name: messageId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: 删除成功 }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /groups/{groupId}/announcements:
+    post:
+      tags: [Groups]
+      summary: 小组公告（仅课程管理侧）
+      operationId: createGroupAnnouncement
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content:
+                  type: string
+      responses:
+        "201": { description: 创建成功 }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /groups/{groupId}/messages/search:
+    get:
+      tags: [Groups]
+      summary: 检索小组群消息
+      operationId: searchGroupMessages
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupId"
+        - name: q
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: 检索成功 }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+
+  /groups/{groupId}/messages/{messageId}:
+    patch:
+      tags: [Groups]
+      summary: 编辑小组群消息
+      operationId: editGroupMessage
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupId"
+        - name: messageId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: 更新成功 }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [Groups]
+      summary: 删除小组群消息
+      operationId: deleteGroupMessage
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupId"
+        - name: messageId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: 删除成功 }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /chat/files/presign-upload:
+    post:
+      tags: [Groups]
+      summary: 申请聊天文件上传预签名
+      operationId: presignChatFileUpload
+      security:
+        - bearerAuth: []
+      responses:
+        "201": { description: 预签名生成成功 }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+
+  /chat/files/presign-download:
+    get:
+      tags: [Groups]
+      summary: 申请聊天文件下载预签名
+      operationId: presignChatFileDownload
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: objectKey
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: 预签名生成成功 }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+
+  /conversations:
+    get:
+      tags: [Groups]
+      summary: 会话列表
+      operationId: listConversations
+      security:
+        - bearerAuth: []
+      responses:
+        "200": { description: 获取成功 }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+
+  /conversations/{conversationId}/read:
+    post:
+      tags: [Groups]
+      summary: 上报会话已读位置
+      operationId: markConversationRead
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: 上报成功 }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /realtime/acks:
+    post:
+      tags: [Groups]
+      summary: 实时事件 ACK
+      operationId: ackRealtimeEvent
+      security:
+        - bearerAuth: []
+      responses:
+        "200": { description: ACK 成功 }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+
+  /realtime/replay:
+    get:
+      tags: [Groups]
+      summary: 拉取未确认实时事件
+      operationId: replayRealtimeEvents
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: room
+          in: query
+          required: true
+          schema: { type: string }
+        - name: afterEventId
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        "200": { description: 拉取成功 }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+
+  /minitasks/{taskId}:
+    patch:
+      tags: [Groups]
+      summary: 编辑小任务
+      operationId: updateMiniTask
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: 更新成功 }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -2307,11 +2775,14 @@ components:
     SubmissionStatus:
       type: string
       enum:
+        - draft
         - not_submitted
         - submitted
+        - under_review
         - needs_changes
-        - resubmitted
+        - reviewed
         - approved
+        - rejected
 
     Submission:
       type: object
@@ -2320,8 +2791,8 @@ components:
         - stageId
         - groupId
         - status
-        - submittedBy
-        - submittedAt
+        - createdBy
+        - createdAt
       properties:
         id:
           type: string
@@ -2329,11 +2800,28 @@ components:
           type: string
         groupId:
           type: string
+        attemptNo:
+          type: integer
+        replacedSubmissionId:
+          type: string
+          nullable: true
         status:
           $ref: "#/components/schemas/SubmissionStatus"
+        summary:
+          type: string
+        payload:
+          type: object
         submittedBy:
           type: string
         submittedAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
           type: string
           format: date-time
 
@@ -2348,6 +2836,7 @@ components:
           enum:
             - needs_changes
             - approved
+            - rejected
         comment:
           type: string
           minLength: 1
@@ -2396,10 +2885,13 @@ components:
           enum:
             - needs_changes
             - approved
+            - rejected
         score:
           type: number
           minimum: 0
           maximum: 100
+        comment:
+          type: string
         reviewerId:
           type: string
         createdAt:

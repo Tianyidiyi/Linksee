@@ -2,6 +2,7 @@ import { Prisma, Role } from "@prisma/client";
 import { Router, type Request, type Response } from "express";
 import { requireAuth } from "../infra/jwt-middleware.js";
 import { prisma } from "../infra/prisma.js";
+import { resolveUserScopes } from "../infra/user-scope.js";
 import { parseBigIntParam, serializeBigInt, validationFailed } from "../assignments/assignment-access.js";
 import { resolveMessageType } from "./chat-helpers.js";
 
@@ -9,39 +10,6 @@ export const conversationsRouter = Router();
 
 function forbidden(res: Response, message = "Insufficient permissions"): void {
   res.status(403).json({ ok: false, code: "FORBIDDEN", message });
-}
-
-async function resolveUserScopes(userId: string, role: Role): Promise<{ courseIds: bigint[]; groupIds: bigint[] }> {
-  if (role === Role.academic) {
-    const courses = await prisma.course.findMany({ select: { id: true } });
-    return { courseIds: courses.map((course) => course.id), groupIds: [] };
-  }
-
-  if (role === Role.teacher) {
-    const courses = await prisma.courseTeacher.findMany({ where: { userId }, select: { courseId: true } });
-    return { courseIds: courses.map((row) => row.courseId), groupIds: [] };
-  }
-
-  if (role === Role.assistant) {
-    const courses = await prisma.assistantBinding.findMany({
-      where: { assistantUserId: userId },
-      select: { courseId: true },
-    });
-    return { courseIds: courses.map((row) => row.courseId), groupIds: [] };
-  }
-
-  const [courses, groups] = await Promise.all([
-    prisma.courseMember.findMany({
-      where: { userId, status: "active" },
-      select: { courseId: true },
-    }),
-    prisma.groupMember.findMany({ where: { userId }, select: { groupId: true } }),
-  ]);
-
-  return {
-    courseIds: courses.map((row) => row.courseId),
-    groupIds: groups.map((row) => row.groupId),
-  };
 }
 
 // ──────────────────────────────────────────────────────────────

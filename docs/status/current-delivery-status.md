@@ -1,91 +1,40 @@
-# 当前交付状态（2026-05-09）
+# 当前交付状态（2026-05-12）
 
-## 1. 已实现范围（后端）
-
-当前后端已经可用的主链路模块：
+## 1. 后端已实现主链路
 
 1. Auth
    - 登录、刷新 Token、登出、改密
-   - 管理员/教师重置密码（单个与批量）
+   - 单个/批量重置密码（含教务和教师权限边界）
 2. Users
    - `GET/PATCH /api/v1/users/me`
    - `POST /api/v1/users/me/avatar`
-   - 教务创建/批量创建学生与教师
-   - 教师创建助教账号
-3. Courses（课程顶层）
-   - 课程 CRUD（受角色权限控制）
-   - 课程教师关系管理（含 lead/co）
-   - 课程助教绑定/解绑与查询
-   - 课程成员单个/批量导入、查询、移除（withdrawn 软移除）
-4. Assignments（课程作业）
-   - Assignment 顶层 CRUD 与状态流转（draft/active/archived）
-   - Assignment 说明附件上传/删除（MinIO）
-   - Stage CRUD、状态流转（planned/open/closed/archived）
-   - Stage 要求附件上传/删除（MinIO）
-5. Collaboration + Groups
-   - 课程群消息（GET/POST /api/v1/courses/:courseId/messages）
-   - 小组群消息（GET/POST /api/v1/groups/:groupId/messages）
-   - 小组列表与创建（GET/POST /api/v1/assignments/:assignmentId/groups）
-   - 小组成员增删（POST/DELETE /api/v1/groups/:groupId/members）
+   - 助教创建、教务批量建人、用户信息更新
+3. Courses
+   - 课程 CRUD、教师关系管理、助教绑定、成员导入/移除
+4. Assignments + Stages
+   - 作业与阶段 CRUD、状态流转、材料上传/删除
+5. Groups + Collaboration
+   - 分组、成员管理、申请/审批、组长移交、并组
+   - 课程/小组消息发送、编辑、删除、检索、公告
+   - 会话列表、已读上报、聊天文件预签名上传/下载、realtime ack/replay
+6. Submissions + Reviews
+   - 阶段提交创建/查询（含幂等、状态约束、附件处理）
+   - 评审创建、待评审列表、评审更新
+   - 截止自动标记 `not_submitted`（定时任务）
+   - 评审开始 `submitted -> under_review`、未提交人工结案 `not_submitted -> reviewed`
+   - 课程看板 `GET /api/v1/courses/:courseId/dashboard`
+   - 学生小组定位 `GET /api/v1/assignments/:assignmentId/my-group`
+7. MiniTasks
+   - 任务创建、查询、编辑、状态流转、提醒相关字段复位
 
-## 2. 当前实现的结构化拆分
+## 2. 当前文档基线
 
-为避免课程与作业路由继续膨胀，已完成以下结构拆分并在运行路径生效：
+1. OpenAPI：`docs/api/openapi/linksee-v1.yaml`（持续与运行代码同步）
+2. 接口导航：`docs/api/README.md`
+3. 联调说明：`docs/api/前后端联调对齐说明.md`
 
-1. `apps/api/src/courses/course-access.ts`
-   - 统一课程读权限（可见）和写权限（可管理）判断
-   - 统一课程存在性与教师关系校验辅助函数
-2. `apps/api/src/assignments/course-material-storage.ts`
-   - 统一课程材料的 multipart 解析、MinIO 上传/删除、元数据标准化与 URL 组装
-3. `apps/api/src/assignments/assignments-router.ts`
-   - 仅保留 assignment 顶层 CRUD 与 assignment 材料接口
-4. `apps/api/src/assignments/assignment-stages-router.ts`
-   - 负责 stage CRUD、状态变更与 stage 材料接口
+## 3. 当前风险与后续动作
 
-## 3. 前后端对齐建议（按“已开放接口”开发）
-
-详细联调文档：`docs/api/前后端联调对齐说明.md`
-
-前端当前应以“已实现并可联调”的接口为准，不再按早期规划接口猜测：
-
-1. 课程页可直接对接
-   - `/api/v1/courses`
-   - `/api/v1/courses/:id`
-   - `/api/v1/courses/:id/teachers`
-   - `/api/v1/courses/:id/assistants`
-   - `/api/v1/courses/:id/members`
-2. 作业页可直接对接
-   - `/api/v1/courses/:courseId/assignments`
-   - `/api/v1/assignments/:assignmentId`
-   - `/api/v1/assignments/:assignmentId/materials`
-3. 阶段页可直接对接
-   - `/api/v1/assignments/:assignmentId/stages`
-   - `/api/v1/stages/:stageId`
-   - `/api/v1/stages/:stageId/materials`
-4. 群聊与小组可直接对接
-   - `/api/v1/courses/:courseId/messages`
-   - `/api/v1/groups/:groupId/messages`
-   - `/api/v1/assignments/:assignmentId/groups`
-   - `/api/v1/groups/:groupId/members`
-
-## 4. 仍缺少/待推进部分
-
-1. Submission / Review 主业务尚未进入完整实现阶段（当前以规划为主）
-2. 端到端自动化集成测试（integration test）体系尚未建立
-3. OpenAPI 仍需继续与“真实可运行行为”保持同步更新（尤其是错误码与返回结构）
-## 5. Course Contract Rules (2026-05-11)
-1. Response contract for course endpoints is aligned to unified format:
-   - success: `{ ok: true, data }`
-   - error: `{ ok: false, code, message, details, requestId }`
-2. Course status transition is restricted to:
-   - `draft -> active`
-   - `active -> archived`
-   - same-status update allowed
-   - other transitions return `409 CONFLICT`
-3. Assistant binding constraints:
-   - only course teacher can bind/unbind assistants
-   - assistant must belong to current teacher
-   - each course can bind at most 3 assistants
-4. Idempotency key constraints:
-   - header: `Idempotency-Key`
-   - max length: `64`
+1. 风险：OpenAPI 仍可能落后于快速迭代中的协作接口细节（字段级）
+2. 动作：每次新增/变更路由必须同步更新 OpenAPI 与 `apps/api/src/http/routes.ts`
+3. 动作：补齐协作与 minitask 的集成测试覆盖（消息检索、已读、预签名、replay）

@@ -1,5 +1,5 @@
 export default {
-  preset: 'ts-jest',
+  preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'node',
   roots: ['<rootDir>/../../tests'],
   testMatch: ['**/*.test.ts', '!**/*.integration.test.ts'],
@@ -7,11 +7,11 @@ export default {
   testPathIgnorePatterns: ['/node_modules/', '/dist/', '/coverage/'],
   setupFilesAfterEnv: ['<rootDir>/../../tests/setup.ts'],
   collectCoverageFrom: [
-    'src/**/*.ts',
-    '!src/**/*.d.ts',
-    '!src/demo/**',
-    '!src/**/*.test.ts',
-    '!src/**/*.integration.test.ts',
+    '<rootDir>/src/**/*.ts',
+    '!<rootDir>/src/**/*.d.ts',
+    '!<rootDir>/src/demo/**',
+    '!<rootDir>/src/**/*.test.ts',
+    '!<rootDir>/src/**/*.integration.test.ts',
   ],
   coverageThreshold: {
     global: {
@@ -34,14 +34,9 @@ export default {
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {
       useESM: true,
-      tsconfig: {
-        module: 'esnext',
-        target: 'es2020',
-        esModuleInterop: true,
-        allowSyntheticDefaultImports: true,
-        skipLibCheck: true,
-        strict: false,
-        resolveJsonModule: true,
+      tsconfig: '<rootDir>/tsconfig.test.json',
+      diagnostics: {
+        ignoreCodes: [151002],
       },
     }],
   },

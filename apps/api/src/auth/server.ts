@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import http from "node:http";
 import jwt from "jsonwebtoken";
+import { Role } from "@prisma/client";
 import { Server } from "socket.io";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -17,6 +18,10 @@ import { groupMembersRouter } from "../groups/group-members-router.js";
 import { groupRequestsRouter } from "../groups/group-requests-router.js";
 import { groupAdminRouter } from "../groups/group-admin-router.js";
 import { minitasksRouter } from "../minitasks/minitasks-router.js";
+import { submissionsRouter } from "../submissions/submissions-router.js";
+import { reviewsRouter } from "../grading/reviews-router.js";
+import { gradesRouter } from "../grading/grades-router.js";
+import { dashboardRouter } from "../grading/dashboard-router.js";
 import { courseChatRouter } from "../collaboration/course-chat-router.js";
 import { groupChatRouter } from "../collaboration/group-chat-router.js";
 import { chatFilesRouter } from "../collaboration/chat-files-router.js";
@@ -25,7 +30,7 @@ import { realtimeRouter } from "../collaboration/realtime-router.js";
 import { optionalAuth, forceChangeGuard } from "../infra/jwt-middleware.js";
 import { ensureBuckets } from "../infra/minio.js";
 import { env } from "../infra/env.js";
-import { prisma } from "../infra/prisma.js";
+import { resolveUserScopes } from "../infra/user-scope.js";
 import { setupRealtimeGateway } from "../socket/gateway.js";
 import { registerRealtimeGateway } from "../events/realtime-publisher.js";
 import { fail } from "../infra/http-response.js";
@@ -65,6 +70,10 @@ export function createApp(): express.Express {
   app.use("/api/v1", groupRequestsRouter);
   app.use("/api/v1", groupAdminRouter);
   app.use("/api/v1", minitasksRouter);
+  app.use("/api/v1", submissionsRouter);
+  app.use("/api/v1", reviewsRouter);
+  app.use("/api/v1", gradesRouter);
+  app.use("/api/v1", dashboardRouter);
   app.use("/api/v1", courseChatRouter);
   app.use("/api/v1", groupChatRouter);
   app.use("/api/v1", chatFilesRouter);
@@ -101,34 +110,13 @@ export async function bootstrap(): Promise<void> {
     authenticate: async (token: string) => {
       const payload = jwt.verify(token, env.jwtSecret) as { sub: string; role: string };
       const userId = payload.sub;
-      const role = payload.role;
-
-      let courseIds: bigint[] = [];
-      if (role === "academic") {
-        const courses = await prisma.course.findMany({ select: { id: true } });
-        courseIds = courses.map((course) => course.id);
-      } else if (role === "teacher") {
-        const rows = await prisma.courseTeacher.findMany({ where: { userId }, select: { courseId: true } });
-        courseIds = rows.map((row) => row.courseId);
-      } else if (role === "assistant") {
-        const rows = await prisma.assistantBinding.findMany({ where: { assistantUserId: userId }, select: { courseId: true } });
-        courseIds = rows.map((row) => row.courseId);
-      } else {
-        const rows = await prisma.courseMember.findMany({
-          where: { userId, status: "active" },
-          select: { courseId: true },
-        });
-        courseIds = rows.map((row) => row.courseId);
-      }
-
-      const groupIds = role === "student"
-        ? (await prisma.groupMember.findMany({ where: { userId }, select: { groupId: true } })).map((row) => row.groupId)
-        : [];
+      const role = payload.role as Role;
+      const scopes = await resolveUserScopes(userId, role);
 
       return {
         userId,
-        courseIds: courseIds.map((id) => id.toString()),
-        groupIds: groupIds.map((id) => id.toString()),
+        courseIds: scopes.courseIds.map((id) => id.toString()),
+        groupIds: scopes.groupIds.map((id) => id.toString()),
       };
     },
   });
