@@ -28,6 +28,7 @@
             <button class="nav-item" data-target="panel-courses" type="button">助教分配</button>
         </nav>
         <div class="sidebar-actions">
+            <button id="userSettingsBtn" class="nav-item nav-item-ghost" type="button">用户设置</button>
             <button id="logoutBtn" class="nav-item nav-item-logout" type="button">退出登录</button>
         </div>
     </aside>
@@ -43,34 +44,16 @@
                                 <h2 class="card-title">待批改提交</h2>
                                 <p>优先关注处于复审链路中的提交，避免教师批改队列被无效阻塞。</p>
                             </div>
-                            <div class="list">
-                                <div class="list-item">
-                                    <div class="list-main">
-                                        <div class="list-row">
-                                            <strong>需求调研报告</strong>
-                                            <span class="chip">小组 31</span>
-                                        </div>
-                                        <div class="muted">提交时间：2026-03-19 · 提交人：2023010001</div>
-                                    </div>
-                                    <span class="badge badge-reviewing">评审中</span>
-                                </div>
-
-                                <div class="list-item">
-                                    <div class="list-main">
-                                        <div class="list-row">
-                                            <strong>原型评审材料</strong>
-                                            <span class="chip">小组 31</span>
-                                        </div>
-                                        <div class="muted">提交时间：2026-03-27 · 提交人：2023010008</div>
-                                    </div>
-                                    <span class="badge badge-submitted">已提交</span>
-                                </div>
+                            <div class="list" id="assistantSubmissionList"></div>
+                            <div class="dashboard-empty-state" id="assistantSubmissionEmpty" hidden>
+                                <strong>暂无待批改提交</strong>
+                                <p>当前没有可处理的提交。</p>
                             </div>
                             <div class="dashboard-filter-bar">
                                 <div class="dashboard-filter-meta">
-                                    <span>当前待处理 2 条</span>
-                                    <span class="dashboard-filter-tag">复审链路: 1</span>
-                                    <span class="dashboard-filter-tag">新提交: 1</span>
+                                    <span id="assistantPendingCount">当前待处理 0 条</span>
+                                    <span class="dashboard-filter-tag" id="assistantReviewCount">复审链路: 0</span>
+                                    <span class="dashboard-filter-tag" id="assistantNewCount">新提交: 0</span>
                                 </div>
                                 <span class="dashboard-soft-note">建议优先处理评审中项目</span>
                             </div>
@@ -86,11 +69,11 @@
                             <div class="meta" id="metaInfo">正在加载登录信息...</div>
                             <div class="stat-grid">
                                 <div class="stat">
-                                    <strong>2</strong>
+                                    <strong id="assistantCourseCount">0</strong>
                                     <span>负责课程</span>
                                 </div>
                                 <div class="stat">
-                                    <strong>4</strong>
+                                    <strong id="assistantNeedCheckCount">0</strong>
                                     <span>待检查提交</span>
                                 </div>
                             </div>
@@ -116,7 +99,7 @@
                         <h2 class="card-title">最近批改记录</h2>
                         <p>回看最近处理过的提交状态，方便追踪返工和复审结果。</p>
                     </div>
-                    <div class="list">
+                    <div class="list" id="assistantHistoryList">
                         <div class="list-item">
                             <div class="list-main">
                                 <div class="list-row">
@@ -138,7 +121,7 @@
                             <span class="badge badge-error">待修改</span>
                         </div>
                     </div>
-                    <div class="dashboard-empty-state">
+                    <div class="dashboard-empty-state" id="assistantHistoryEmpty" hidden>
                         <strong>暂无额外待复核记录</strong>
                         <p>除上方两条已展示任务外，目前没有新的异常返工项或跨课程冲突需要处理。</p>
                     </div>
@@ -151,7 +134,7 @@
                         <h2 class="card-title">助教分配</h2>
                         <p>展示当前负责课程与教师绑定关系，便于确认责任范围。</p>
                     </div>
-                    <div class="list">
+                    <div class="list" id="assistantCourseList">
                         <div class="list-item dashboard-list-item-vertical">
                             <div class="dashboard-split-row">
                                 <strong>软件工程实践</strong>
@@ -165,12 +148,46 @@
         </div>
     </div>
 
+    <script src="./scripts/api-client.js"></script>
+    <script src="./scripts/page-utils.js"></script>
     <script src="./scripts/dashboard-shell.js"></script>
+    <script src="./scripts/user-settings.js"></script>
     <script src="./scripts/leaf-pile.js"></script>
     <script>
+        if (!linkseePage.requireAuth()) { throw new Error("auth required"); }
         initDashboardShell({
             avatarStorageKey: "assistant_avatar_data_url",
         });
+        (async function () {
+            var list = document.getElementById("assistantSubmissionList");
+            var empty = document.getElementById("assistantSubmissionEmpty");
+            var courseCount = document.getElementById("assistantCourseCount");
+            var needCheckCount = document.getElementById("assistantNeedCheckCount");
+            var pendingCount = document.getElementById("assistantPendingCount");
+            var reviewCount = document.getElementById("assistantReviewCount");
+            var newCount = document.getElementById("assistantNewCount");
+            if (!window.linkseeApi) return;
+            try {
+                var courses = await window.linkseeApi.getJson("/api/v1/courses");
+                var courseRows = Array.isArray(courses.data) ? courses.data : [];
+                if (courseCount) courseCount.textContent = String(courseRows.length);
+                if (needCheckCount) needCheckCount.textContent = String(courseRows.length);
+                if (list) {
+                    list.innerHTML = courseRows.map(function (course) {
+                        return '<div class="list-item"><div class="list-main"><div class="list-row"><strong>' + linkseePage.escapeHtml(course.name || "--") + '</strong><span class="chip">' + linkseePage.escapeHtml(course.courseNo || course.id || "--") + '</span></div><div class="muted">status=' + linkseePage.escapeHtml(course.status || "--") + '</div></div><a class="tag" href="./grading-hub.html">open</a></div>';
+                    }).join("");
+                }
+                if (empty) empty.hidden = courseRows.length > 0;
+                if (pendingCount) pendingCount.textContent = "当前待处理 " + courseRows.length + " 条";
+                if (reviewCount) reviewCount.textContent = "复审链路: " + courseRows.length;
+                if (newCount) newCount.textContent = "新提交: " + courseRows.length;
+            } catch (err) {
+                if (empty) {
+                    empty.hidden = false;
+                    empty.querySelector("p").textContent = err.message || "加载失败";
+                }
+            }
+        })();
     </script>
 </body>
 

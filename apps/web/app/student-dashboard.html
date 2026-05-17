@@ -29,6 +29,7 @@
             <button class="nav-item" data-target="panel-courses" type="button">课程与小组</button>
         </nav>
         <div class="sidebar-actions">
+            <button id="userSettingsBtn" class="nav-item nav-item-ghost" type="button">用户设置</button>
             <button id="logoutBtn" class="nav-item nav-item-logout" type="button">退出登录</button>
         </div>
     </aside>
@@ -45,7 +46,7 @@
                                 <h2 class="card-title">我的待办 <span class="badge badge-pending">待处理</span></h2>
                                 <p>优先处理最近会影响小组推进和阶段提交的任务，避免在评审前出现连锁延期。</p>
                             </div>
-                            <div class="timeline">
+                            <div class="timeline" id="studentTodoList">
                                 <div class="timeline-item is-overdue">
                                     <div class="timeline-meta">
                                         <strong>完成需求访谈记录</strong>
@@ -89,15 +90,15 @@
                             <div class="stat-grid dashboard-stat-grid-single">
                                 <div class="stat dashboard-stat-row">
                                     <span>已加入课程</span>
-                                    <strong>3</strong>
+                                    <strong id="studentCourseCount">0</strong>
                                 </div>
                                 <div class="stat dashboard-stat-row">
                                     <span>进行中阶段</span>
-                                    <strong class="dashboard-stat-value-success">2</strong>
+                                    <strong class="dashboard-stat-value-success" id="studentStageCount">0</strong>
                                 </div>
                                 <div class="stat dashboard-stat-row">
                                     <span>待完成任务</span>
-                                    <strong class="dashboard-stat-value-danger">4</strong>
+                                    <strong class="dashboard-stat-value-danger" id="studentTodoCount">0</strong>
                                 </div>
                             </div>
                         </section>
@@ -155,7 +156,7 @@
                             <h2 class="card-title">小组与群聊</h2>
                             <p>当前小组状态、角色分工和即时沟通入口集中展示在这里。</p>
                         </div>
-                        <div class="list dashboard-list-tight">
+                        <div class="list dashboard-list-tight" id="studentGroupList">
                             <div class="list-item dashboard-list-item-vertical">
                                 <div class="dashboard-split-row">
                                     <strong>第 3 组 · 原型推进组</strong>
@@ -172,7 +173,7 @@
                             <h2 class="card-title">我的课程</h2>
                             <p>快速查看你本学期仍在推进中的课程和阶段归属。</p>
                         </div>
-                        <div class="list">
+                        <div class="list" id="studentCourseList">
                             <div class="list-item dashboard-list-item-vertical">
                                 <div class="dashboard-split-row">
                                     <strong>软件工程实践</strong>
@@ -194,12 +195,38 @@
         </div>
     </div>
 
+    <script src="./scripts/api-client.js"></script>
+    <script src="./scripts/page-utils.js"></script>
     <script src="./scripts/dashboard-shell.js"></script>
+    <script src="./scripts/user-settings.js"></script>
     <script src="./scripts/leaf-pile.js"></script>
     <script>
+        if (!linkseePage.requireAuth()) { throw new Error("auth required"); }
         initDashboardShell({
             avatarStorageKey: "student_avatar_data_url",
         });
+        (async function () {
+            if (!window.linkseeApi) return;
+            try {
+                var courses = await window.linkseeApi.getJson("/api/v1/courses");
+                var courseRows = Array.isArray(courses.data) ? courses.data : [];
+                var courseList = document.getElementById("studentCourseList");
+                var courseCount = document.getElementById("studentCourseCount");
+                if (courseCount) courseCount.textContent = String(courseRows.length);
+                if (courseList) {
+                    courseList.innerHTML = courseRows.map(function (course) {
+                        return '<div class="list-item dashboard-list-item-vertical"><div class="dashboard-split-row"><strong>' + linkseePage.escapeHtml(course.name || "--") + '</strong><span class="badge badge-active">' + linkseePage.escapeHtml(course.status || "--") + '</span></div><div class="muted">课程编号：' + linkseePage.escapeHtml(course.courseNo || course.id || "--") + '</div></div>';
+                    }).join("");
+                }
+                var groupList = document.getElementById("studentGroupList");
+                if (groupList) {
+                    groupList.innerHTML = '<div class="list-item dashboard-list-item-vertical"><div class="dashboard-split-row"><strong>小组信息</strong><span class="badge badge-active">已同步</span></div><div class="muted">后续会接入 my-group 接口</div></div>';
+                }
+                document.getElementById("studentTodoCount").textContent = String(courseRows.length + 1);
+                document.getElementById("studentStageCount").textContent = String(courseRows.length);
+                document.getElementById("studentTodoList").insertAdjacentHTML("afterbegin", '<div class="timeline-item"><div class="timeline-meta"><strong>课程数据已加载</strong><span class="muted">接口：/api/v1/courses</span></div><span class="badge badge-active">ok</span></div>');
+            } catch (err) {}
+        })();
     </script>
 </body>
 

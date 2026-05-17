@@ -1,175 +1,235 @@
 <!doctype html>
 <html lang="zh-CN">
-
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Linksee 课程群聊</title>
+    <title>Linksee 聊天</title>
     <link rel="stylesheet" href="./styles/theme.css" />
+    <style>
+        .wechat-shell{display:grid;grid-template-columns:320px minmax(0,1fr);gap:20px;min-height:calc(100vh - 40px)}
+        .wechat-sidebar,.wechat-main{background:rgba(255,255,255,.72);backdrop-filter:blur(18px);border:1px solid var(--border);border-radius:24px;box-shadow:var(--shadow);overflow:hidden}
+        .wechat-sidebar{display:grid;grid-template-rows:auto auto 1fr}
+        .profile-pane{padding:20px;border-bottom:1px solid var(--border);display:grid;gap:12px}
+        .profile-name{display:grid;gap:8px}
+        .profile-name input{width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,.8)}
+        .wechat-list{padding:12px;display:grid;gap:10px;overflow:auto}
+        .conv-item{display:flex;gap:12px;align-items:center;padding:12px;border:1px solid transparent;border-radius:16px;background:rgba(255,255,255,.66);cursor:pointer}
+        .conv-item.is-active{border-color:var(--accent-outline);background:rgba(15,118,110,.08)}
+        .conv-avatar{width:48px;height:48px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,var(--accent),var(--accent-bright));flex:none}
+        .conv-avatar img{width:100%;height:100%;object-fit:cover}
+        .conv-meta{min-width:0;flex:1;display:grid;gap:4px}
+        .conv-meta strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .conv-meta .muted{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .conv-badge{font-size:12px;padding:4px 8px;border-radius:999px;background:rgba(45,212,191,.16);color:var(--accent-strong)}
+        .wechat-main{display:grid;grid-template-rows:auto 1fr auto;min-height:calc(100vh - 40px)}
+        .chat-header{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:16px}
+        .chat-title{display:grid;gap:4px}
+        .chat-title strong{font-size:20px}
+        .message-stream{padding:22px;display:grid;gap:16px;overflow:auto;align-content:start}
+        .bubble-row{display:flex;gap:12px;align-items:flex-end}
+        .bubble-row.me{justify-content:flex-end}
+        .bubble{max-width:min(70%,680px);padding:12px 14px;border-radius:18px;background:#fff;border:1px solid var(--border);box-shadow:var(--shadow-sm)}
+        .bubble.me{background:linear-gradient(135deg,rgba(15,118,110,.12),rgba(45,212,191,.18))}
+        .bubble-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+        .bubble-head img{width:28px;height:28px;border-radius:50%;object-fit:cover}
+        .composer{padding:18px 22px;border-top:1px solid var(--border);display:grid;gap:12px}
+        .composer textarea{width:100%;min-height:90px;padding:14px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.82);font:inherit}
+        .wechat-empty{display:grid;place-items:center;color:var(--muted);height:100%}
+        @media (max-width: 980px){.wechat-shell{grid-template-columns:1fr}.wechat-main{min-height:72vh}}
+    </style>
 </head>
-
 <body>
-    <main class="page">
-        <header class="topbar">
-            <div class="brand">
-                <span class="brand-mark" aria-hidden="true"></span>
-                课程群聊
-            </div>
-            <div class="top-actions">
-                <span id="userBadge" class="user-avatar">ID: --</span>
-                <button id="backToDashboard" class="ghost">返回工作台</button>
-                <button id="logoutBtn">退出登录</button>
-            </div>
-        </header>
+<main class="page">
+    <header class="topbar">
+        <div class="brand"><span class="brand-mark" aria-hidden="true"></span>聊天</div>
+        <div class="top-actions">
+            <span id="userBadge" class="user-avatar">ID: --</span>
+            <button id="backToDashboard" class="ghost">返回工作台</button>
+            <button id="logoutBtn">退出登录</button>
+        </div>
+    </header>
 
-        <section class="card">
-            <h1 class="card-title">活跃频道 <span class="badge">chat_rooms</span></h1>
-            <div class="meta" id="metaInfo">正在加载登录信息...</div>
-            <div class="filters">
-                <button class="filter-btn is-active" type="button">active</button>
-                <button class="filter-btn" type="button">archived</button>
-                <button class="filter-btn" type="button">muted</button>
+    <section class="wechat-shell">
+        <aside class="wechat-sidebar">
+            <div class="profile-pane">
+                <div class="user-profile" style="margin:0;padding:0;border:0">
+                    <input type="file" id="avatarInput" accept="image/*" hidden />
+                    <div class="avatar-wrapper" id="avatarWrapper" title="点击更换头像" style="width:88px;height:88px">
+                        <img id="avatarImage" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239CA3AF'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>" alt="头像" />
+                        <div class="avatar-overlay">更换</div>
+                    </div>
+                </div>
+                <div class="profile-name">
+                    <strong id="profileRealName">未设置昵称</strong>
+                    <input id="nicknameInput" placeholder="修改昵称" />
+                    <button id="nicknameSaveBtn" class="btn btn-primary">保存昵称</button>
+                    <div class="dashboard-soft-note" id="nicknameHint"></div>
+                </div>
             </div>
-            <div class="stat-grid">
-                <div class="stat">
-                    <strong>3</strong>
-                    <span>活跃群聊</span>
+            <div class="wechat-list" id="conversationList"></div>
+        </aside>
+
+        <section class="wechat-main">
+            <div class="chat-header">
+                <div class="chat-title">
+                    <strong id="chatTitle">请选择群聊</strong>
+                    <span class="muted" id="chatMeta">--</span>
                 </div>
-                <div class="stat">
-                    <strong>12</strong>
-                    <span>未读消息</span>
-                </div>
-                <div class="stat">
-                    <strong>2026-03-27</strong>
-                    <span>最近活跃</span>
+                <div class="dashboard-soft-note" id="metaInfo">正在加载登录信息...</div>
+            </div>
+            <div class="message-stream" id="messageList">
+                <div class="wechat-empty">请选择一个群聊开始聊天</div>
+            </div>
+            <div class="composer">
+                <textarea id="messageInput" placeholder="输入消息，Enter 发送，Shift+Enter 换行"></textarea>
+                <div class="action-row">
+                    <button id="sendBtn" class="btn btn-primary">发送</button>
+                    <button id="markReadBtn" class="btn btn-ghost">标记已读</button>
                 </div>
             </div>
         </section>
+    </section>
+</main>
+<script src="./scripts/api-client.js"></script>
+<script src="./scripts/page-utils.js"></script>
+<script src="./scripts/dashboard-shell.js"></script>
+<script>
+if (!linkseePage.requireAuth()) { throw new Error("auth required"); }
+const auth = linkseePage.getAuth();
+const conversationList = document.getElementById("conversationList");
+const messageList = document.getElementById("messageList");
+const chatTitle = document.getElementById("chatTitle");
+const chatMeta = document.getElementById("chatMeta");
+const messageInput = document.getElementById("messageInput");
+const profileRealName = document.getElementById("profileRealName");
+const logoutBtn = document.getElementById("logoutBtn");
+const backToDashboard = document.getElementById("backToDashboard");
+let currentUser = null;
+let rows = [];
+let selected = null;
+let participantMap = new Map();
 
-        <section class="layout">
-            <div class="card">
-                <h2 class="card-title">课程群聊列表 <span class="badge">rooms</span></h2>
-                <div class="list">
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>课程群 · 交互设计 A</strong>
-                                <span class="chip">room_key=course:12</span>
-                            </div>
-                            <div class="muted">unread=5 · last_message_at=2026-03-27 21:40</div>
-                        </div>
-                        <span class="tag">active</span>
-                    </div>
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>课程群 · 原型评审</strong>
-                                <span class="chip">room_key=course:15</span>
-                            </div>
-                            <div class="muted">unread=2 · last_message_at=2026-03-27 19:18</div>
-                        </div>
-                        <span class="tag">active</span>
-                    </div>
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>课程群 · 需求调研</strong>
-                                <span class="chip">room_key=course:18</span>
-                            </div>
-                            <div class="muted">muted · last_message_at=2026-03-26 18:20</div>
-                        </div>
-                        <span class="tag--muted">muted</span>
-                    </div>
-                </div>
+document.getElementById("nicknameHint").textContent = "";
+initDashboardShell({ avatarStorageKey: "chat_avatar_data_url" });
+linkseePage.setSessionMeta(document.getElementById("metaInfo"), document.getElementById("userBadge"));
+logoutBtn.onclick = linkseePage.logout;
+backToDashboard.onclick = () => linkseePage.go(linkseePage.roleDashboard(auth.role));
+
+function avatarOf(user) {
+    return (user && user.profile && user.profile.avatarUrl) || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239CA3AF'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
+}
+function nameOf(user) {
+    return (user && user.profile && user.profile.realName) || user?.id || "未知用户";
+}
+async function loadMe() {
+    const me = await window.linkseeApi.getJson("/api/v1/users/me");
+    currentUser = me.data || {};
+    profileRealName.textContent = currentUser.profile && currentUser.profile.realName ? currentUser.profile.realName : auth.userId;
+    const nicknameInput = document.getElementById("nicknameInput");
+    if (nicknameInput) nicknameInput.value = profileRealName.textContent;
+    localStorage.setItem("auth_real_name", profileRealName.textContent);
+}
+async function loadConversations() {
+    const payload = await window.linkseeApi.getJson("/api/v1/conversations");
+    rows = Array.isArray(payload.data) ? payload.data : [];
+    conversationList.innerHTML = rows.map((row) => `
+        <div class="conv-item${selected && String(selected.id) === String(row.id) ? " is-active" : ""}" data-id="${row.id}">
+            <div class="conv-avatar"><img src="${avatarOf(row.lastMessage && row.lastMessage.sender)}" alt="头像"></div>
+            <div class="conv-meta">
+                <strong>${linkseePage.escapeHtml(row.title || row.roomKey)}</strong>
+                <div class="muted">${linkseePage.escapeHtml(row.lastMessage && row.lastMessage.content ? row.lastMessage.content : "暂无消息")}</div>
             </div>
-
-            <div class="card">
-                <h2 class="card-title">消息摘要 <span class="badge">threads</span></h2>
-                <div class="list">
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>@王同学：原型链接已更新</strong>
-                                <span class="chip">room=course:12</span>
-                            </div>
-                            <div class="muted">last_message_at=2026-03-27 21:40</div>
-                        </div>
-                        <span class="tag">unread</span>
-                    </div>
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>@李老师：请补充需求调研结论</strong>
-                                <span class="chip">room=course:15</span>
-                            </div>
-                            <div class="muted">last_message_at=2026-03-27 19:18</div>
-                        </div>
-                        <span class="tag">follow</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h2 class="card-title">快捷动作 <span class="badge">actions</span></h2>
-                <div class="action-grid">
-                    <button class="btn">新建群聊</button>
-                    <button class="btn btn-ghost">标记全部已读</button>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <script>
-        const appOrigin = window.location.origin && window.location.origin !== "null"
-            ? window.location.origin
-            : "http://localhost:3001";
-        const appBasePath = window.location.pathname.includes("/app/") ? "/app" : "";
-        const metaInfo = document.getElementById("metaInfo");
-        const userBadge = document.getElementById("userBadge");
-        const logoutBtn = document.getElementById("logoutBtn");
-        const backToDashboard = document.getElementById("backToDashboard");
-
-        const userId = localStorage.getItem("auth_user_id");
-        const token = localStorage.getItem("auth_access_token");
-        const role = localStorage.getItem("auth_role");
-
-        const roleToDashboard = {
-            academic: "academic-dashboard.html",
-            teacher: "teacher-dashboard.html",
-            assistant: "assistant-dashboard.html",
-            student: "student-dashboard.html",
+            <span class="conv-badge">${row.unreadCount || 0}</span>
+        </div>`).join("");
+    conversationList.querySelectorAll(".conv-item").forEach((el) => {
+        el.onclick = () => {
+            selected = rows.find((r) => String(r.id) === String(el.dataset.id)) || null;
+            renderActive();
+            loadMessages();
         };
-
-        if (userId && token) {
-            metaInfo.textContent = `当前登录账号：${userId}`;
-            userBadge.textContent = `ID: ${userId}`;
-        } else {
-            metaInfo.textContent = "未检测到登录信息，请返回登录页。";
-            userBadge.textContent = "ID: --";
-        }
-
-        logoutBtn.addEventListener("click", () => {
-            localStorage.removeItem("auth_access_token");
-            localStorage.removeItem("auth_refresh_token");
-            localStorage.removeItem("auth_user_id");
-            window.location.href = `${appOrigin}${appBasePath}/login.html`;
-        });
-
-        backToDashboard.addEventListener("click", () => {
-            const target = roleToDashboard[role] || "dashboard.html";
-            window.location.href = `${appOrigin}${appBasePath}/${target}`;
-        });
-
-        document.querySelectorAll(".filters").forEach((group) => {
-            const buttons = group.querySelectorAll(".filter-btn");
-            buttons.forEach((btn) => {
-                btn.addEventListener("click", () => {
-                    buttons.forEach((el) => el.classList.remove("is-active"));
-                    btn.classList.add("is-active");
-                });
-            });
-        });
-    </script>
+    });
+    if (!selected && rows[0]) selected = rows[0];
+    renderActive();
+}
+async function loadParticipants() {
+    participantMap = new Map();
+    if (!selected) return;
+    const path = selected.scopeType === "group"
+        ? `/api/v1/groups/${selected.scopeId}/members`
+        : `/api/v1/courses/${selected.scopeId}/members`;
+    const payload = await window.linkseeApi.getJson(path);
+    const members = Array.isArray(payload.data) ? payload.data : [];
+    for (const member of members) {
+        const user = member.user || {};
+        participantMap.set(
+            user.id || member.userId,
+            user,
+        );
+    }
+}
+async function loadMessages() {
+    if (!selected) {
+        messageList.innerHTML = '<div class="wechat-empty">请选择一个群聊开始聊天</div>';
+        return;
+    }
+    await loadParticipants();
+    const path = selected.scopeType === "group"
+        ? `/api/v1/groups/${selected.scopeId}/messages`
+        : `/api/v1/courses/${selected.scopeId}/messages`;
+    const msg = await window.linkseeApi.getJson(path);
+    const messages = Array.isArray(msg.data) ? msg.data : [];
+    messageList.innerHTML = messages.map((row) => {
+        const me = row.senderId === auth.userId;
+        const user = participantMap.get(row.senderId) || { id: row.senderId, profile: { realName: row.senderId, avatarUrl: "" } };
+        return `
+            <div class="bubble-row ${me ? "me" : ""}">
+                ${me ? "" : `<div class="conv-avatar" style="width:40px;height:40px"><img src="${avatarOf(user)}" alt=""></div>`}
+                <div class="bubble ${me ? "me" : ""}">
+                    <div class="bubble-head">
+                        ${me ? "" : `<img src="${avatarOf(user)}" alt="">`}
+                        <strong>${linkseePage.escapeHtml(nameOf(user))}</strong>
+                        <span class="muted">${new Date(row.createdAt).toLocaleString("zh-CN",{hour12:false})}</span>
+                    </div>
+                    <div>${linkseePage.escapeHtml(row.content || "")}</div>
+                </div>
+                ${me ? `<div class="conv-avatar" style="width:40px;height:40px"><img src="${avatarOf(currentUser)}" alt=""></div>` : ""}
+            </div>`;
+    }).join("");
+    chatTitle.textContent = selected.title || selected.roomKey;
+    chatMeta.textContent = selected.scopeType === "group" ? `群聊 · ${selected.roomKey}` : `课程群聊 · ${selected.roomKey}`;
+}
+function renderActive() {
+    conversationList.querySelectorAll(".conv-item").forEach((el) => {
+        el.classList.toggle("is-active", selected && String(selected.id) === String(el.dataset.id));
+    });
+}
+document.getElementById("sendBtn").onclick = async () => {
+    if (!selected || !messageInput.value.trim()) return;
+    const path = selected.scopeType === "group"
+        ? `/api/v1/groups/${selected.scopeId}/messages`
+        : `/api/v1/courses/${selected.scopeId}/messages`;
+    await window.linkseeApi.postJson(path, { type: "text", content: messageInput.value.trim() });
+    messageInput.value = "";
+    await loadConversations();
+    await loadMessages();
+};
+document.getElementById("markReadBtn").onclick = async () => {
+    if (!selected || !selected.lastMessage) return;
+    await window.linkseeApi.postJson(`/api/v1/conversations/${selected.id}/read`, { messageId: selected.lastMessage.id });
+};
+    messageInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        document.getElementById("sendBtn").click();
+    }
+});
+loadMe()
+    .then(loadConversations)
+    .then(loadParticipants)
+    .then(loadMessages)
+    .catch((err) => {
+        conversationList.innerHTML = `<div class="dashboard-empty-state"><strong>聊天加载失败</strong><p>${linkseePage.escapeHtml(err.message)}</p></div>`;
+    });
+</script>
 </body>
-
 </html>

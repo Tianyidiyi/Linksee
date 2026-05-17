@@ -29,6 +29,7 @@
             <button class="nav-item" data-target="panel-assignments" type="button">项目监控</button>
         </nav>
         <div class="sidebar-actions">
+            <button id="userSettingsBtn" class="nav-item nav-item-ghost" type="button">用户设置</button>
             <button id="logoutBtn" class="nav-item nav-item-logout" type="button">退出登录</button>
         </div>
     </aside>
@@ -58,7 +59,7 @@
                         </div>
                         <span class="dashboard-soft-note">最后同步于 10 分钟前</span>
                     </div>
-                    <div class="data-grid">
+                    <div class="data-grid" id="academicCourseList">
                         <div class="data-grid-header muted academic-table-header">
                             <span>课程 ID</span>
                             <span>课程名称</span>
@@ -66,27 +67,10 @@
                             <span>状态</span>
                             <span>操作</span>
                         </div>
-                        <div class="data-grid-row">
-                            <span><span class="chip">BSJ084-2026-1-01</span></span>
-                            <span><strong>软件工程实践</strong></span>
-                            <span>2023000001</span>
-                            <span><span class="badge badge-active">进行中</span></span>
-                            <span><a class="btn btn-secondary academic-row-action">编辑</a></span>
-                        </div>
-                        <div class="data-grid-row">
-                            <span><span class="chip">DBS102-2026-1-02</span></span>
-                            <span><strong>数据库系统</strong></span>
-                            <span>2023000012</span>
-                            <span><span class="badge badge-draft">草稿</span></span>
-                            <span><a class="btn btn-secondary academic-row-action">编辑</a></span>
-                        </div>
-                        <div class="data-grid-row">
-                            <span><span class="chip">PYS091-2026-1-03</span></span>
-                            <span><strong>Python 高级编程</strong></span>
-                            <span>2023000023</span>
-                            <span><span class="badge badge-active">进行中</span></span>
-                            <span><a class="btn btn-secondary academic-row-action">编辑</a></span>
-                        </div>
+                    </div>
+                    <div class="dashboard-empty-state" id="academicCourseEmpty" hidden>
+                        <strong>暂无课程</strong>
+                        <p>当前筛选条件下没有课程记录。</p>
                     </div>
                 </section>
             </div>
@@ -183,12 +167,62 @@
         </div>
     </div>
 
+    <script src="./scripts/api-client.js"></script>
     <script src="./scripts/dashboard-shell.js"></script>
+    <script src="./scripts/user-settings.js"></script>
     <script src="./scripts/leaf-pile.js"></script>
     <script>
         initDashboardShell({
             avatarStorageKey: "academic_avatar_data_url",
         });
+
+        (function () {
+            var list = document.getElementById("academicCourseList");
+            var empty = document.getElementById("academicCourseEmpty");
+            if (!list || !window.linkseeApi) {
+                return;
+            }
+
+            function getStatusLabel(status) {
+                if (status === "active") return "进行中";
+                if (status === "draft") return "草稿";
+                if (status === "archived") return "已存档";
+                return status || "--";
+            }
+
+            window.linkseeApi.getJson("/api/v1/courses")
+                .then(function (payload) {
+                    var courses = Array.isArray(payload.data) ? payload.data : [];
+                    list.querySelectorAll(".data-grid-row").forEach(function (row) {
+                        row.remove();
+                    });
+
+                    if (!courses.length) {
+                        if (empty) empty.hidden = false;
+                        return;
+                    }
+                    if (empty) empty.hidden = true;
+
+                    list.insertAdjacentHTML("beforeend", courses.map(function (course) {
+                        return [
+                            '<div class="data-grid-row">',
+                            '<span><span class="chip">' + String(course.courseNo || course.id || "--") + '</span></span>',
+                            '<span><strong>' + String(course.name || "--") + '</strong></span>',
+                            '<span>' + String(course.createdBy || "--") + '</span>',
+                            '<span><span class="badge badge-active">' + getStatusLabel(course.status) + '</span></span>',
+                            '<span><a class="btn btn-secondary academic-row-action" href="#">编辑</a></span>',
+                            '</div>',
+                        ].join("");
+                    }).join(""));
+                })
+                .catch(function () {
+                    if (empty) {
+                        empty.hidden = false;
+                        empty.querySelector("strong").textContent = "课程加载失败";
+                        empty.querySelector("p").textContent = "请检查后端服务是否启动。";
+                    }
+                });
+        })();
     </script>
 </body>
 

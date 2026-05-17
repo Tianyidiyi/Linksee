@@ -1,176 +1,104 @@
 <!doctype html>
 <html lang="zh-CN">
-
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Linksee 提交台</title>
     <link rel="stylesheet" href="./styles/theme.css" />
 </head>
-
 <body>
-    <main class="page">
-        <header class="topbar">
-            <div class="brand">
-                <span class="brand-mark" aria-hidden="true"></span>
-                提交台
-            </div>
-            <div class="top-actions">
-                <span id="userBadge" class="user-avatar">ID: --</span>
-                <a class="icon-btn" href="./chat-hub.html" title="打开课程群聊">聊</a>
-                <button id="backToDashboard" class="ghost">返回工作台</button>
-                <button id="logoutBtn">退出登录</button>
-            </div>
-        </header>
-
-        <section class="card">
-            <h1 class="card-title">阶段提交入口 <span class="badge">submission</span></h1>
-            <div class="meta" id="metaInfo">正在加载登录信息...</div>
-            <div class="filters">
-                <button class="filter-btn is-active" type="button">draft</button>
-                <button class="filter-btn" type="button">submitted</button>
-                <button class="filter-btn" type="button">under_review</button>
-                <button class="filter-btn" type="button">approved</button>
-            </div>
-            <div class="stat-grid">
-                <div class="stat">
-                    <strong>阶段 2</strong>
-                    <span>当前提交流程</span>
-                </div>
-                <div class="stat">
-                    <strong>2</strong>
-                    <span>需上传材料</span>
-                </div>
-                <div class="stat">
-                    <strong>2026-04-01</strong>
-                    <span>提交截止时间</span>
-                </div>
-            </div>
-        </section>
-
-        <section class="layout">
-            <div class="card">
-                <h2 class="card-title">提交清单 <span class="badge">materials</span></h2>
-                <div class="list">
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>原型评审材料</strong>
-                                <span class="chip">required</span>
-                            </div>
-                            <div class="muted">格式：PDF/ZIP · 最大 20MB</div>
-                        </div>
-                        <span class="tag--muted">pending</span>
-                    </div>
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>演示链接</strong>
-                                <span class="chip">optional</span>
-                            </div>
-                            <div class="muted">请填写可访问的在线原型地址</div>
-                        </div>
-                        <span class="tag--muted">optional</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h2 class="card-title">提交信息 <span class="badge">form</span></h2>
-                <div class="list">
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>仓库链接</strong>
-                                <span class="chip">repo_url</span>
-                            </div>
-                            <div class="muted">https://github.com/org/linksee-group31</div>
-                        </div>
-                        <span class="tag">filled</span>
-                    </div>
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>贡献说明</strong>
-                                <span class="chip">summary</span>
-                            </div>
-                            <div class="muted">本阶段完成原型流程与可用性修复。</div>
-                        </div>
-                        <span class="tag">filled</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h2 class="card-title">提交状态 <span class="badge">status</span></h2>
-                <div class="flow">
-                    <span>draft</span>
-                    <span>submitted</span>
-                    <span>under_review</span>
-                    <span>approved</span>
-                </div>
-                <div class="list">
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>阶段 2 · 原型评审</strong>
-                                <span class="chip">group_id=31</span>
-                            </div>
-                            <div class="muted">status=under_review · submitted_at=2026-03-27</div>
-                        </div>
-                        <span class="tag--muted">under_review</span>
-                    </div>
-                </div>
-                <div class="action-grid">
-                    <button class="btn">提交材料</button>
-                    <button class="btn btn-ghost">保存草稿</button>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <script>
-        const appOrigin = window.location.origin && window.location.origin !== "null"
-            ? window.location.origin
-            : "http://localhost:3001";
-        const appBasePath = window.location.pathname.includes("/app/") ? "/app" : "";
-        const metaInfo = document.getElementById("metaInfo");
-        const userBadge = document.getElementById("userBadge");
-        const logoutBtn = document.getElementById("logoutBtn");
-        const backToDashboard = document.getElementById("backToDashboard");
-
-        const userId = localStorage.getItem("auth_user_id");
-        const token = localStorage.getItem("auth_access_token");
-
-        if (userId && token) {
-            metaInfo.textContent = `当前登录账号：${userId}`;
-            userBadge.textContent = `ID: ${userId}`;
-        } else {
-            metaInfo.textContent = "未检测到登录信息，请返回登录页。";
-            userBadge.textContent = "ID: --";
-        }
-
-        logoutBtn.addEventListener("click", () => {
-            localStorage.removeItem("auth_access_token");
-            localStorage.removeItem("auth_refresh_token");
-            localStorage.removeItem("auth_user_id");
-            window.location.href = `${appOrigin}${appBasePath}/login.html`;
-        });
-
-        backToDashboard.addEventListener("click", () => {
-            window.location.href = `${appOrigin}${appBasePath}/student-dashboard.html`;
-        });
-
-        document.querySelectorAll(".filters").forEach((group) => {
-            const buttons = group.querySelectorAll(".filter-btn");
-            buttons.forEach((btn) => {
-                btn.addEventListener("click", () => {
-                    buttons.forEach((el) => el.classList.remove("is-active"));
-                    btn.classList.add("is-active");
-                });
-            });
-        });
-    </script>
+<main class="page">
+    <header class="topbar">
+        <div class="brand"><span class="brand-mark" aria-hidden="true"></span>提交台</div>
+        <div class="top-actions">
+            <span id="userBadge" class="user-avatar">ID: --</span>
+            <a class="icon-btn" href="./chat-hub.html" title="打开课程群聊">聊</a>
+            <button id="backToDashboard" class="ghost">返回工作台</button>
+            <button id="logoutBtn">退出登录</button>
+        </div>
+    </header>
+    <section class="card">
+        <h1 class="card-title">阶段提交入口</h1>
+        <div class="meta" id="metaInfo">正在加载登录信息...</div>
+        <div class="action-grid">
+            <select id="courseSelect" class="dashboard-select"></select>
+            <select id="assignmentSelect" class="dashboard-select"></select>
+            <select id="groupSelect" class="dashboard-select"></select>
+            <select id="stageSelect" class="dashboard-select"></select>
+        </div>
+        <input id="titleInput" class="dashboard-input" placeholder="提交标题" />
+        <textarea id="descriptionInput" class="dashboard-textarea" placeholder="提交说明"></textarea>
+        <input id="repoInput" class="dashboard-input" placeholder="仓库链接(可选)" />
+        <div class="action-grid">
+            <button id="submitBtn" class="btn">提交材料</button>
+            <button id="saveDraftBtn" class="btn btn-ghost">保存草稿</button>
+        </div>
+        <div class="dashboard-empty-state" id="submissionResult" hidden></div>
+    </section>
+</main>
+<script src="./scripts/api-client.js"></script>
+<script src="./scripts/page-utils.js"></script>
+<script src="./scripts/dashboard-shell.js"></script>
+<script>
+if (!linkseePage.requireAuth()) { throw new Error("auth required"); }
+const auth = linkseePage.getAuth();
+linkseePage.setSessionMeta(document.getElementById("metaInfo"), document.getElementById("userBadge"));
+document.getElementById("logoutBtn").onclick = linkseePage.logout;
+document.getElementById("backToDashboard").onclick = () => linkseePage.go(linkseePage.roleDashboard(auth.role));
+initDashboardShell({ avatarStorageKey: "submission_avatar_data_url" });
+const courseSelect = document.getElementById("courseSelect");
+const assignmentSelect = document.getElementById("assignmentSelect");
+const groupSelect = document.getElementById("groupSelect");
+const stageSelect = document.getElementById("stageSelect");
+const result = document.getElementById("submissionResult");
+let currentAssignmentId = "";
+async function loadCourses() {
+    const payload = await window.linkseeApi.getJson("/api/v1/courses");
+    const rows = Array.isArray(payload.data) ? payload.data : [];
+    courseSelect.innerHTML = rows.map((c) => `<option value="${c.id}">${linkseePage.escapeHtml(c.name || c.courseNo || c.id)}</option>`).join("");
+    if (rows[0]) {
+        courseSelect.value = rows[0].id;
+        await loadAssignments(rows[0].id);
+    }
+}
+async function loadAssignments(courseId) {
+    const payload = await window.linkseeApi.getJson(`/api/v1/courses/${courseId}/assignments`);
+    const rows = Array.isArray(payload.data) ? payload.data : [];
+    assignmentSelect.innerHTML = rows.map((a) => `<option value="${a.id}">${linkseePage.escapeHtml(a.title || a.id)}</option>`).join("");
+    if (rows[0]) {
+        assignmentSelect.value = rows[0].id;
+        currentAssignmentId = rows[0].id;
+        await loadStagesAndGroup(rows[0].id);
+    }
+}
+async function loadStagesAndGroup(assignmentId) {
+    const [stagePayload, groupPayload] = await Promise.all([
+        window.linkseeApi.getJson(`/api/v1/assignments/${assignmentId}/stages`),
+        window.linkseeApi.getJson(`/api/v1/assignments/${assignmentId}/my-group`),
+    ]);
+    const stages = Array.isArray(stagePayload.data) ? stagePayload.data : [];
+    const group = groupPayload.data || null;
+    groupSelect.innerHTML = group ? `<option value="${group.group ? group.group.id : group.id}">${linkseePage.escapeHtml(group.group ? (group.group.name || `第 ${group.group.groupNo} 组`) : `第 ${group.groupNo} 组`)}</option>` : '<option value="">无小组</option>';
+    stageSelect.innerHTML = stages.map((s) => `<option value="${s.id}">${linkseePage.escapeHtml(s.title || `阶段 ${s.stageNo}`)}</option>`).join("");
+}
+courseSelect.onchange = () => loadAssignments(courseSelect.value);
+assignmentSelect.onchange = () => loadStagesAndGroup(assignmentSelect.value);
+document.getElementById("submitBtn").onclick = async () => {
+    if (!groupSelect.value || !stageSelect.value) return;
+    const payload = {
+        title: document.getElementById("titleInput").value.trim(),
+        description: document.getElementById("descriptionInput").value.trim(),
+        repositoryUrl: document.getElementById("repoInput").value.trim() || undefined,
+    };
+    const data = await window.linkseeApi.postJson(`/api/v1/stages/${stageSelect.value}/groups/${groupSelect.value}/submissions`, payload);
+    result.hidden = false;
+    result.innerHTML = '<strong>提交成功</strong><p>submissionId: ' + linkseePage.escapeHtml(data.data && data.data.id) + '</p>';
+};
+document.getElementById("saveDraftBtn").onclick = () => {
+    result.hidden = false;
+    result.innerHTML = "<strong>已保存草稿</strong><p>当前页面先保留本地草稿位。</p>";
+};
+loadCourses();
+</script>
 </body>
-
 </html>

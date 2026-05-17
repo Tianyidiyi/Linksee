@@ -1,197 +1,98 @@
 <!doctype html>
 <html lang="zh-CN">
-
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Linksee 批改台</title>
     <link rel="stylesheet" href="./styles/theme.css" />
 </head>
-
 <body>
-    <main class="page">
-        <header class="topbar">
-            <div class="brand">
-                <span class="brand-mark" aria-hidden="true"></span>
-                批改台
-            </div>
-            <div class="top-actions">
-                <span id="userBadge" class="user-avatar">ID: --</span>
-                <a class="icon-btn" href="./chat-hub.html" title="打开课程群聊">聊</a>
-                <button id="backToDashboard" class="ghost">返回工作台</button>
-                <button id="logoutBtn">退出登录</button>
-            </div>
-        </header>
-
-        <section class="card">
-            <h1 class="card-title">批改工作流 <span class="badge">review</span></h1>
+<main class="page">
+    <header class="topbar">
+        <div class="brand"><span class="brand-mark" aria-hidden="true"></span>批改台</div>
+        <div class="top-actions">
+            <span id="userBadge" class="user-avatar">ID: --</span>
+            <a class="icon-btn" href="./chat-hub.html" title="打开课程群聊">聊</a>
+            <button id="backToDashboard" class="ghost">返回工作台</button>
+            <button id="logoutBtn">退出登录</button>
+        </div>
+    </header>
+    <section class="layout">
+        <div class="card">
+            <h2 class="card-title">课程与队列</h2>
             <div class="meta" id="metaInfo">正在加载登录信息...</div>
-            <div class="filters">
-                <button class="filter-btn is-active" type="button">under_review</button>
-                <button class="filter-btn" type="button">submitted</button>
-                <button class="filter-btn" type="button">approved</button>
-                <button class="filter-btn" type="button">needs_changes</button>
+            <select id="courseSelect" class="dashboard-select"></select>
+            <div class="list" id="reviewList"></div>
+        </div>
+        <div class="card">
+            <h2 class="card-title">批改面板</h2>
+            <div class="dashboard-empty-state" id="reviewContext">请选择左侧提交</div>
+            <input id="scoreInput" class="dashboard-input" type="number" min="0" max="100" placeholder="分数" />
+            <textarea id="commentInput" class="dashboard-textarea" placeholder="反馈"></textarea>
+            <div class="action-grid">
+                <button id="startBtn" class="btn btn-ghost">开始评审</button>
+                <button id="saveReviewBtn" class="btn">提交评审</button>
+                <button id="saveDraftBtn" class="btn btn-ghost">保存草稿</button>
+                <button id="publishBtn" class="btn btn-ghost">发布成绩</button>
             </div>
-            <div class="stat-grid">
-                <div class="stat">
-                    <strong>5</strong>
-                    <span>待批改提交</span>
-                </div>
-                <div class="stat">
-                    <strong>2</strong>
-                    <span>需复核记录</span>
-                </div>
-                <div class="stat">
-                    <strong>1</strong>
-                    <span>超时未评</span>
-                </div>
-            </div>
-        </section>
-
-        <section class="layout">
-            <div class="card">
-                <h2 class="card-title">批改队列 <span class="badge">submissions</span></h2>
-                <div class="flow">
-                    <span>submitted</span>
-                    <span>under_review</span>
-                    <span>approved</span>
-                    <span>needs_changes</span>
-                </div>
-                <div class="list">
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>原型评审材料</strong>
-                                <span class="chip">group_id=31</span>
-                            </div>
-                            <div class="muted">status=under_review · submitted_at=2026-03-27</div>
-                        </div>
-                        <span class="tag--muted">under_review</span>
-                    </div>
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>需求调研报告</strong>
-                                <span class="chip">group_id=32</span>
-                            </div>
-                            <div class="muted">status=submitted · submitted_at=2026-03-25</div>
-                        </div>
-                        <span class="tag">submitted</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h2 class="card-title">评审要点 <span class="badge">rubric</span></h2>
-                <div class="list">
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>需求覆盖度</strong>
-                                <span class="chip">40%</span>
-                            </div>
-                            <div class="muted">是否覆盖关键流程与异常场景</div>
-                        </div>
-                        <span class="tag">ready</span>
-                    </div>
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>交互一致性</strong>
-                                <span class="chip">30%</span>
-                            </div>
-                            <div class="muted">是否保证不同页面的交互一致</div>
-                        </div>
-                        <span class="tag">ready</span>
-                    </div>
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>交付完整性</strong>
-                                <span class="chip">30%</span>
-                            </div>
-                            <div class="muted">提交材料是否齐全</div>
-                        </div>
-                        <span class="tag">ready</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h2 class="card-title">状态更新 <span class="badge">actions</span></h2>
-                <div class="flow">
-                    <span>under_review</span>
-                    <span>approved</span>
-                    <span>needs_changes</span>
-                </div>
-                <div class="list">
-                    <div class="list-item">
-                        <div class="list-main">
-                            <div class="list-row">
-                                <strong>当前评分</strong>
-                                <span class="chip">score=86</span>
-                            </div>
-                            <div class="muted">reviewer=2023000001 · reviewed_at=2026-03-28</div>
-                        </div>
-                        <span class="tag">approved</span>
-                    </div>
-                </div>
-                <div class="action-grid">
-                    <button class="btn">通过</button>
-                    <button class="btn btn-ghost">要求修改</button>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <script>
-        const appOrigin = window.location.origin && window.location.origin !== "null"
-            ? window.location.origin
-            : "http://localhost:3001";
-        const appBasePath = window.location.pathname.includes("/app/") ? "/app" : "";
-        const metaInfo = document.getElementById("metaInfo");
-        const userBadge = document.getElementById("userBadge");
-        const logoutBtn = document.getElementById("logoutBtn");
-        const backToDashboard = document.getElementById("backToDashboard");
-
-        const userId = localStorage.getItem("auth_user_id");
-        const token = localStorage.getItem("auth_access_token");
-
-        if (userId && token) {
-            metaInfo.textContent = `当前登录账号：${userId}`;
-            userBadge.textContent = `ID: ${userId}`;
-        } else {
-            metaInfo.textContent = "未检测到登录信息，请返回登录页。";
-            userBadge.textContent = "ID: --";
-        }
-
-        logoutBtn.addEventListener("click", () => {
-            localStorage.removeItem("auth_access_token");
-            localStorage.removeItem("auth_refresh_token");
-            localStorage.removeItem("auth_user_id");
-            window.location.href = `${appOrigin}${appBasePath}/login.html`;
-        });
-
-        backToDashboard.addEventListener("click", () => {
-            const role = localStorage.getItem("auth_role") || "teacher";
-            const roleToPage = {
-                teacher: "teacher-dashboard.html",
-                assistant: "assistant-dashboard.html",
-            };
-            const target = roleToPage[role] || "teacher-dashboard.html";
-            window.location.href = `${appOrigin}${appBasePath}/${target}`;
-        });
-
-        document.querySelectorAll(".filters").forEach((group) => {
-            const buttons = group.querySelectorAll(".filter-btn");
-            buttons.forEach((btn) => {
-                btn.addEventListener("click", () => {
-                    buttons.forEach((el) => el.classList.remove("is-active"));
-                    btn.classList.add("is-active");
-                });
-            });
-        });
-    </script>
+        </div>
+    </section>
+</main>
+<script src="./scripts/api-client.js"></script>
+<script src="./scripts/page-utils.js"></script>
+<script src="./scripts/dashboard-shell.js"></script>
+<script>
+if (!linkseePage.requireAuth()) { throw new Error("auth required"); }
+const auth = linkseePage.getAuth();
+linkseePage.setSessionMeta(document.getElementById("metaInfo"), document.getElementById("userBadge"));
+document.getElementById("logoutBtn").onclick = linkseePage.logout;
+document.getElementById("backToDashboard").onclick = () => linkseePage.go(linkseePage.roleDashboard(auth.role));
+initDashboardShell({ avatarStorageKey: "grading_avatar_data_url" });
+let currentCourseId = "";
+let currentSubmissionId = "";
+let currentGradeId = "";
+async function loadCourses() {
+    const payload = await window.linkseeApi.getJson("/api/v1/courses");
+    const rows = Array.isArray(payload.data) ? payload.data : [];
+    const select = document.getElementById("courseSelect");
+    select.innerHTML = rows.map((c) => `<option value="${c.id}">${linkseePage.escapeHtml(c.name || c.courseNo || c.id)}</option>`).join("");
+    currentCourseId = rows[0] && rows[0].id;
+    if (currentCourseId) await loadQueue();
+    select.onchange = async () => { currentCourseId = select.value; await loadQueue(); };
+}
+async function loadQueue() {
+    const payload = await window.linkseeApi.getJson(`/api/v1/courses/${currentCourseId}/pending-reviews`);
+    const rows = Array.isArray(payload.data) ? payload.data : [];
+    document.getElementById("reviewList").innerHTML = rows.map((r) => `<div class="list-item" data-id="${r.id}"><div class="list-main"><div class="list-row"><strong>${linkseePage.escapeHtml(r.stage && r.stage.title || "未命名")}</strong><span class="chip">${linkseePage.escapeHtml(r.group && (r.group.groupNo || r.group.name) || "--")}</span></div><div class="muted">${linkseePage.escapeHtml(r.submittedBy || "--")} · ${new Date(r.submittedAt).toLocaleString("zh-CN",{hour12:false})}</div></div><span class="tag">${r.status}</span></div>`).join("");
+    document.querySelectorAll("#reviewList .list-item").forEach((el) => el.onclick = async () => {
+        currentSubmissionId = el.dataset.id;
+        document.getElementById("reviewContext").textContent = "submission: " + currentSubmissionId;
+    });
+}
+document.getElementById("startBtn").onclick = async () => {
+    if (!currentSubmissionId) return;
+    await window.linkseeApi.postJson(`/api/v1/submissions/${currentSubmissionId}/reviews/start`, {});
+};
+document.getElementById("saveReviewBtn").onclick = async () => {
+    if (!currentSubmissionId) return;
+    await window.linkseeApi.postJson(`/api/v1/submissions/${currentSubmissionId}/reviews`, {
+        status: "approved",
+        comment: document.getElementById("commentInput").value.trim(),
+    });
+    await loadQueue();
+};
+document.getElementById("saveDraftBtn").onclick = async () => {
+    if (!currentSubmissionId) return;
+    const resp = await window.linkseeApi.postJson(`/api/v1/submissions/${currentSubmissionId}/grade-drafts`, {
+        score: Number(document.getElementById("scoreInput").value),
+    });
+    currentGradeId = resp.data && resp.data.id;
+};
+document.getElementById("publishBtn").onclick = async () => {
+    if (!currentGradeId) return;
+    await window.linkseeApi.postJson(`/api/v1/grades/${currentGradeId}/publish`, {});
+};
+loadCourses();
+</script>
 </body>
-
 </html>

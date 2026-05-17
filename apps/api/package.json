@@ -6,6 +6,7 @@
   "scripts": {
     "build": "node --preserve-symlinks-main ./scripts/build.mjs",
     "pack": "npm pack",
+    "prestart:auth": "prisma generate",
     "start:demo": "node ./src/demo/server.mjs",
     "test:socket-demo": "node ./src/demo/socket-smoke.mjs",
     "start:auth": "tsx ./src/auth/server.ts",

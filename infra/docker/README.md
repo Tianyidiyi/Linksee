@@ -19,7 +19,7 @@
 
 ## 2. 访问入口
 
-- MySQL: localhost:3306
+- MySQL: localhost:3307
 - Redis: localhost:6379
 - MinIO API: http://localhost:9000
 - MinIO Console: http://localhost:9001
@@ -71,8 +71,8 @@ Dockerfile 中必须执行 `npm install`（或 `npm ci`），不能只 COPY node
 
 `mysql-init/` 目录下脚本按文件名字典序执行：
 
-| 文件                          | 内容               |
-| ----------------------------- | ------------------ |
+| 文件                        | 内容               |
+| --------------------------- | ------------------ |
 | `001_create_extensions.sql` | 占位/扩展预留      |
 | `002_auth_tables.sql`       | 用户、令牌、审计表 |
 
@@ -84,7 +84,7 @@ Dockerfile 中必须执行 `npm install`（或 `npm ci`），不能只 COPY node
 当前 docker-compose 将所有端口绑定到 `0.0.0.0`（即对外可达），开发环境可接受。
 生产/测试环境部署时：
 
-- MySQL (3306)、Redis (6379)、MinIO API (9000) 改为绑定 `127.0.0.1`，只允许本机访问。
+- MySQL (3307)、Redis (6379)、MinIO API (9000) 改为绑定 `127.0.0.1`，只允许本机访问。
 - 只有 API 服务（Node.js，如 3000 端口）通过反向代理对外暴露。
 
 ## 5. Worker 与 Redis 的定位

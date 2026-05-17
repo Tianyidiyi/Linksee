@@ -78,11 +78,36 @@
         });
     }
 
+    function updateProfileDisplay(realName, bio, userId) {
+        var userBadge = document.getElementById("userBadge");
+        var userProfile = document.querySelector(".user-profile");
+        var resolvedName = realName || userId || "--";
+        var descriptionId = "userProfileDescription";
+        var descriptionEl = document.getElementById(descriptionId);
+
+        if (userBadge) {
+            userBadge.textContent = resolvedName;
+        }
+
+        if (userProfile && !descriptionEl) {
+            descriptionEl = document.createElement("div");
+            descriptionEl.id = descriptionId;
+            descriptionEl.className = "dashboard-soft-note user-profile-description";
+            userProfile.appendChild(descriptionEl);
+        }
+
+        if (descriptionEl) {
+            descriptionEl.textContent = bio || "";
+            descriptionEl.hidden = !bio;
+        }
+    }
+
     function initSessionMeta() {
         var metaInfo = document.getElementById("metaInfo");
-        var userBadge = document.getElementById("userBadge");
         var userId = localStorage.getItem("auth_user_id");
         var token = localStorage.getItem("auth_access_token");
+        var realName = localStorage.getItem("auth_real_name");
+        var bio = localStorage.getItem("auth_bio");
 
         if (metaInfo) {
             metaInfo.textContent = userId && token
@@ -90,15 +115,48 @@
                 : "未检测到登录信息，请返回登录页。";
         }
 
-        if (userBadge) {
-            userBadge.textContent = userId && token
-                ? "ID: " + userId
-                : "ID: --";
+        updateProfileDisplay(userId && token ? realName : "", userId && token ? bio : "", userId && token ? userId : "");
+    }
+
+    function syncSessionWithServer() {
+        if (!window.linkseeApi) {
+            return;
         }
+
+        var metaInfo = document.getElementById("metaInfo");
+        window.linkseeApi.getJson("/api/v1/users/me")
+            .then(function (payload) {
+                var data = payload && payload.data ? payload.data : {};
+                var userId = data.userId || data.id || localStorage.getItem("auth_user_id");
+                var role = data.role || data.userRole || "";
+                var realName = data.profile && data.profile.realName ? data.profile.realName : "";
+                var bio = data.profile && typeof data.profile.bio === "string" ? data.profile.bio : "";
+
+                if (userId) {
+                    localStorage.setItem("auth_user_id", userId);
+                }
+                if (role) {
+                    localStorage.setItem("auth_role", role);
+                }
+                if (realName) {
+                    localStorage.setItem("auth_real_name", realName);
+                }
+                localStorage.setItem("auth_bio", bio || "");
+                if (metaInfo && realName) {
+                    metaInfo.textContent = "当前登录账号：" + userId + " · " + realName;
+                } else if (metaInfo && userId) {
+                    metaInfo.textContent = "当前登录账号：" + userId;
+                }
+                updateProfileDisplay(realName, bio, userId);
+            })
+            .catch(function () {
+                // Keep existing local session display if the profile endpoint is unavailable.
+            });
     }
 
     function initLogout(avatarStorageKey) {
         var logoutBtn = document.getElementById("logoutBtn");
+        var settingsBtn = document.getElementById("userSettingsBtn");
         if (!logoutBtn) {
             return;
         }
@@ -109,8 +167,29 @@
             localStorage.removeItem("auth_refresh_token");
             localStorage.removeItem("auth_user_id");
             localStorage.removeItem(avatarStorageKey);
-            window.location.href = appBase.appOrigin + appBase.appBasePath + "/login.html";
+        window.location.href = appBase.appOrigin + appBase.appBasePath + "/login.html";
         });
+
+        if (settingsBtn) {
+            settingsBtn.addEventListener("click", function () {
+                if (window.linkseeUserSettings) {
+                    window.linkseeUserSettings.open();
+                }
+            });
+        }
+    }
+
+    function initChatLauncher() {
+        if (!window.linkseeChatWidget) {
+            var existing = document.querySelector('script[data-linksee-chat-widget-src]');
+            if (!existing) {
+                var script = document.createElement("script");
+                script.src = "./scripts/chat-widget.js";
+                script.async = true;
+                script.setAttribute("data-linksee-chat-widget-src", "true");
+                document.head.appendChild(script);
+            }
+        }
     }
 
     window.initDashboardShell = function initDashboardShell(options) {
@@ -120,8 +199,13 @@
         }
 
         initSessionMeta();
+        syncSessionWithServer();
         initDashboardNav();
         initAvatarControls(avatarStorageKey);
         initLogout(avatarStorageKey);
+        initChatLauncher();
+        if (window.linkseeUserSettings) {
+            window.linkseeUserSettings.syncFromServer();
+        }
     };
 })();
