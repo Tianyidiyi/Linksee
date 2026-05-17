@@ -1,0 +1,250 @@
+.app-shell,
+.dashboard-shell-background,
+.academic-shell,
+.teacher-shell,
+.student-shell,
+.assistant-shell {
+    --app-theme-start: #c3e6f8;
+    --app-theme-mid-1: rgb(233, 245, 235);
+    --app-theme-mid-2: rgb(247, 249, 242);
+    --app-theme-mid-3: rgb(245, 248, 238);
+    --app-theme-mid-4: rgb(228, 238, 206);
+    background:
+        linear-gradient(180deg,
+            var(--app-theme-start) 0%,
+            var(--app-theme-mid-1) 24%,
+            var(--app-theme-mid-2) 48%,
+            var(--app-theme-mid-3) 72%,
+            var(--app-theme-mid-4) 100%);
+    background-attachment: fixed;
+    position: relative;
+    isolation: isolate;
+}
+
+.app-shell::before,
+.dashboard-shell-background::before,
+.academic-shell::before,
+.teacher-shell::before,
+.student-shell::before,
+.assistant-shell::before {
+    content: "";
+    position: fixed;
+    left: -8vw;
+    right: -8vw;
+    bottom: -20vh;
+    height: clamp(250px, 39vh, 430px);
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.96;
+    background:
+        repeating-linear-gradient(
+            90deg,
+            rgba(123, 167, 61, 0) 0 12px,
+            rgba(123, 167, 61, 0.22) 12px 13px,
+            rgba(204, 224, 146, 0.14) 13px 15px,
+            rgba(123, 167, 61, 0) 15px 24px
+        ),
+        repeating-linear-gradient(
+            78deg,
+            rgba(102, 146, 47, 0) 0 14px,
+            rgba(102, 146, 47, 0.16) 14px 15px,
+            rgba(102, 146, 47, 0) 15px 28px
+        ),
+        linear-gradient(180deg, rgba(238, 247, 206, 0.18) 0%, rgba(198, 223, 137, 0.72) 18%, rgba(148, 191, 78, 0.98) 100%);
+    clip-path: polygon(
+        0 39.6%,
+        6% 38.1%,
+        12% 39.9%,
+        18% 37.8%,
+        24% 40.1%,
+        30% 37.9%,
+        36% 40.2%,
+        42% 37.8%,
+        48% 40.1%,
+        54% 37.9%,
+        60% 40.2%,
+        66% 37.8%,
+        72% 40.1%,
+        78% 37.9%,
+        84% 40.2%,
+        90% 37.8%,
+        100% 39.6%,
+        100% 100%,
+        0 100%
+    );
+    transform: translate3d(0, 0, 0);
+    animation: background-wave-drift 4.2s ease-in-out infinite;
+}
+
+.dongda-leaf-band {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: min(18vh, 132px);
+    z-index: 8;
+    pointer-events: none;
+    background-image: url("../assets/plane-leaves-line.svg");
+    background-position: center bottom;
+    background-repeat: no-repeat;
+    background-size: min(108vw, 1580px) auto;
+    opacity: 0.62;
+    filter: saturate(1.08) contrast(1.02) drop-shadow(0 -1px 1px rgba(114, 74, 22, 0.08));
+    clip-path: inset(calc(100% - 132px) 0 0 0);
+}
+
+.app-shell::after,
+.dashboard-shell-background::after,
+.academic-shell::after,
+.teacher-shell::after,
+.student-shell::after,
+.assistant-shell::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image:
+        url("../assets/seu-song-calligraphy.svg"),
+        url("../assets/seu-auditorium-line.svg");
+    background-position:
+        right -26px top 10vh,
+        right -108px bottom 18px;
+    background-repeat:
+        no-repeat,
+        no-repeat;
+    background-size:
+        min(26vw, 420px) auto,
+        min(40vw, 600px) auto;
+    opacity: 0.8;
+}
+
+@media (max-width: 720px) {
+    .app-shell::before,
+    .dashboard-shell-background::before,
+    .academic-shell::before,
+    .teacher-shell::before,
+    .student-shell::before,
+    .assistant-shell::before {
+        left: -14vw;
+        right: -14vw;
+        bottom: -22vh;
+        height: clamp(180px, 28vh, 280px);
+    }
+
+    .app-shell::after,
+    .dashboard-shell-background::after,
+    .academic-shell::after,
+    .teacher-shell::after,
+    .student-shell::after,
+    .assistant-shell::after {
+        background-size:
+            0 0,
+            min(62vw, 360px) auto;
+        background-position:
+            right -10px top 7vh,
+            right -54px bottom 12px;
+        opacity: 0.7;
+    }
+
+    .dongda-leaf-band {
+        height: min(14vh, 92px);
+        background-size: min(138vw, 1120px) auto;
+        opacity: 1;
+        clip-path: inset(calc(100% - 92px) 0 0 0);
+    }
+}
+
+.leaf-pile-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    pointer-events: none;
+    overflow: hidden;
+    opacity: 1;
+}
+
+.leaf-pile-layer svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.leaf-pile-ground {
+    opacity: 0.28;
+}
+
+.leaf-pile-leaf {
+    transform-box: fill-box;
+    transform-origin: center;
+    will-change: transform;
+    filter: drop-shadow(0 1px 1px rgba(120, 72, 20, 0.22));
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .app-shell::before,
+    .dashboard-shell-background::before,
+    .academic-shell::before,
+    .teacher-shell::before,
+    .student-shell::before,
+    .assistant-shell::before {
+        animation: none;
+    }
+
+    .leaf-pile-layer {
+        display: none;
+    }
+}
+
+@keyframes background-wave-drift {
+    0%,
+    100% {
+        clip-path: polygon(
+            0 39.6%,
+            6% 38.1%,
+            12% 39.9%,
+            18% 37.8%,
+            24% 40.1%,
+            30% 37.9%,
+            36% 40.2%,
+            42% 37.8%,
+            48% 40.1%,
+            54% 37.9%,
+            60% 40.2%,
+            66% 37.8%,
+            72% 40.1%,
+            78% 37.9%,
+            84% 40.2%,
+            90% 37.8%,
+            100% 39.6%,
+            100% 100%,
+            0 100%
+        );
+        transform: translate3d(0, 0, 0);
+    }
+
+    50% {
+        clip-path: polygon(
+            0 40.2%,
+            6% 38.7%,
+            12% 40.5%,
+            18% 38.4%,
+            24% 40.7%,
+            30% 38.5%,
+            36% 40.8%,
+            42% 38.4%,
+            48% 40.7%,
+            54% 38.5%,
+            60% 40.8%,
+            66% 38.4%,
+            72% 40.7%,
+            78% 38.5%,
+            84% 40.8%,
+            90% 38.4%,
+            100% 40.2%,
+            100% 100%,
+            0 100%
+        );
+        transform: translate3d(0, 0.8%, 0);
+    }
+}

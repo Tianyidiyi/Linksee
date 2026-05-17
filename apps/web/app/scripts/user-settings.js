@@ -3,11 +3,14 @@
         return;
     }
 
-    var themePresets = [
-        { id: "spring", label: "春", color: "#d8edd2" },
-        { id: "summer", label: "夏", color: "#c3e6f8" },
-        { id: "autumn", label: "秋", color: "#f2d7b6" },
-        { id: "winter", label: "冬", color: "#dbe3ff" },
+    var backgroundPresets = [
+        { id: "dongda", label: "东大背景", theme: "#c3e6f8" },
+        { id: "mint", label: "薄荷绿", theme: "#d8edd2" },
+        { id: "sky", label: "天空蓝", theme: "#c3e6f8" },
+        { id: "apricot", label: "杏米色", theme: "#f2d7b6" },
+        { id: "lavender", label: "浅雾紫", theme: "#dbe3ff" },
+        { id: "rose", label: "浅粉杏", theme: "#f4d7d5" },
+        { id: "sand", label: "柔沙色", theme: "#e9dfc9" },
     ];
 
     var state = {
@@ -26,7 +29,80 @@
     }
 
     function getTheme() {
-        return localStorage.getItem("linksee_theme_color") || "#7cc7f2";
+        return localStorage.getItem("linksee_theme_color") || "#c3e6f8";
+    }
+
+    function getBackgroundPreset() {
+        return localStorage.getItem("linksee_background_preset") || "sky";
+    }
+
+    function ensureDongdaStylesheet(enabled) {
+        var id = "linksee-dongda-background-style";
+        var existing = document.getElementById(id);
+        if (enabled) {
+            if (existing) {
+                return;
+            }
+            var link = document.createElement("link");
+            link.id = id;
+            link.rel = "stylesheet";
+            link.href = "./styles/backgrounds-legacy.css";
+            document.head.appendChild(link);
+            return;
+        }
+        if (existing) {
+            existing.remove();
+        }
+    }
+
+    function ensureLeafPile(enabled) {
+        var existingLayer = document.querySelector(".leaf-pile-layer");
+        var existingScript = document.querySelector('script[data-linksee-leaf-pile-src]');
+        var existingBand = document.querySelector(".dongda-leaf-band");
+        if (enabled) {
+            if (!existingBand) {
+                var band = document.createElement("div");
+                band.className = "dongda-leaf-band";
+                band.setAttribute("aria-hidden", "true");
+                document.body.appendChild(band);
+            }
+            if (existingLayer) {
+                if (window.initLeafPile) {
+                    window.initLeafPile();
+                }
+                return;
+            }
+            if (existingScript || window.__linkseeLeafPileLoading) {
+                return;
+            }
+            window.__linkseeLeafPileLoading = true;
+            var script = document.createElement("script");
+            script.src = "./scripts/leaf-pile.js";
+            script.async = true;
+            script.setAttribute("data-linksee-leaf-pile-src", "true");
+            script.onload = function () {
+                window.__linkseeLeafPileLoading = false;
+                if (window.initLeafPile) {
+                    window.initLeafPile();
+                }
+            };
+            script.onerror = function () {
+                window.__linkseeLeafPileLoading = false;
+            };
+            document.head.appendChild(script);
+            return;
+        }
+        if (!enabled) {
+            if (existingLayer) {
+                existingLayer.remove();
+            }
+            if (existingScript) {
+                existingScript.remove();
+            }
+            if (existingBand) {
+                existingBand.remove();
+            }
+        }
     }
 
     function hexToRgb(hex) {
@@ -52,18 +128,33 @@
         return "rgb(" + r + ", " + g + ", " + b + ")";
     }
 
-    function setTheme(color) {
+    function setTheme(color, presetId) {
         var target = document.body || document.documentElement;
+        var nextPreset = presetId || "sky";
+        var useDongda = nextPreset === "dongda";
         localStorage.setItem("linksee_theme_color", color);
+        localStorage.setItem("linksee_background_preset", nextPreset);
+        target.setAttribute("data-background-preset", nextPreset);
+        ensureDongdaStylesheet(useDongda);
+        ensureLeafPile(useDongda);
+        if (useDongda) {
+            target.style.removeProperty("--app-theme-start");
+            target.style.removeProperty("--app-theme-mid-1");
+            target.style.removeProperty("--app-theme-mid-2");
+            target.style.removeProperty("--app-theme-mid-3");
+            target.style.removeProperty("--app-theme-mid-4");
+            return;
+        }
         target.style.setProperty("--app-theme-start", color);
-        target.style.setProperty("--app-theme-mid-1", mixColor(color, "#ffffff", 0.24));
-        target.style.setProperty("--app-theme-mid-2", mixColor(color, "#ffffff", 0.72));
-        target.style.setProperty("--app-theme-mid-3", "rgb(248, 250, 252)");
-        target.style.setProperty("--app-theme-mid-4", mixColor("#ffffff", "#a3c7e1", 0.62));
+        target.style.setProperty("--app-theme-mid-1", mixColor(color, "#f4f8ee", 0.38));
+        target.style.setProperty("--app-theme-mid-2", mixColor(color, "#fffdf8", 0.72));
+        target.style.setProperty("--app-theme-mid-3", mixColor(color, "#f7f2e8", 0.78));
+        target.style.setProperty("--app-theme-mid-4", mixColor(color, "#ebe2d6", 0.86));
     }
 
     function ensureTheme() {
-        setTheme(getTheme());
+        setTheme(getTheme(), getBackgroundPreset());
+        ensureLeafPile(getBackgroundPreset() === "dongda");
     }
 
     function getProfile() {
@@ -93,17 +184,17 @@
         var profile = getProfile();
         state.dialog.innerHTML = [
             '<div class="user-settings-header">',
-            '<div><strong>用户设置</strong><div class="dashboard-soft-note">昵称、个性说明与界面色调</div></div>',
+            '<div><strong>用户设置</strong><div class="dashboard-soft-note">昵称、说明与背景预设</div></div>',
             '<button class="linksee-settings-close" type="button" data-action="close">×</button>',
             '</div>',
             '<div class="user-settings-body">',
             '<label class="user-settings-field"><span>昵称</span><input data-field="realName" value="' + escapeHtml(profile.realName) + '" placeholder="输入昵称" /></label>',
             '<label class="user-settings-field"><span>说明</span><textarea data-field="bio" placeholder="写一点说明">' + escapeHtml(profile.bio) + '</textarea></label>',
-            '<div class="user-settings-field"><span>界面背景色</span><div class="theme-picks">',
-            themePresets.map(function (item) {
-                return '<button class="theme-pick' + (getTheme() === item.color ? ' is-active' : '') + '" type="button" data-theme="' + item.color + '" title="' + item.label + '" aria-label="' + item.label + '" style="--swatch:' + item.color + '"></button>';
+            '<div class="user-settings-field"><span>背景</span><div class="theme-picks theme-picks-presets">',
+            backgroundPresets.map(function (item) {
+                return '<button class="theme-pick theme-pick-preset' + (getBackgroundPreset() === item.id ? ' is-active' : '') + '" type="button" data-theme="' + item.theme + '" data-preset="' + item.id + '" title="' + item.label + '" aria-label="' + item.label + '" style="--swatch:' + item.theme + '"><span>' + item.label + '</span></button>';
             }).join(""),
-            '</div><div class="dashboard-soft-note">上方会渐变到湖水蓝，水面层保持不变。</div></div>',
+            '</div></div>',
             '</div>',
             '<div class="dashboard-soft-note' + (state.messageType === "error" ? ' user-settings-message is-error' : state.message ? ' user-settings-message is-success' : ' user-settings-message') + '">' + escapeHtml(state.message) + '</div>',
             '<div class="user-settings-actions">',
@@ -116,7 +207,7 @@
         var bioInput = state.dialog.querySelector('[data-field="bio"]');
         state.dialog.querySelectorAll("[data-theme]").forEach(function (btn) {
             btn.addEventListener("click", function () {
-                setTheme(btn.getAttribute("data-theme"));
+                setTheme(btn.getAttribute("data-theme"), btn.getAttribute("data-preset"));
                 render();
             });
         });
