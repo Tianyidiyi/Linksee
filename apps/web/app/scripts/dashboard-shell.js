@@ -108,10 +108,94 @@
     function removeDashboardDescriptions() {
         document.querySelectorAll([
             ".dashboard-section-intro > p",
-            ".dashboard-subcard-note",
-            ".dashboard-soft-note",
         ].join(",")).forEach(function (node) {
             node.remove();
+        });
+    }
+
+    var subcardNotes = {
+        "创建账号": "为学生或教师开通单个账号，并补充对应角色资料。",
+        "更新账号": "按用户 ID 修改姓名、邮箱、位置与个人说明。",
+        "单个重置": "针对一个用户重置密码，可留空生成临时密码。",
+        "批量重置": "批量处理多个账号，适合导入后统一初始化密码。",
+        "选择课程": "切换当前操作对象，下面的状态、人员或记录会随课程刷新。",
+        "当前状态": "展示当前课程的基础状态，方便编辑前确认对象。",
+        "编辑表单": "修改课程名称、简介和启用状态，保存后同步课程列表。",
+        "新增教师绑定": "输入教师用户 ID 并指定角色，将教师加入当前课程。",
+        "当前教师": "查看当前课程已绑定的主讲或协同教师。",
+        "当前助教": "查看当前课程已绑定的助教账号和配置情况。",
+        "默认密码": "设置批量开户使用的默认密码，留空则自动生成临时密码。",
+        "批量创建学生": "按行粘贴学生账号数据，一次创建多个学生账号。",
+        "批量创建教师": "按行粘贴教师账号数据，一次创建多个教师账号。",
+        "项目列表": "先选择课程，查看并切换当前课程下的项目。",
+        "创建/编辑项目": "维护项目标题、状态、说明，并上传项目说明附件。",
+        "阶段列表": "按课程和项目筛选阶段，选中后可在右侧编辑。",
+        "阶段设置": "配置阶段时间、权重、状态和提交材料。",
+        "小组列表": "按课程项目查看小组与成员数量，便于定位调整对象。",
+        "小组操作": "手动建组、添加成员或移出成员，用于兜底调整。",
+        "创建助教": "创建当前教师名下的助教账号，可设置初始密码。",
+        "课程绑定": "选择课程并绑定或解绑助教，右侧列表会显示当前绑定情况。",
+        "提交概览": "显示当前选中提交的摘要和附件入口，便于批改前核对。",
+        "批改输入": "录入分数和反馈意见，可先保存草稿再确认通过。",
+        "当前待批改上下文": "展示左侧队列中选中提交的课程、小组和附件信息。",
+        "工作概览": "快速查看负责课程数量和当前待检查提交数量。",
+        "当前课程": "切换正在处理的课程，队列和记录会随课程同步刷新。",
+        "待处理队列": "选择待检查提交，右侧会显示当前提交并进入复核流程。",
+        "当前提交": "展示当前选中提交的上下文，也可手动核对 Submission ID。",
+        "复核意见": "填写检查结论和反馈意见，提交后会更新评审状态。",
+        "成绩草稿": "为通过复核的提交保存分数草稿，最终发布仍由教师完成。",
+        "导出": "按课程导出复核记录或成绩数据，便于线下归档。",
+        "最近成绩记录": "查看近期保存或发布的成绩记录，确认处理进度。",
+        "课程列表": "切换课程范围，查看已加入课程和当前课程信息。",
+        "项目阶段": "查看所选课程下需要关注的项目阶段、截止时间和提交状态。",
+        "提交记录": "汇总已经提交过的阶段成果，便于回看状态和提交时间。",
+        "组队申请": "创建小组、申请入组，并处理组长视角下的入组申请。",
+        "组队信息": "选择课程项目后查看可加入的小组和自己的当前小组。",
+        "组队操作": "创建小组、申请入组，也可处理申请或发起组长转让。",
+        "任务列表": "查看当前小组信息和 MiniTask 列表，刷新后同步最新状态。",
+        "任务编辑": "创建任务、分配负责人，并更新优先级、说明和状态。",
+        "提交范围": "先确定课程、项目、阶段和所属小组。",
+        "成果内容": "填写链接、说明、贡献记录并上传成果文件。"
+    };
+
+    var inferredSubcards = [
+        { selector: "#selectedReviewAttachment", title: "提交概览" },
+        { selector: "#extStageCourse", title: "阶段列表" },
+        { selector: "#extStageTitle", title: "阶段设置" },
+        { selector: "#extGroupCourse", title: "小组列表" },
+        { selector: "#extStudentGroupCourse", title: "组队信息" },
+        { selector: "#extTaskCourse", title: "任务列表" },
+        { selector: "#extTaskId", title: "任务编辑" },
+        { selector: "#extSubmitCourse", title: "提交范围" },
+        { selector: "#extSubmitTitle", title: "成果内容" }
+    ];
+
+    function insertSubcardNote(titleEl, noteText) {
+        if (!titleEl || !noteText) return;
+        var subcard = titleEl.closest(".dashboard-subcard, .dashboard-merged-section");
+        if (subcard && subcard.querySelector(".dashboard-subcard-note")) return;
+        var note = document.createElement("p");
+        note.className = "dashboard-subcard-note";
+        note.textContent = noteText;
+        var row = titleEl.closest(".dashboard-split-row");
+        if (row && row.parentElement) {
+            row.insertAdjacentElement("afterend", note);
+            return;
+        }
+        titleEl.insertAdjacentElement("afterend", note);
+    }
+
+    function ensureDashboardSubcardNotes() {
+        inferredSubcards.forEach(function (item) {
+            var marker = document.querySelector(item.selector);
+            var subcard = marker ? marker.closest(".dashboard-subcard") : null;
+            if (!subcard || subcard.querySelector(".dashboard-subcard-title")) return;
+            subcard.insertAdjacentHTML("afterbegin", '<h3 class="dashboard-subcard-title">' + item.title + '</h3>');
+        });
+
+        document.querySelectorAll(".dashboard-subcard-title").forEach(function (titleEl) {
+            var title = (titleEl.textContent || "").trim();
+            insertSubcardNote(titleEl, subcardNotes[title]);
         });
     }
 
@@ -349,6 +433,7 @@
             window.linkseeDashboardExtensions.install(options || {});
         }
         removeDashboardDescriptions();
+        ensureDashboardSubcardNotes();
         sortDashboardNav();
         initSessionMeta();
         syncSessionWithServer();
