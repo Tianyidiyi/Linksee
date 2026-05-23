@@ -30,6 +30,14 @@
     var lastSpawn = 0;
     var layer;
     var svg;
+    var animationFrameId = 0;
+    var initialized = false;
+
+    function shouldEnableLeafPile() {
+        return !!document.body
+            && document.body.classList.contains("app-shell")
+            && document.body.getAttribute("data-background-preset") === "dongda";
+    }
 
     function randomBetween(min, max) {
         return min + Math.random() * (max - min);
@@ -161,6 +169,10 @@
     }
 
     function animate(timestamp) {
+        if (!shouldEnableLeafPile() || !svg) {
+            animationFrameId = 0;
+            return;
+        }
         var width = window.innerWidth;
         var height = window.innerHeight;
         var activeLeaves = leaves.filter(function (leaf) {
@@ -180,14 +192,39 @@
             applyLeafTransform(leaf);
         });
 
-        window.requestAnimationFrame(animate);
+        animationFrameId = window.requestAnimationFrame(animate);
+    }
+
+    function teardownLeafPile() {
+        if (animationFrameId) {
+            window.cancelAnimationFrame(animationFrameId);
+            animationFrameId = 0;
+        }
+        leaves.forEach(function (leaf) {
+            if (leaf.node && leaf.node.parentNode) {
+                leaf.node.remove();
+            }
+        });
+        leaves = [];
+        lastSpawn = 0;
+        if (layer) {
+            layer.remove();
+            layer = null;
+        }
+        svg = null;
+        initialized = false;
     }
 
     function initLeafPile() {
-        if (!document.body.classList.contains("app-shell")) {
+        if (!shouldEnableLeafPile()) {
+            teardownLeafPile();
             return;
         }
         if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+            teardownLeafPile();
+            return;
+        }
+        if (initialized && layer && svg) {
             return;
         }
 
@@ -200,12 +237,17 @@
         });
         layer.appendChild(svg);
         document.body.insertBefore(layer, document.body.firstChild);
+        initialized = true;
 
         window.addEventListener("resize", function () {
-            svg.setAttribute("viewBox", "0 0 " + window.innerWidth + " " + window.innerHeight);
+            if (svg) {
+                svg.setAttribute("viewBox", "0 0 " + window.innerWidth + " " + window.innerHeight);
+            }
         });
-        window.requestAnimationFrame(animate);
+        animationFrameId = window.requestAnimationFrame(animate);
     }
+
+    window.initLeafPile = initLeafPile;
 
     if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", initLeafPile);

@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="./styles/theme.css" />
 </head>
 
-<body class="app-shell teacher-shell">
+<body class="app-shell teacher-shell academic-shell">
 
     <div class="sidebar-trigger" aria-hidden="true"></div>
     <aside class="sidebar">
@@ -24,9 +24,7 @@
         </div>
 
         <nav class="side-nav" aria-label="教师功能导航">
-            <button class="nav-item is-active" data-target="panel-overview" type="button">课程概览</button>
-            <button class="nav-item" data-target="panel-review-list" type="button">待批改列表</button>
-            <button class="nav-item" data-target="panel-grading" type="button">批改控制台</button>
+            <button class="nav-item is-active" data-target="panel-review-workbench" type="button">批阅工作台</button>
         </nav>
         <div class="sidebar-actions">
             <button id="userSettingsBtn" class="nav-item nav-item-ghost" type="button">用户设置</button>
@@ -36,174 +34,142 @@
 
     <div class="workspace">
         <div class="content-container">
-            <div class="page-panel is-active" id="panel-overview">
-                <section class="card">
-                    <div class="dashboard-section-intro">
-                        <h1 class="card-title">课程概览 <span class="badge badge-active">进行中</span></h1>
-                        <p>聚焦当前学期的开课密度、发布节奏和批改压力，便于快速判断当天工作重点。</p>
-                    </div>
-                    <div class="meta" id="metaInfo">正在加载登录信息...</div>
-                    <div class="stat-grid dashboard-stat-grid-thirds">
-                        <div class="stat">
-                            <strong>2</strong>
-                            <span>进行中课程</span>
-                        </div>
-                        <div class="stat">
-                            <strong>3</strong>
-                            <span>待发布阶段</span>
-                        </div>
-                        <div class="stat">
-                            <strong class="dashboard-stat-value-danger">8</strong>
-                            <span>待批改作业</span>
-                        </div>
-                    </div>
-                </section>
-            </div>
-
-            <div class="page-panel" id="panel-review-list">
-                <section class="card">
+            <div class="page-panel is-active" id="panel-review-workbench">
+                <section class="card teacher-review-workbench-card">
                     <div class="dashboard-toolbar-row">
                         <div class="dashboard-section-intro">
-                            <h2 class="card-title dashboard-title-reset">待批改列表 <span
-                                    class="badge badge-reviewing">待批改</span></h2>
-                            <p>按照提交优先级、时间和风险程度筛选，先处理最影响课程节奏的作业。</p>
+                            <h2 class="card-title dashboard-title-reset">批阅队列 <span
+                                    class="badge badge-reviewing">批阅</span></h2>
                         </div>
-                        <select class="dashboard-select">
-                            <option>按提交时间排序 (最早)</option>
-                            <option>按提交时间排序 (最新)</option>
+                        <select class="dashboard-select" id="teacherCourseSelect">
+                            <option value="">加载课程中...</option>
+                        </select>
+                        <select class="dashboard-select" id="teacherQueueSort">
+                            <option value="oldest">按提交时间排序 (最早)</option>
+                            <option value="latest">按提交时间排序 (最新)</option>
                         </select>
                     </div>
 
-                    <div class="list dashboard-list-offset" id="teacherReviewList">
-                        <div class="list-item dashboard-list-item-interactive dashboard-list-item-selected">
-                            <div class="list-main">
-                                <div class="list-row">
-                                    <strong>需求调研报告</strong>
-                                    <span class="chip">小组 31</span>
-                                </div>
-                                <div class="muted">状态：已提交 · 提交时间：2026-03-19 ·
-                                    学生：2023010031</div>
-                            </div>
-                            <span class="badge badge-pending">当前选中</span>
+                    <div class="dashboard-card-body">
+                        <div class="list dashboard-list-offset" id="teacherReviewList"></div>
+                        <div class="dashboard-empty-state" id="teacherReviewEmpty" hidden>
+                            <strong>暂无待批改提交</strong>
+                            <p>当前课程没有待处理提交。</p>
                         </div>
-
-                        <div class="list-item dashboard-list-item-interactive">
-                            <div class="list-main">
-                                <div class="list-row">
-                                    <strong>原型评审材料</strong>
-                                    <span class="chip">小组 32</span>
-                                </div>
-                                <div class="muted">状态：已提交 · 提交时间：2026-03-27 ·
-                                    学生：2023010032</div>
-                            </div>
-                            <span class="badge badge-submitted">新提交</span>
+                        <div class="dashboard-filter-bar">
+                            <div class="dashboard-filter-meta" id="teacherReviewMeta"><span>正在加载队列...</span></div>
+                            <span class="dashboard-soft-note">点击条目可切换下方批改上下文</span>
                         </div>
-
-                        <div class="list-item dashboard-list-item-interactive">
-                            <div class="list-main">
-                                <div class="list-row">
-                                    <strong>课程总结报告</strong>
-                                    <span class="chip">小组 33</span>
-                                </div>
-                                <div class="muted">状态：已提交 · 提交时间：2026-03-29 ·
-                                    学生：2023010033</div>
-                            </div>
-                            <span class="badge badge-submitted">新提交</span>
-                        </div>
-
-                        <div class="list-item dashboard-list-item-interactive">
-                            <div class="list-main">
-                                <div class="list-row">
-                                    <strong>数据库架构设计</strong>
-                                    <span class="chip">课程 14</span>
-                                </div>
-                                <div class="muted">状态：重新提交 · 提交时间：2026-04-02 ·
-                                    学生：2023010088</div>
-                            </div>
-                            <span class="badge badge-urgent">紧急</span>
-                        </div>
-                    </div>
-                    <div class="dashboard-filter-bar">
-                        <div class="dashboard-filter-meta">
-                            <span>队列共 4 条</span>
-                            <span class="dashboard-filter-tag">当前选中: 需求调研报告</span>
-                            <span class="dashboard-filter-tag">紧急项: 1</span>
-                        </div>
-                        <span class="dashboard-soft-note">点击条目可切换右侧批改上下文</span>
                     </div>
                 </section>
             </div>
 
-            <div class="page-panel" id="panel-grading">
-                <div class="teacher-grid-layout">
-                    <div class="teacher-main-col">
-                        <section class="card">
-                            <div class="dashboard-section-intro">
-                                <h2 class="card-title">批改控制台</h2>
-                                <p>在一个视图里完成附件查看、打分和反馈，减少在不同工具间跳转。</p>
-                            </div>
-
-                            <div class="nav-section dashboard-section-sm">
-                                <div class="review-item dashboard-list-item-static">
-                                    <div class="review-meta">
-                                        <strong>当前批改: 需求调研报告</strong>
-                                        <span class="muted">提交人: 2023010031</span>
-                                        <a href="#" class="dashboard-inline-link">查看完整附件
-                                            ↗</a>
-                                    </div>
+            <div class="page-panel" id="panel-review-detail-source">
+                <section class="card">
+                    <div class="dashboard-section-intro">
+                        <h2 class="card-title">批阅详情</h2>
+                    </div>
+                    <div class="dashboard-card-body">
+                        <div class="dashboard-subcard">
+                            <div class="review-item dashboard-list-item-static">
+                                <div class="review-meta">
+                                    <strong>请选择待批改提交</strong>
+                                    <span class="muted">这里会展示当前评审上下文</span>
+                                    <a id="selectedReviewAttachment" class="dashboard-inline-link">查看完整附件
+                                        ↗</a>
                                 </div>
                             </div>
+                        </div>
 
-                            <div class="nav-section dashboard-section-md">
-                                <div class="nav-section-title dashboard-section-sm">打分 (0-100)</div>
-                                <input class="dashboard-input" type="number" placeholder="输入分数" min="0" max="100">
-                            </div>
-
-                            <div class="nav-section dashboard-section-lg">
-                                <div class="nav-section-title dashboard-section-sm">批改反馈意见</div>
-                                <textarea class="dashboard-textarea" placeholder="请输入建设性的反馈意见，指出优点与不足..."></textarea>
-                            </div>
-
-                            <div class="dashboard-panel-actions">
-                                <button class="btn btn-secondary academic-btn-block">退回修改</button>
-                                <button class="btn btn-primary academic-btn-block">确认通过 ✓</button>
-                            </div>
-                        </section>
-                    </div>
-
-                    <div class="teacher-side-col">
-                        <section class="card">
-                            <div class="dashboard-section-intro">
-                                <h2 class="card-title">当前待批改上下文</h2>
-                                <p>右侧固定展示当前被选中的提交上下文，便于评分时始终保留参照。</p>
-                            </div>
-                            <div class="list">
-                                <div class="list-item">
-                                    <div class="list-main">
-                                        <div class="list-row">
-                                            <strong>需求调研报告</strong>
-                                            <span class="chip">小组 31</span>
-                                        </div>
-                                        <div class="muted">学生：2023010031 · 提交时间：2026-03-19</div>
-                                    </div>
-                                    <span class="badge badge-pending">当前选中</span>
+                        <div class="dashboard-inline-grid dashboard-split-scroll-grid">
+                            <div class="dashboard-subcard">
+                                <h3 class="dashboard-subcard-title">批改输入</h3>
+                                <div class="nav-section dashboard-section-md">
+                                    <div class="nav-section-title dashboard-section-sm">打分 (0-100)</div>
+                                    <input id="gradeScoreInput" class="dashboard-input" type="number" placeholder="输入分数" min="0" max="100">
+                                </div>
+                                <div class="nav-section dashboard-section-lg">
+                                    <div class="nav-section-title dashboard-section-sm">批改反馈意见</div>
+                                    <textarea id="gradeFeedbackInput" class="dashboard-textarea" placeholder="请输入建设性的反馈意见，指出优点与不足..."></textarea>
                                 </div>
                             </div>
-                        </section>
+                            <div class="dashboard-subcard">
+                                <h3 class="dashboard-subcard-title">当前待批改上下文</h3>
+                                <div class="list"><div id="selectedReviewContext" class="muted">请选择左侧提交。</div></div>
+                            </div>
+                        </div>
+
+                        <div class="dashboard-panel-actions">
+                            <button id="startReviewBtn" class="btn btn-secondary academic-btn-block" type="button" disabled>开始评审</button>
+                            <button id="saveDraftBtn" class="btn btn-secondary academic-btn-block" type="button" disabled>保存草稿</button>
+                            <button id="saveReviewBtn" class="btn btn-primary academic-btn-block" type="button" disabled>确认通过 ✓</button>
+                            <button id="publishGradeBtn" class="btn btn-secondary academic-btn-block" type="button" disabled>发布成绩</button>
+                        </div>
+                        <div class="dashboard-empty-state" id="teacherActionResult" hidden></div>
                     </div>
-                </div>
+                </section>
             </div>
         </div>
     </div>
 
     <script src="./scripts/api-client.js"></script>
+    <script src="./scripts/dashboard-extensions.js"></script>
     <script src="./scripts/dashboard-shell.js"></script>
     <script src="./scripts/user-settings.js"></script>
     <script src="./scripts/leaf-pile.js"></script>
     <script src="./scripts/teacher-dashboard.js"></script>
     <script>
+        function mergeTeacherReviewWorkbench() {
+            var workbench = document.getElementById("panel-review-workbench");
+            var grading = document.getElementById("panel-review-detail-source");
+            if (!workbench) return;
+
+            var body = workbench.querySelector(".dashboard-card-body");
+            if (!body || body.querySelector(".teacher-review-workbench")) {
+                if (grading) grading.remove();
+                return;
+            }
+
+            var toolbar = workbench.querySelector(".dashboard-toolbar-row");
+            var gradingBody = grading ? grading.querySelector(".dashboard-card-body") : null;
+            var layout = document.createElement("div");
+            var queue = document.createElement("section");
+            var editor = document.createElement("section");
+
+            layout.className = "teacher-review-workbench";
+            queue.className = "dashboard-subcard teacher-review-queue";
+            editor.className = "teacher-review-editor";
+
+            if (toolbar) {
+                queue.appendChild(toolbar);
+            }
+            while (body.firstChild) {
+                queue.appendChild(body.firstChild);
+            }
+            if (gradingBody) {
+                while (gradingBody.firstChild) {
+                    editor.appendChild(gradingBody.firstChild);
+                }
+            }
+
+            layout.appendChild(queue);
+            layout.appendChild(editor);
+            body.appendChild(layout);
+            if (grading) grading.remove();
+        }
+
+        mergeTeacherReviewWorkbench();
         initDashboardShell({
             avatarStorageKey: "teacher_avatar_data_url",
+        });
+        document.querySelectorAll("[data-panel-link]").forEach(function (button) {
+            button.addEventListener("click", function () {
+                var targetId = button.getAttribute("data-panel-link");
+                var sideNavButton = document.querySelector('.side-nav .nav-item[data-target="' + targetId + '"]');
+                if (sideNavButton) {
+                    sideNavButton.click();
+                }
+            });
         });
         initTeacherDashboard();
     </script>

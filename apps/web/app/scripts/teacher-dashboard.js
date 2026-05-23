@@ -55,6 +55,36 @@
         }
     }
 
+    function showResult(message, isError) {
+        var result = qs("#teacherActionResult");
+        if (!result) {
+            return;
+        }
+        result.hidden = false;
+        result.innerHTML = "<strong>" + escapeHtml(isError ? "操作失败" : "操作成功") + "</strong><p>" + escapeHtml(message) + "</p>";
+        result.classList.toggle("is-error", Boolean(isError));
+    }
+
+    function hideResult() {
+        var result = qs("#teacherActionResult");
+        if (!result) {
+            return;
+        }
+        result.hidden = true;
+        result.classList.remove("is-error");
+        result.innerHTML = "";
+    }
+
+    function sortPendingReviews(state) {
+        var sortSelect = qs("#teacherQueueSort");
+        var sortMode = sortSelect ? sortSelect.value : "oldest";
+        state.pendingReviews.sort(function (left, right) {
+            var leftTime = new Date(left.submittedAt || left.createdAt || 0).getTime();
+            var rightTime = new Date(right.submittedAt || right.createdAt || 0).getTime();
+            return sortMode === "latest" ? rightTime - leftTime : leftTime - rightTime;
+        });
+    }
+
     function renderCourseOptions(state) {
         var courseSelect = qs("#teacherCourseSelect");
         if (!courseSelect) {
@@ -94,7 +124,7 @@
             stats[0].textContent = String(activeCourses || totalCourses || 0);
         }
         if (stats[1]) {
-            stats[1].textContent = String(state.dashboard?.pendingStageCount ?? pendingCount);
+            stats[1].textContent = String(state.pipelineHealth ? state.pipelineHealth.pendingStageCount : 0);
         }
         if (stats[2]) {
             stats[2].textContent = String(pendingCount);
@@ -116,6 +146,7 @@
             return;
         }
 
+        sortPendingReviews(state);
         if (emptyState) {
             emptyState.hidden = true;
         }
@@ -180,8 +211,16 @@
         ].join("");
 
         if (attachmentLink) {
-            attachmentLink.href = review.attachmentUrl || review.url || "#";
-            attachmentLink.target = review.attachmentUrl || review.url ? "_blank" : "_self";
+            var targetUrl = review.attachmentUrl || review.url || "";
+            if (targetUrl) {
+                attachmentLink.href = targetUrl;
+                attachmentLink.target = "_blank";
+                attachmentLink.removeAttribute("aria-disabled");
+            } else {
+                attachmentLink.removeAttribute("href");
+                attachmentLink.removeAttribute("target");
+                attachmentLink.setAttribute("aria-disabled", "true");
+            }
         }
 
         if (scoreInput) {
@@ -205,22 +244,28 @@
     }
 
     function renderCourseSummary(state) {
-        var summary = qs("#teacherCourseSummary");
+        var summary = qs("#teacherReviewMeta");
         if (!summary) {
             return;
         }
 
         if (!state.courseId) {
-            summary.textContent = "请选择课程后查看待批改队列。";
+            summary.innerHTML = "<span>请选择课程后查看待批改队列。</span>";
             return;
         }
 
         var course = state.courses.find(function (item) {
             return String(getCourseId(item)) === String(state.courseId);
         });
-        summary.textContent = course
-            ? "当前课程: " + getCourseLabel(course) + " · 待批改 " + state.pendingReviews.length + " 条"
-            : "当前课程: " + state.courseId + " · 待批改 " + state.pendingReviews.length + " 条";
+        var currentTitle = course ? getCourseLabel(course) : state.courseId;
+        var urgentCount = state.pendingReviews.filter(function (item) {
+            return item.status === "under_review";
+        }).length;
+        summary.innerHTML = [
+            "<span>当前课程: " + escapeHtml(currentTitle) + "</span>",
+            '<span class="dashboard-filter-tag">待批改: ' + escapeHtml(String(state.pendingReviews.length)) + "</span>",
+            '<span class="dashboard-filter-tag">评审中: ' + escapeHtml(String(urgentCount)) + "</span>",
+        ].join("");
     }
 
     async function loadCourses(state) {
@@ -240,6 +285,7 @@
     async function loadPendingReviews(state) {
         if (!window.linkseeApi || !state.courseId) {
             state.pendingReviews = [];
+            state.pipelineHealth = null;
             renderReviewList(state);
             renderOverview(state);
             renderCourseSummary(state);
@@ -247,8 +293,23 @@
             return;
         }
 
-        var payload = await window.linkseeApi.getJson("/api/v1/courses/" + encodeURIComponent(state.courseId) + "/pending-reviews");
+        var responses = await Promise.all([
+            window.linkseeApi.getJson("/api/v1/courses/" + encodeURIComponent(state.courseId) + "/pending-reviews"),
+            window.linkseeApi.getJson("/api/v1/courses/" + encodeURIComponent(state.courseId) + "/pipeline-health").catch(function () {
+                return { data: { stages: [] } };
+            }),
+        ]);
+        var payload = responses[0];
+        var pipelinePayload = responses[1];
         state.pendingReviews = Array.isArray(payload.data) ? payload.data : [];
+        var stageRows = pipelinePayload && pipelinePayload.data && Array.isArray(pipelinePayload.data.stages)
+            ? pipelinePayload.data.stages
+            : [];
+        state.pipelineHealth = {
+            pendingStageCount: stageRows.filter(function (row) {
+                return Number(row.pendingReviewCount || 0) > 0 || Number(row.needsChangesCount || 0) > 0;
+            }).length,
+        };
         if (!state.selectedReviewId && state.pendingReviews[0]) {
             state.selectedReviewId = state.pendingReviews[0].id;
         }
@@ -356,38 +417,58 @@
         if (courseSelect) {
             courseSelect.addEventListener("change", function () {
                 ensureCourseIdState(state, courseSelect.value);
+                hideResult();
                 loadPendingReviews(state).catch(function () {});
+            });
+        }
+
+        var sortSelect = qs("#teacherQueueSort");
+        if (sortSelect) {
+            sortSelect.addEventListener("change", function () {
+                renderReviewList(state);
             });
         }
 
         if (startReviewBtn) {
             startReviewBtn.addEventListener("click", function () {
-                startReview(state).catch(function (err) {
-                    window.alert(err.message || "开始评审失败");
+                hideResult();
+                startReview(state).then(function () {
+                    showResult("已进入评审状态。", false);
+                }).catch(function (err) {
+                    showResult(err.message || "开始评审失败", true);
                 });
             });
         }
 
         if (saveReviewBtn) {
             saveReviewBtn.addEventListener("click", function () {
-                saveReview(state, "approved").catch(function (err) {
-                    window.alert(err.message || "保存批改失败");
+                hideResult();
+                saveReview(state, "approved").then(function () {
+                    showResult("批改结果已提交。", false);
+                }).catch(function (err) {
+                    showResult(err.message || "保存批改失败", true);
                 });
             });
         }
 
         if (saveDraftBtn) {
             saveDraftBtn.addEventListener("click", function () {
-                saveGradeDraft(state).catch(function (err) {
-                    window.alert(err.message || "保存草稿失败");
+                hideResult();
+                saveGradeDraft(state).then(function () {
+                    showResult("成绩草稿已保存。", false);
+                }).catch(function (err) {
+                    showResult(err.message || "保存草稿失败", true);
                 });
             });
         }
 
         if (publishBtn) {
             publishBtn.addEventListener("click", function () {
-                publishGrade(state).catch(function (err) {
-                    window.alert(err.message || "发布成绩失败");
+                hideResult();
+                publishGrade(state).then(function () {
+                    showResult("成绩已发布。", false);
+                }).catch(function (err) {
+                    showResult(err.message || "发布成绩失败", true);
                 });
             });
         }
@@ -398,68 +479,11 @@
             courses: [],
             pendingReviews: [],
             dashboard: null,
+            pipelineHealth: null,
             courseId: "",
             selectedReviewId: "",
             selectedReview: null,
         };
-
-        var reviewPanel = qs("#panel-review-list .card");
-        if (reviewPanel && !qs("#teacherCourseSelect")) {
-            var toolbar = reviewPanel.querySelector(".dashboard-toolbar-row");
-            if (toolbar) {
-                var courseSelect = document.createElement("select");
-                courseSelect.id = "teacherCourseSelect";
-                courseSelect.className = "dashboard-select";
-                courseSelect.innerHTML = "<option value=\"\">加载课程中...</option>";
-                toolbar.appendChild(courseSelect);
-            }
-            var summaryBar = reviewPanel.querySelector(".dashboard-filter-bar");
-            if (summaryBar) {
-                var summary = document.createElement("span");
-                summary.id = "teacherCourseSummary";
-                summary.className = "dashboard-soft-note";
-                summary.textContent = "请选择课程后查看待批改队列。";
-                summaryBar.appendChild(summary);
-            }
-            var list = qs("#teacherReviewList");
-            if (list && !qs("#teacherReviewEmpty")) {
-                var empty = document.createElement("div");
-                empty.id = "teacherReviewEmpty";
-                empty.className = "dashboard-empty-state";
-                empty.hidden = true;
-                empty.innerHTML = "<strong>暂无待批改提交</strong><p>当前课程没有待处理提交。</p>";
-                list.parentNode.insertBefore(empty, list.nextSibling);
-            }
-        }
-
-        var gradingPanel = qs("#panel-grading .card");
-        if (gradingPanel && !qs("#selectedReviewContext")) {
-            var currentContext = gradingPanel.querySelector(".nav-section");
-            if (currentContext) {
-                currentContext.innerHTML = '<div id="selectedReviewContext" class="review-item dashboard-list-item-static"><div class="review-meta"><strong>请选择左侧提交</strong><span class="muted">这里会显示当前评审上下文</span></div></div>';
-            }
-            var controls = gradingPanel.querySelector(".dashboard-panel-actions");
-            if (controls) {
-                controls.innerHTML = [
-                    '<button class="btn btn-secondary academic-btn-block" id="startReviewBtn" type="button">开始评审</button>',
-                    '<button class="btn btn-secondary academic-btn-block" id="saveDraftBtn" type="button">保存草稿</button>',
-                    '<button class="btn btn-primary academic-btn-block" id="saveReviewBtn" type="button">确认通过 ✓</button>',
-                    '<button class="btn btn-secondary academic-btn-block" id="publishGradeBtn" type="button">发布成绩</button>',
-                ].join("");
-            }
-            var scoreSection = gradingPanel.querySelector(".nav-section.dashboard-section-md");
-            if (scoreSection) {
-                scoreSection.innerHTML = '<div class="nav-section-title dashboard-section-sm">打分 (0-100)</div><input id="gradeScoreInput" class="dashboard-input" type="number" placeholder="输入分数" min="0" max="100">';
-            }
-            var feedbackSection = gradingPanel.querySelector(".nav-section.dashboard-section-lg");
-            if (feedbackSection) {
-                feedbackSection.innerHTML = '<div class="nav-section-title dashboard-section-sm">批改反馈意见</div><textarea id="gradeFeedbackInput" class="dashboard-textarea" placeholder="请输入建设性的反馈意见，指出优点与不足..."></textarea>';
-            }
-            var reviewLink = gradingPanel.querySelector(".dashboard-inline-link");
-            if (reviewLink) {
-                reviewLink.id = "selectedReviewAttachment";
-            }
-        }
 
         bindControls(state);
         loadCourses(state).catch(function (err) {

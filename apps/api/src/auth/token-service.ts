@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import jwt from "jsonwebtoken";
 import type { SignOptions } from "jsonwebtoken";
 import { env } from "../infra/env.js";
-import { redis } from "../infra/redis.js";
+import { redis, runRedis } from "../infra/redis.js";
 
 const REFRESH_PREFIX = "rt:";
 const memoryRefreshTokens = new Map<string, { userId: string; expiresAt: number }>();
@@ -54,38 +54,54 @@ export function createRefreshToken(): string {
 }
 
 export async function storeRefreshToken(rawToken: string, userId: string): Promise<void> {
-  try {
-    await redis.set(refreshKey(rawToken), userId, "EX", env.jwtRefreshTtlSeconds);
-  } catch {
-    setMemoryRefreshToken(rawToken, userId);
+  let usedMemoryFallback = false;
+  await runRedis(
+    () => redis.set(refreshKey(rawToken), userId, "EX", env.jwtRefreshTtlSeconds),
+    () => {
+      usedMemoryFallback = true;
+      setMemoryRefreshToken(rawToken, userId);
+      return "OK";
+    },
+  );
+  if (!usedMemoryFallback) {
+    memoryRefreshTokens.delete(refreshKey(rawToken));
   }
 }
 
 export async function consumeRefreshToken(rawToken: string): Promise<string | null> {
-  try {
-    const key = refreshKey(rawToken);
-    const userId = await redis.get(key);
-    if (!userId) {
-      return null;
-    }
-    await redis.del(key);
-    return userId;
-  } catch {
-    const userId = getMemoryRefreshToken(rawToken);
-    if (!userId) {
-      return null;
-    }
-    memoryRefreshTokens.delete(refreshKey(rawToken));
-    return userId;
+  const key = refreshKey(rawToken);
+  let usedMemoryFallback = false;
+  const userId = await runRedis(
+    () => redis.get(key),
+    () => {
+      usedMemoryFallback = true;
+      return getMemoryRefreshToken(rawToken);
+    },
+  );
+  if (!userId) {
+    return null;
   }
+  if (usedMemoryFallback) {
+    memoryRefreshTokens.delete(key);
+  } else {
+    await runRedis(
+      () => redis.del(key),
+      () => {
+        memoryRefreshTokens.delete(key);
+        return 0;
+      },
+    );
+  }
+  return userId;
 }
 
 export async function revokeRefreshToken(rawToken: string): Promise<void> {
-  try {
-    await redis.del(refreshKey(rawToken));
-  } catch {
-    memoryRefreshTokens.delete(refreshKey(rawToken));
-  }
+  const key = refreshKey(rawToken);
+  await runRedis(
+    () => redis.del(key),
+    () => 0,
+  );
+  memoryRefreshTokens.delete(key);
 }
 
 async function revokeAllRefreshTokensForTargetUsers(userIds: string[]): Promise<void> {
@@ -94,26 +110,32 @@ async function revokeAllRefreshTokensForTargetUsers(userIds: string[]): Promise<
     return;
   }
 
-  const stream = redis.scanStream({
-    match: `${REFRESH_PREFIX}*`,
-    count: 200,
-  });
+  await runRedis(
+    async () => {
+      const stream = redis.scanStream({
+        match: `${REFRESH_PREFIX}*`,
+        count: 200,
+      });
 
-  for await (const keys of stream) {
-    if (!Array.isArray(keys) || keys.length === 0) {
-      continue;
-    }
+      for await (const keys of stream) {
+        if (!Array.isArray(keys) || keys.length === 0) {
+          continue;
+        }
 
-    const values = await redis.mget(...keys);
-    const matchedKeys = keys.filter((_, idx) => {
-      const storedUserId = values[idx];
-      return typeof storedUserId === "string" && targetUserIds.has(storedUserId);
-    });
+        const values = await redis.mget(...keys);
+        const matchedKeys = keys.filter((_, idx) => {
+          const storedUserId = values[idx];
+          return typeof storedUserId === "string" && targetUserIds.has(storedUserId);
+        });
 
-    if (matchedKeys.length > 0) {
-      await redis.del(...matchedKeys);
-    }
-  }
+        if (matchedKeys.length > 0) {
+          await redis.del(...matchedKeys);
+        }
+      }
+    },
+    () => undefined,
+    1500,
+  );
 
   for (const [key, entry] of memoryRefreshTokens.entries()) {
     if (targetUserIds.has(entry.userId)) {
@@ -127,13 +149,5 @@ export async function revokeAllRefreshTokensForUsers(userIds: string[]): Promise
 }
 
 export async function revokeAllUserRefreshTokens(userId: string): Promise<void> {
-  try {
-    await revokeAllRefreshTokensForTargetUsers([userId]);
-  } catch {
-    for (const [key, entry] of memoryRefreshTokens.entries()) {
-      if (entry.userId === userId) {
-        memoryRefreshTokens.delete(key);
-      }
-    }
-  }
+  await revokeAllRefreshTokensForTargetUsers([userId]);
 }

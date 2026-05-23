@@ -6,7 +6,7 @@
     <title>Linksee 提交台</title>
     <link rel="stylesheet" href="./styles/theme.css" />
 </head>
-<body>
+<body class="academic-shell centered-page-shell">
 <main class="page">
     <header class="topbar">
         <div class="brand"><span class="brand-mark" aria-hidden="true"></span>提交台</div>
@@ -17,23 +17,27 @@
             <button id="logoutBtn">退出登录</button>
         </div>
     </header>
-    <section class="card">
-        <h1 class="card-title">阶段提交入口</h1>
+    <section class="card single-window-card">
+        <div class="dashboard-section-intro">
+            <h1 class="card-title">阶段提交入口</h1>
+            <p>提交页已经只有一个核心动作，我把它收紧成和教务页一致的中置操作窗口。</p>
+        </div>
         <div class="meta" id="metaInfo">正在加载登录信息...</div>
-        <div class="action-grid">
-            <select id="courseSelect" class="dashboard-select"></select>
-            <select id="assignmentSelect" class="dashboard-select"></select>
-            <select id="groupSelect" class="dashboard-select"></select>
-            <select id="stageSelect" class="dashboard-select"></select>
+        <div class="single-window-form">
+            <div class="action-grid">
+                <select id="courseSelect" class="dashboard-select"></select>
+                <select id="assignmentSelect" class="dashboard-select"></select>
+                <select id="groupSelect" class="dashboard-select"></select>
+                <select id="stageSelect" class="dashboard-select"></select>
+            </div>
+            <input id="titleInput" class="dashboard-input" placeholder="提交标题" />
+            <textarea id="descriptionInput" class="dashboard-textarea" placeholder="提交说明"></textarea>
+            <input id="repoInput" class="dashboard-input" placeholder="仓库链接(可选)" />
+            <div class="action-grid">
+                <button id="submitBtn" class="btn">提交材料</button>
+            </div>
+            <div class="dashboard-empty-state" id="submissionResult" hidden></div>
         </div>
-        <input id="titleInput" class="dashboard-input" placeholder="提交标题" />
-        <textarea id="descriptionInput" class="dashboard-textarea" placeholder="提交说明"></textarea>
-        <input id="repoInput" class="dashboard-input" placeholder="仓库链接(可选)" />
-        <div class="action-grid">
-            <button id="submitBtn" class="btn">提交材料</button>
-            <button id="saveDraftBtn" class="btn btn-ghost">保存草稿</button>
-        </div>
-        <div class="dashboard-empty-state" id="submissionResult" hidden></div>
     </section>
 </main>
 <script src="./scripts/api-client.js"></script>
@@ -93,10 +97,6 @@ document.getElementById("submitBtn").onclick = async () => {
     const data = await window.linkseeApi.postJson(`/api/v1/stages/${stageSelect.value}/groups/${groupSelect.value}/submissions`, payload);
     result.hidden = false;
     result.innerHTML = '<strong>提交成功</strong><p>submissionId: ' + linkseePage.escapeHtml(data.data && data.data.id) + '</p>';
-};
-document.getElementById("saveDraftBtn").onclick = () => {
-    result.hidden = false;
-    result.innerHTML = "<strong>已保存草稿</strong><p>当前页面先保留本地草稿位。</p>";
 };
 loadCourses();
 </script>

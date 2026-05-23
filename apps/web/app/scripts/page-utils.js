@@ -50,6 +50,11 @@
         localStorage.removeItem("auth_access_token");
         localStorage.removeItem("auth_refresh_token");
         localStorage.removeItem("auth_user_id");
+        localStorage.removeItem("auth_role");
+        localStorage.removeItem("auth_real_name");
+        localStorage.removeItem("auth_bio");
+        localStorage.removeItem("auth_force_change_password");
+        localStorage.removeItem("auth_origin");
         go("/login.html");
     }
 

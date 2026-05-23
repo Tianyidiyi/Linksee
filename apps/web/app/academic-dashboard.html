@@ -25,8 +25,8 @@
 
         <nav class="side-nav" aria-label="教务功能导航">
             <button class="nav-item is-active" data-target="panel-courses" type="button">课程管理</button>
-            <button class="nav-item" data-target="panel-users" type="button">人员库</button>
             <button class="nav-item" data-target="panel-assignments" type="button">项目监控</button>
+            <button class="nav-item" data-target="panel-course-staff" type="button">教师配置</button>
         </nav>
         <div class="sidebar-actions">
             <button id="userSettingsBtn" class="nav-item nav-item-ghost" type="button">用户设置</button>
@@ -40,88 +40,39 @@
                 <section class="card">
                     <div class="dashboard-section-intro">
                         <h2 class="card-title">课程管理</h2>
-                        <p>按课程状态、负责人和开课节奏筛选，优先处理会影响阶段发布的课程配置。</p>
                     </div>
-                    <div class="academic-toolbar">
-                        <input type="text" placeholder="搜索课程名称或 ID..." />
-                        <select>
-                            <option>全部状态</option>
-                            <option>进行中</option>
-                            <option>草稿</option>
-                            <option>已存档</option>
-                        </select>
-                    </div>
-                    <div class="dashboard-filter-bar">
-                        <div class="dashboard-filter-meta">
-                            <span>当前结果 3 / 6</span>
-                            <span class="dashboard-filter-tag">状态: 全部</span>
-                            <span class="dashboard-filter-tag">学期: 2026 春季</span>
-                        </div>
-                        <span class="dashboard-soft-note">最后同步于 10 分钟前</span>
-                    </div>
-                    <div class="data-grid" id="academicCourseList">
-                        <div class="data-grid-header muted academic-table-header">
-                            <span>课程 ID</span>
-                            <span>课程名称</span>
-                            <span>负责人</span>
-                            <span>状态</span>
-                            <span>操作</span>
-                        </div>
-                    </div>
-                    <div class="dashboard-empty-state" id="academicCourseEmpty" hidden>
-                        <strong>暂无课程</strong>
-                        <p>当前筛选条件下没有课程记录。</p>
-                    </div>
-                </section>
-            </div>
-
-            <div class="page-panel" id="panel-users">
-                <section class="card">
-                    <div class="dashboard-section-intro">
-                        <h2 class="card-title">人员库</h2>
-                        <p>统一查看教师、助教与学生的角色归属，方便在导入前先校验身份和课程绑定。</p>
-                    </div>
-                    <div class="academic-toolbar">
-                        <input type="text" placeholder="搜索人员 ID 或名称..." />
-                        <select>
-                            <option>全部角色</option>
-                            <option>教师</option>
-                            <option>助教</option>
-                            <option>学生</option>
-                        </select>
-                    </div>
-                    <div class="dashboard-filter-bar">
-                        <div class="dashboard-filter-meta">
-                            <span>当前展示 3 条重点记录</span>
-                            <span class="dashboard-filter-tag">角色: 全部</span>
-                            <span class="dashboard-filter-tag">状态: 正常</span>
-                        </div>
-                        <span class="dashboard-soft-note">支持批量导入后再次校验去重</span>
-                    </div>
-                    <div class="config-stack">
-                        <div class="config-item">
-                            <div class="config-meta">
-                                <strong>2023000001</strong>
-                                <span class="muted">教师 · 软件工程实践</span>
+                    <div class="dashboard-card-body">
+                        <div class="dashboard-merged-section academic-course-manage-section">
+                            <div class="academic-toolbar">
+                                <input type="text" id="academicCourseSearch" placeholder="搜索课程名称或 ID..." />
+                                <select id="academicCourseStatusFilter">
+                                    <option>全部状态</option>
+                                    <option>进行中</option>
+                                    <option>草稿</option>
+                                    <option>已存档</option>
+                                </select>
                             </div>
-                            <span class="badge badge-active">正常</span>
-                        </div>
-                        <div class="config-item">
-                            <div class="config-meta">
-                                <strong>2023019001</strong>
-                                <span class="muted">助教 · 软件工程实践</span>
+                            <div class="dashboard-filter-bar">
+                                <div class="dashboard-filter-meta" id="academicCourseMeta">
+                                    <span>正在加载课程...</span>
+                                </div>
+                                <span class="dashboard-soft-note" id="academicCourseNote">等待接口响应</span>
                             </div>
-                            <span class="badge badge-active">正常</span>
-                        </div>
-                        <div class="config-item">
-                            <div class="config-meta">
-                                <strong>2023010001</strong>
-                                <span class="muted">学生 · 原型推进组</span>
+                            <div class="data-grid" id="academicCourseList">
+                                <div class="data-grid-header muted academic-table-header">
+                                    <span>课程 ID</span>
+                                    <span>课程名称</span>
+                                    <span>负责人</span>
+                                    <span>状态</span>
+                                    <span>操作</span>
+                                </div>
                             </div>
-                            <span class="badge badge-active">正常</span>
+                            <div class="dashboard-empty-state" id="academicCourseEmpty" hidden>
+                                <strong>暂无课程</strong>
+                                <p>当前筛选条件下没有课程记录。</p>
+                            </div>
                         </div>
                     </div>
-                    <a class="btn btn-primary academic-btn-block" href="#import">批量导入人员</a>
                 </section>
             </div>
 
@@ -129,38 +80,135 @@
                 <section class="card">
                     <div class="dashboard-section-intro">
                         <h2 class="card-title">全校项目监控</h2>
-                        <p>快速识别进度异常、评审堵点和需要教务介入的课程阶段。</p>
                     </div>
                     <div class="dashboard-filter-bar">
-                        <div class="dashboard-filter-meta">
-                            <span>已监控 3 个关键项目节点</span>
-                            <span class="dashboard-filter-tag">风险项: 1</span>
-                            <span class="dashboard-filter-tag">观察项: 1</span>
+                        <div class="dashboard-filter-meta" id="academicMonitorMeta">
+                            <span>正在加载项目监控...</span>
                         </div>
-                        <span class="dashboard-soft-note">按风险优先级排序</span>
+                        <span class="dashboard-soft-note" id="academicMonitorNote">基于课程 pipeline-health 实时统计</span>
                     </div>
-                    <div class="config-stack">
-                        <div class="config-item">
-                            <div class="config-meta">
-                                <strong>软件工程实践 · 阶段 2 · 原型评审</strong>
-                                <span class="muted">已提交 28 · 评审中 5 · 已通过 18</span>
+                    <div class="config-stack" id="academicMonitorList"></div>
+                    <div class="dashboard-empty-state" id="academicMonitorEmpty" hidden>
+                        <strong>暂无监控项</strong>
+                        <p>当前课程下没有阶段流水线数据。</p>
+                    </div>
+                </section>
+            </div>
+
+            <div class="page-panel" id="panel-course-editor">
+                <section class="card">
+                    <div class="dashboard-section-intro">
+                        <h2 class="card-title">课程编辑</h2>
+                    </div>
+                    <div class="dashboard-card-body">
+                        <div class="dashboard-inline-grid">
+                            <div class="dashboard-subcard">
+                                <h3 class="dashboard-subcard-title">选择课程</h3>
+                                <select id="academicEditCourseSelect" class="dashboard-select"></select>
+                                <span class="dashboard-subcard-note" id="academicEditCourseHint"></span>
                             </div>
-                            <span class="badge badge-active">正常推进</span>
-                        </div>
-                        <div class="config-item">
-                            <div class="config-meta">
-                                <strong>数据库系统 · 阶段 1 · 需求分析</strong>
-                                <span class="muted">已提交 18 · 评审中 2 · 已通过 12</span>
+                            <div class="dashboard-subcard">
+                                <h3 class="dashboard-subcard-title">当前状态</h3>
+                                <div class="dashboard-filter-bar">
+                                    <div class="dashboard-filter-meta" id="academicEditCourseMeta">
+                                        <span>等待选择课程</span>
+                                    </div>
+                                </div>
                             </div>
-                            <span class="badge badge-pending">需关注</span>
                         </div>
-                        <div class="config-item">
-                            <div class="config-meta">
-                                <strong>Python 高级编程 · 阶段 3 · 代码复审</strong>
-                                <span class="muted">已提交 15 · 评审中 3 · 待修改 2</span>
+
+                        <div class="dashboard-subcard">
+                            <h3 class="dashboard-subcard-title">编辑表单</h3>
+                            <div class="single-window-form">
+                                <input id="academicEditCourseNo" class="dashboard-input" placeholder="课程编号" disabled />
+                                <input id="academicEditCourseName" class="dashboard-input" placeholder="课程名称" />
+                                <textarea id="academicEditCourseDescription" class="dashboard-textarea" placeholder="课程简介"></textarea>
+                                <select id="academicEditCourseStatus" class="dashboard-select">
+                                    <option value="draft">草稿</option>
+                                    <option value="active">进行中</option>
+                                    <option value="archived">已存档</option>
+                                </select>
+                                <div class="dashboard-panel-actions">
+                                    <button id="academicEditSubmitBtn" class="btn btn-primary" type="button">保存课程修改</button>
+                                    <button id="academicEditResetBtn" class="btn btn-secondary" type="button">恢复当前值</button>
+                                </div>
+                                <div class="dashboard-empty-state" id="academicEditResult" hidden></div>
                             </div>
-                            <span class="badge badge-error">高风险</span>
                         </div>
+                    </div>
+                </section>
+            </div>
+
+            <div class="page-panel" id="panel-course-staff">
+                <section class="card">
+                    <div class="dashboard-section-intro">
+                        <h2 class="card-title">教师配置</h2>
+                    </div>
+                    <div class="dashboard-card-body">
+                        <div class="dashboard-inline-grid">
+                            <div class="dashboard-subcard">
+                                <h3 class="dashboard-subcard-title">选择课程</h3>
+                                <select id="academicStaffCourseSelect" class="dashboard-select"></select>
+                                <span class="dashboard-subcard-note" id="academicStaffCourseHint"></span>
+                            </div>
+                            <div class="dashboard-subcard">
+                                <h3 class="dashboard-subcard-title">新增教师绑定</h3>
+                                <div class="single-window-form">
+                                    <input id="academicStaffTeacherId" class="dashboard-input" placeholder="教师用户 ID，例如 2023000001" />
+                                    <select id="academicStaffTeacherRole" class="dashboard-select">
+                                        <option value="lead">主讲教师</option>
+                                        <option value="co">协同教师</option>
+                                    </select>
+                                    <button id="academicStaffAddTeacherBtn" class="btn btn-primary" type="button">添加教师到课程</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="dashboard-inline-grid dashboard-split-scroll-grid">
+                            <div class="dashboard-subcard">
+                                <h3 class="dashboard-subcard-title">当前教师</h3>
+                                <div class="list dashboard-scroll-region" id="academicStaffTeacherList"></div>
+                            </div>
+                            <div class="dashboard-subcard">
+                                <h3 class="dashboard-subcard-title">当前助教</h3>
+                                <div class="list dashboard-scroll-region" id="academicStaffAssistantList"></div>
+                            </div>
+                        </div>
+
+                        <div class="dashboard-empty-state" id="academicStaffResult" hidden></div>
+                    </div>
+                </section>
+            </div>
+
+            <div class="page-panel" id="panel-account-batch">
+                <section class="card">
+                    <div class="dashboard-section-intro">
+                        <h2 class="card-title">账号开通</h2>
+                    </div>
+                    <div class="dashboard-card-body">
+                        <div class="dashboard-subcard">
+                            <h3 class="dashboard-subcard-title">默认密码</h3>
+                            <input id="academicBatchDefaultPassword" class="dashboard-input" placeholder="可选：留空则自动生成临时密码" />
+                        </div>
+                        <div class="dashboard-inline-grid dashboard-split-scroll-grid">
+                            <div class="dashboard-subcard">
+                                <h3 class="dashboard-subcard-title">批量创建学生</h3>
+                                <textarea id="academicBatchStudents" class="dashboard-textarea" placeholder="2023010001,张三,2023010001,2023,2023,软件工程,软工2301"></textarea>
+                                <div class="dashboard-panel-actions">
+                                    <button id="academicBatchStudentSubmitBtn" class="btn btn-primary" type="button">创建学生账号</button>
+                                    <button id="academicBatchStudentClearBtn" class="btn btn-secondary" type="button">清空学生数据</button>
+                                </div>
+                            </div>
+                            <div class="dashboard-subcard">
+                                <h3 class="dashboard-subcard-title">批量创建教师</h3>
+                                <textarea id="academicBatchTeachers" class="dashboard-textarea" placeholder="2023000001,李老师,2023000001,教授,计算机学院,软件工程教育"></textarea>
+                                <div class="dashboard-panel-actions">
+                                    <button id="academicBatchTeacherSubmitBtn" class="btn btn-primary" type="button">创建教师账号</button>
+                                    <button id="academicBatchTeacherClearBtn" class="btn btn-secondary" type="button">清空教师数据</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="dashboard-empty-state" id="academicBatchResult" hidden></div>
                     </div>
                 </section>
             </div>
@@ -168,61 +216,16 @@
     </div>
 
     <script src="./scripts/api-client.js"></script>
+    <script src="./scripts/dashboard-extensions.js"></script>
     <script src="./scripts/dashboard-shell.js"></script>
     <script src="./scripts/user-settings.js"></script>
     <script src="./scripts/leaf-pile.js"></script>
+    <script src="./scripts/academic-dashboard.js"></script>
     <script>
         initDashboardShell({
             avatarStorageKey: "academic_avatar_data_url",
         });
-
-        (function () {
-            var list = document.getElementById("academicCourseList");
-            var empty = document.getElementById("academicCourseEmpty");
-            if (!list || !window.linkseeApi) {
-                return;
-            }
-
-            function getStatusLabel(status) {
-                if (status === "active") return "进行中";
-                if (status === "draft") return "草稿";
-                if (status === "archived") return "已存档";
-                return status || "--";
-            }
-
-            window.linkseeApi.getJson("/api/v1/courses")
-                .then(function (payload) {
-                    var courses = Array.isArray(payload.data) ? payload.data : [];
-                    list.querySelectorAll(".data-grid-row").forEach(function (row) {
-                        row.remove();
-                    });
-
-                    if (!courses.length) {
-                        if (empty) empty.hidden = false;
-                        return;
-                    }
-                    if (empty) empty.hidden = true;
-
-                    list.insertAdjacentHTML("beforeend", courses.map(function (course) {
-                        return [
-                            '<div class="data-grid-row">',
-                            '<span><span class="chip">' + String(course.courseNo || course.id || "--") + '</span></span>',
-                            '<span><strong>' + String(course.name || "--") + '</strong></span>',
-                            '<span>' + String(course.createdBy || "--") + '</span>',
-                            '<span><span class="badge badge-active">' + getStatusLabel(course.status) + '</span></span>',
-                            '<span><a class="btn btn-secondary academic-row-action" href="#">编辑</a></span>',
-                            '</div>',
-                        ].join("");
-                    }).join(""));
-                })
-                .catch(function () {
-                    if (empty) {
-                        empty.hidden = false;
-                        empty.querySelector("strong").textContent = "课程加载失败";
-                        empty.querySelector("p").textContent = "请检查后端服务是否启动。";
-                    }
-                });
-        })();
+        initAcademicDashboard();
     </script>
 </body>
 

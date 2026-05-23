@@ -38,8 +38,19 @@
             color: var(--ink-soft);
             cursor: pointer;
         }
+        .linksee-chat-launcher.is-floating {
+            position: fixed;
+            top: max(18px, env(safe-area-inset-top));
+            right: max(18px, env(safe-area-inset-right));
+            z-index: 120;
+            width: 68px;
+            height: 68px;
+            background: rgba(255,255,255,.88);
+            backdrop-filter: blur(16px);
+        }
         .linksee-chat-launcher.is-active { border-color: var(--accent-outline); }
         .linksee-chat-launcher svg { width: 18px; height: 18px; }
+        .linksee-chat-launcher.is-floating svg { width: 34px; height: 34px; }
         .linksee-chat-dot {
             position: absolute;
             top: 5px;
@@ -55,8 +66,8 @@
         .linksee-chat-panel {
             position: fixed;
             z-index: 80;
-            width: min(920px, calc(100vw - 32px));
-            height: min(680px, calc(100vh - 40px));
+            width: min(1150px, calc(100vw - 32px));
+            height: min(850px, calc(100vh - 40px));
             background: rgba(248, 250, 249, 0.94);
             border: 1px solid var(--border);
             box-shadow: 0 32px 90px rgba(15,23,42,.18);
@@ -66,6 +77,35 @@
             display: none;
             left: 24px;
             top: 120px;
+        }
+        body.linksee-chat-docked-open .workspace {
+            justify-content: flex-start;
+            padding-right: calc(50vw + 8px);
+            transition: padding-right var(--motion-base) var(--ease-standard);
+        }
+        body.linksee-chat-docked-open .content-container {
+            max-width: none;
+            margin-left: 0;
+            margin-right: 0;
+            padding-left: clamp(16px, 2vw, 32px);
+            padding-right: clamp(16px, 2vw, 32px);
+            transition: padding var(--motion-base) var(--ease-standard);
+        }
+        body.linksee-chat-docked-open .page-panel {
+            width: 100%;
+        }
+        body.linksee-chat-docked-open .linksee-chat-launcher.is-floating {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .linksee-chat-panel.is-docked {
+            left: auto !important;
+            top: 16px !important;
+            right: 16px;
+            bottom: 16px;
+            width: calc(50vw - 24px);
+            height: calc(100vh - 32px);
+            border-radius: 28px;
         }
         .linksee-chat-panel.is-open { display: grid; }
         .linksee-chat-panel.is-list { grid-template-columns: 360px minmax(0,1fr); }
@@ -138,6 +178,22 @@
             padding: 12px; background: rgba(255,255,255,.82); font: inherit;
         }
         .linksee-chat-mini { font-size: 12px; color: var(--muted-strong); }
+        @media (max-width: 1024px) {
+            body.linksee-chat-docked-open .workspace { padding-right: 0; }
+            body.linksee-chat-docked-open .content-container {
+                padding-left: var(--space-5);
+                padding-right: var(--space-5);
+            }
+            .linksee-chat-panel.is-docked {
+                left: 8px !important;
+                right: auto;
+                top: 8px !important;
+                bottom: auto;
+                width: calc(100vw - 16px);
+                height: calc(100vh - 16px);
+                border-radius: 24px;
+            }
+        }
         @media (max-width: 860px) {
             .linksee-chat-panel { width: calc(100vw - 16px); height: calc(100vh - 16px); left: 8px; top: 8px; }
             .linksee-chat-panel.is-list { grid-template-columns: 1fr; }
@@ -195,13 +251,14 @@
         return getOrigin() + getBasePath() + path;
     }
 
-    function createLauncher(topActions) {
+    function createLauncher(target, floating) {
         var button = document.createElement("button");
-        button.className = "linksee-chat-launcher";
+        button.className = "linksee-chat-launcher" + (floating ? " is-floating" : "");
         button.type = "button";
         button.setAttribute("aria-label", "消息");
-        button.innerHTML = "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M21 15a3 3 0 0 1-3 3H8l-5 3V6a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3z'/><path d='M7 8h10M7 12h6'/></svg><span class='linksee-chat-dot'></span>";
-        topActions.appendChild(button);
+        button.setAttribute("title", "打开聊天消息");
+        button.innerHTML = "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='5' width='18' height='14' rx='2'/><path d='m3 7 9 6 9-6'/></svg><span class='linksee-chat-dot'></span>";
+        target.appendChild(button);
         return button;
     }
 
@@ -212,9 +269,6 @@
             <div class="linksee-chat-left">
                 <div class="linksee-chat-header" data-drag-handle="true">
                     <div><strong>消息</strong><div class="linksee-chat-mini">群聊列表</div></div>
-                    <div class="linksee-chat-actions">
-                        <button class="linksee-chat-icon-btn" data-action="close" title="关闭">×</button>
-                    </div>
                 </div>
                 <div class="linksee-chat-search"><input type="text" placeholder="搜索群聊" data-role="search" /></div>
                 <div class="linksee-chat-list" data-role="conversation-list"></div>
@@ -422,6 +476,7 @@
     }
 
     function startDrag(event) {
+        if (state.panel && state.panel.classList.contains("is-docked")) return;
         var header = event.target.closest("[data-drag-handle='true']");
         if (!header) return;
         state.drag = {
@@ -449,9 +504,8 @@
 
     function ensureWidget() {
         var topActions = q(".top-actions");
-        if (!topActions) return;
         if (!state.launcher) {
-            state.launcher = createLauncher(topActions);
+            state.launcher = createLauncher(topActions || document.body, !topActions);
             state.launcher.addEventListener("click", function () {
                 togglePanel();
             });
@@ -490,7 +544,9 @@
     function openPanel() {
         state.open = true;
         ensureWidget();
+        document.body.classList.add("linksee-chat-docked-open");
         state.panel.classList.add("is-open");
+        state.panel.classList.add("is-docked");
         state.launcher.classList.add("is-active");
         state.launcher.classList.add("has-open");
         state.panel.classList.toggle("is-list", state.mode === "list");
@@ -509,8 +565,10 @@
 
     function closePanel() {
         state.open = false;
+        document.body.classList.remove("linksee-chat-docked-open");
         if (state.panel) {
             state.panel.classList.remove("is-open");
+            state.panel.classList.remove("is-docked");
         }
         if (state.launcher) {
             state.launcher.classList.remove("is-active");

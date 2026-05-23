@@ -11,6 +11,73 @@
         };
     }
 
+    var NAV_ORDER = {
+        academic: [
+            "panel-courses",
+            "panel-course-staff",
+            "panel-user-maintenance",
+            "panel-assignments",
+        ],
+        teacher: [
+            "panel-assignment-manage",
+            "panel-stage-manage",
+            "panel-group-manage",
+            "panel-assistant-manage",
+            "panel-review-workbench",
+        ],
+        assistant: [
+            "panel-review",
+            "panel-history",
+            "panel-courses",
+        ],
+        student: [
+            "panel-courses",
+            "panel-minitask-manage",
+            "panel-file-submit",
+            "panel-grades",
+        ],
+    };
+
+    function getDashboardRole() {
+        if (document.body.classList.contains("teacher-shell")) return "teacher";
+        if (document.body.classList.contains("assistant-shell")) return "assistant";
+        if (document.body.classList.contains("student-shell")) return "student";
+        if (document.body.classList.contains("academic-shell")) return "academic";
+        return "";
+    }
+
+    function sortDashboardNav() {
+        var nav = document.querySelector(".side-nav");
+        if (!nav) return;
+
+        var role = getDashboardRole();
+        var order = NAV_ORDER[role] || [];
+        var orderMap = {};
+        order.forEach(function (targetId, index) {
+            orderMap[targetId] = index;
+        });
+
+        var collator = window.Intl && Intl.Collator
+            ? new Intl.Collator("zh-Hans-CN", { numeric: true })
+            : null;
+        var buttons = Array.from(nav.querySelectorAll(".nav-item[data-target]"));
+
+        buttons.sort(function (a, b) {
+            var targetA = a.getAttribute("data-target") || "";
+            var targetB = b.getAttribute("data-target") || "";
+            var rankA = Object.prototype.hasOwnProperty.call(orderMap, targetA) ? orderMap[targetA] : Number.MAX_SAFE_INTEGER;
+            var rankB = Object.prototype.hasOwnProperty.call(orderMap, targetB) ? orderMap[targetB] : Number.MAX_SAFE_INTEGER;
+            if (rankA !== rankB) return rankA - rankB;
+            var labelA = a.textContent.trim();
+            var labelB = b.textContent.trim();
+            return collator ? collator.compare(labelA, labelB) : labelA.localeCompare(labelB);
+        });
+
+        buttons.forEach(function (button) {
+            nav.appendChild(button);
+        });
+    }
+
     function initDashboardNav() {
         var navItems = document.querySelectorAll(".side-nav .nav-item");
         if (!navItems.length) {
@@ -33,8 +100,58 @@
                 if (targetPanel) {
                     targetPanel.classList.add("is-active");
                 }
+                scheduleAdaptivePanelSync();
             });
         });
+    }
+
+    function removeDashboardDescriptions() {
+        document.querySelectorAll([
+            ".dashboard-section-intro > p",
+            ".dashboard-subcard-note",
+            ".dashboard-soft-note",
+        ].join(",")).forEach(function (node) {
+            node.remove();
+        });
+    }
+
+    function parsePixels(value) {
+        var parsed = parseFloat(value);
+        return isFinite(parsed) ? parsed : 0;
+    }
+
+    function syncAdaptivePanels() {
+        var container = document.querySelector(".content-container");
+        if (!container || !document.body.classList.contains("app-shell")) {
+            return;
+        }
+
+        var style = window.getComputedStyle(container);
+        var verticalPadding = parsePixels(style.paddingTop) + parsePixels(style.paddingBottom);
+        var viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+        var minimumHeight = document.body.classList.contains("academic-shell") ? 1016 : 872;
+        var availableHeight = Math.max(0, viewportHeight - verticalPadding);
+        var panelHeight = Math.max(minimumHeight, availableHeight);
+
+        document.documentElement.style.setProperty("--dashboard-panel-min-height", minimumHeight + "px");
+        document.documentElement.style.setProperty("--dashboard-panel-height", panelHeight + "px");
+    }
+
+    function scheduleAdaptivePanelSync() {
+        window.requestAnimationFrame(syncAdaptivePanels);
+    }
+
+    function initAdaptivePanels() {
+        syncAdaptivePanels();
+        window.addEventListener("resize", scheduleAdaptivePanelSync);
+        window.addEventListener("orientationchange", scheduleAdaptivePanelSync);
+
+        var container = document.querySelector(".content-container");
+        if (container && window.ResizeObserver) {
+            var observer = new ResizeObserver(scheduleAdaptivePanelSync);
+            observer.observe(container);
+            window.__linkseeAdaptivePanelObserver = observer;
+        }
     }
 
     function initAvatarControls(avatarStorageKey) {
@@ -70,11 +187,32 @@
                 var nextAvatar = loadEvent.target && loadEvent.target.result;
                 if (typeof nextAvatar === "string") {
                     avatarImage.src = nextAvatar;
-                    savedAvatar = nextAvatar;
-                    localStorage.setItem(avatarStorageKey, nextAvatar);
+                    if (!window.linkseeApi) {
+                        savedAvatar = nextAvatar;
+                        localStorage.setItem(avatarStorageKey, nextAvatar);
+                    }
                 }
             };
             reader.readAsDataURL(file);
+
+            if (!window.linkseeApi) {
+                return;
+            }
+
+            var formData = new FormData();
+            formData.append("avatar", file);
+            window.linkseeApi.postForm("/api/v1/users/me/avatar", formData)
+                .then(function (payload) {
+                    var avatarUrl = payload && payload.data ? payload.data.avatarUrl : "";
+                    if (avatarUrl) {
+                        avatarImage.src = avatarUrl;
+                        savedAvatar = avatarUrl;
+                        localStorage.setItem(avatarStorageKey, avatarUrl);
+                    }
+                })
+                .catch(function () {
+                    avatarImage.src = savedAvatar || defaultAvatar;
+                });
         });
     }
 
@@ -138,6 +276,7 @@
                 if (role) {
                     localStorage.setItem("auth_role", role);
                 }
+                localStorage.setItem("auth_force_change_password", data.forceChangePassword ? "true" : "false");
                 if (realName) {
                     localStorage.setItem("auth_real_name", realName);
                 }
@@ -148,6 +287,9 @@
                     metaInfo.textContent = "当前登录账号：" + userId;
                 }
                 updateProfileDisplay(realName, bio, userId);
+                if (data.forceChangePassword && window.linkseeUserSettings) {
+                    window.linkseeUserSettings.open();
+                }
             })
             .catch(function () {
                 // Keep existing local session display if the profile endpoint is unavailable.
@@ -166,6 +308,11 @@
             localStorage.removeItem("auth_access_token");
             localStorage.removeItem("auth_refresh_token");
             localStorage.removeItem("auth_user_id");
+            localStorage.removeItem("auth_role");
+            localStorage.removeItem("auth_real_name");
+            localStorage.removeItem("auth_bio");
+            localStorage.removeItem("auth_force_change_password");
+            localStorage.removeItem("auth_origin");
             localStorage.removeItem(avatarStorageKey);
         window.location.href = appBase.appOrigin + appBase.appBasePath + "/login.html";
         });
@@ -198,9 +345,15 @@
             throw new Error("initDashboardShell requires avatarStorageKey.");
         }
 
+        if (window.linkseeDashboardExtensions && typeof window.linkseeDashboardExtensions.install === "function") {
+            window.linkseeDashboardExtensions.install(options || {});
+        }
+        removeDashboardDescriptions();
+        sortDashboardNav();
         initSessionMeta();
         syncSessionWithServer();
         initDashboardNav();
+        initAdaptivePanels();
         initAvatarControls(avatarStorageKey);
         initLogout(avatarStorageKey);
         initChatLauncher();

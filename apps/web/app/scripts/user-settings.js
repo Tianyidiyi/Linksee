@@ -161,6 +161,8 @@
         return {
             realName: localStorage.getItem("auth_real_name") || localStorage.getItem("auth_user_id") || "",
             bio: localStorage.getItem("auth_bio") || "",
+            email: localStorage.getItem("auth_email") || "",
+            location: localStorage.getItem("auth_location") || "",
         };
     }
 
@@ -174,6 +176,12 @@
                 }
                 if (data.profile && typeof data.profile.bio === "string") {
                     localStorage.setItem("auth_bio", data.profile.bio);
+                }
+                if (data.profile && typeof data.profile.email === "string") {
+                    localStorage.setItem("auth_email", data.profile.email);
+                }
+                if (data.profile && typeof data.profile.location === "string") {
+                    localStorage.setItem("auth_location", data.profile.location);
                 }
             })
             .catch(function () {});
@@ -189,11 +197,19 @@
             '</div>',
             '<div class="user-settings-body">',
             '<label class="user-settings-field"><span>昵称</span><input data-field="realName" value="' + escapeHtml(profile.realName) + '" placeholder="输入昵称" /></label>',
+            '<label class="user-settings-field"><span>邮箱</span><input data-field="email" value="' + escapeHtml(profile.email) + '" placeholder="输入邮箱" /></label>',
+            '<label class="user-settings-field"><span>位置</span><input data-field="location" value="' + escapeHtml(profile.location) + '" placeholder="输入位置" /></label>',
             '<label class="user-settings-field"><span>说明</span><textarea data-field="bio" placeholder="写一点说明">' + escapeHtml(profile.bio) + '</textarea></label>',
             '<div class="user-settings-field"><span>背景</span><div class="theme-picks theme-picks-presets">',
             backgroundPresets.map(function (item) {
                 return '<button class="theme-pick theme-pick-preset' + (getBackgroundPreset() === item.id ? ' is-active' : '') + '" type="button" data-theme="' + item.theme + '" data-preset="' + item.id + '" title="' + item.label + '" aria-label="' + item.label + '" style="--swatch:' + item.theme + '"><span>' + item.label + '</span></button>';
             }).join(""),
+            '</div></div>',
+            '<div class="user-settings-field"><span>修改密码</span><div class="single-window-form">',
+            '<input data-field="currentPassword" type="password" autocomplete="current-password" placeholder="当前密码" />',
+            '<input data-field="newPassword" type="password" autocomplete="new-password" placeholder="新密码" />',
+            '<input data-field="confirmPassword" type="password" autocomplete="new-password" placeholder="确认新密码" />',
+            '<button class="btn btn-secondary" type="button" data-action="change-password">更新密码</button>',
             '</div></div>',
             '</div>',
             '<div class="dashboard-soft-note' + (state.messageType === "error" ? ' user-settings-message is-error' : state.message ? ' user-settings-message is-success' : ' user-settings-message') + '">' + escapeHtml(state.message) + '</div>',
@@ -205,6 +221,11 @@
 
         var realNameInput = state.dialog.querySelector('[data-field="realName"]');
         var bioInput = state.dialog.querySelector('[data-field="bio"]');
+        var emailInput = state.dialog.querySelector('[data-field="email"]');
+        var locationInput = state.dialog.querySelector('[data-field="location"]');
+        var currentPasswordInput = state.dialog.querySelector('[data-field="currentPassword"]');
+        var newPasswordInput = state.dialog.querySelector('[data-field="newPassword"]');
+        var confirmPasswordInput = state.dialog.querySelector('[data-field="confirmPassword"]');
         state.dialog.querySelectorAll("[data-theme]").forEach(function (btn) {
             btn.addEventListener("click", function () {
                 setTheme(btn.getAttribute("data-theme"), btn.getAttribute("data-preset"));
@@ -218,7 +239,19 @@
                     close();
                 }
                 if (action === "save") {
-                    save(realNameInput ? realNameInput.value.trim() : "", bioInput ? bioInput.value.trim() : "");
+                    save(
+                        realNameInput ? realNameInput.value.trim() : "",
+                        bioInput ? bioInput.value.trim() : "",
+                        emailInput ? emailInput.value.trim() : "",
+                        locationInput ? locationInput.value.trim() : ""
+                    );
+                }
+                if (action === "change-password") {
+                    changePassword(
+                        currentPasswordInput ? currentPasswordInput.value : "",
+                        newPasswordInput ? newPasswordInput.value : "",
+                        confirmPasswordInput ? confirmPasswordInput.value : ""
+                    );
                 }
             });
         });
@@ -256,7 +289,7 @@
         state.open = false;
     }
 
-    function save(realName, bio) {
+    function save(realName, bio, email, location) {
         state.message = "";
         state.messageType = "";
         state.saving = true;
@@ -267,11 +300,15 @@
             realName: safeRealName,
         };
         payload.bio = bio;
+        payload.email = email || null;
+        payload.location = location || null;
         if (window.linkseeApi) {
             window.linkseeApi.patchJson("/api/v1/users/me", payload)
                 .then(function () {
                     localStorage.setItem("auth_real_name", safeRealName);
                     localStorage.setItem("auth_bio", bio || "");
+                    localStorage.setItem("auth_email", email || "");
+                    localStorage.setItem("auth_location", location || "");
                     var userBadge = document.getElementById("userBadge");
                     if (userBadge) {
                         userBadge.textContent = safeRealName || userId || "--";
@@ -299,6 +336,8 @@
         } else {
             localStorage.setItem("auth_real_name", safeRealName);
             localStorage.setItem("auth_bio", bio || "");
+            localStorage.setItem("auth_email", email || "");
+            localStorage.setItem("auth_location", location || "");
             var userBadge = document.getElementById("userBadge");
             if (userBadge) {
                 userBadge.textContent = safeRealName || userId || "--";
@@ -317,6 +356,56 @@
             state.messageType = "success";
             close();
         }
+    }
+
+    function changePassword(currentPassword, newPassword, confirmPassword) {
+        state.message = "";
+        state.messageType = "";
+        state.saving = true;
+        render();
+        if (!currentPassword || !newPassword) {
+            state.saving = false;
+            state.message = "请填写当前密码和新密码";
+            state.messageType = "error";
+            render();
+            return;
+        }
+        if (newPassword !== confirmPassword) {
+            state.saving = false;
+            state.message = "两次输入的新密码不一致";
+            state.messageType = "error";
+            render();
+            return;
+        }
+        if (!window.linkseeApi) {
+            state.saving = false;
+            state.message = "API 客户端尚未加载";
+            state.messageType = "error";
+            render();
+            return;
+        }
+        window.linkseeApi.postJson("/api/v1/auth/change-password", {
+            currentPassword: currentPassword,
+            newPassword: newPassword,
+        }).then(function (payload) {
+            var data = payload && payload.data ? payload.data : {};
+            if (data.accessToken) {
+                localStorage.setItem("auth_access_token", data.accessToken);
+            }
+            if (data.refreshToken) {
+                localStorage.setItem("auth_refresh_token", data.refreshToken);
+            }
+            localStorage.setItem("auth_force_change_password", "false");
+            state.saving = false;
+            state.message = "密码已更新";
+            state.messageType = "success";
+            render();
+        }).catch(function (err) {
+            state.saving = false;
+            state.message = (err && err.message) || "密码修改失败";
+            state.messageType = "error";
+            render();
+        });
     }
 
     window.linkseeUserSettings = {

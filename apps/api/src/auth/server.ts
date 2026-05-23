@@ -97,7 +97,6 @@ export function createHttpServer(app = createApp()): http.Server {
 }
 
 export async function bootstrap(): Promise<void> {
-  await ensureBuckets();
   const server = createHttpServer(createApp());
   const io = new Server(server, {
     cors: {
@@ -125,6 +124,9 @@ export async function bootstrap(): Promise<void> {
 
   server.listen(env.authPort, () => {
     console.log(`[auth-api] listening on http://localhost:${env.authPort}`);
+    ensureBuckets().catch((err: unknown) => {
+      console.warn("[minio] bucket initialization skipped", err);
+    });
   });
 }
 

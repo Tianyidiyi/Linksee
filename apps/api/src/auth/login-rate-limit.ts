@@ -1,4 +1,4 @@
-import { redis } from "../infra/redis.js";
+import { redis, runRedis } from "../infra/redis.js";
 
 const MAX_ATTEMPTS = 5;
 const LOCK_SECONDS = 15 * 60;
@@ -28,31 +28,38 @@ function setMemoryAttempts(userId: string, count: number): void {
 }
 
 export async function isLoginLocked(userId: string): Promise<boolean> {
-  try {
-    const attempts = Number(await redis.get(lockKey(userId)));
-    return Number.isFinite(attempts) && attempts >= MAX_ATTEMPTS;
-  } catch {
-    return getMemoryAttempts(userId) >= MAX_ATTEMPTS;
-  }
+  const attempts = Number(await runRedis(
+    () => redis.get(lockKey(userId)),
+    () => String(getMemoryAttempts(userId)),
+  ));
+  return Number.isFinite(attempts) && attempts >= MAX_ATTEMPTS;
 }
 
 export async function recordLoginFailure(userId: string): Promise<void> {
-  try {
-    const key = lockKey(userId);
-    const current = await redis.incr(key);
-    if (current === 1) {
-      await redis.expire(key, LOCK_SECONDS);
-    }
-  } catch {
-    const current = getMemoryAttempts(userId) + 1;
-    setMemoryAttempts(userId, current);
+  const key = lockKey(userId);
+  let usedMemoryFallback = false;
+  const current = await runRedis(
+    () => redis.incr(key),
+    () => {
+      usedMemoryFallback = true;
+      const next = getMemoryAttempts(userId) + 1;
+      setMemoryAttempts(userId, next);
+      return next;
+    },
+  );
+  if (current === 1) {
+    await runRedis(
+      () => redis.expire(key, LOCK_SECONDS),
+      () => 0,
+    );
   }
+  if (!usedMemoryFallback) memoryAttempts.delete(userId);
 }
 
 export async function clearLoginFailures(userId: string): Promise<void> {
-  try {
-    await redis.del(lockKey(userId));
-  } catch {
-    memoryAttempts.delete(userId);
-  }
+  await runRedis(
+    () => redis.del(lockKey(userId)),
+    () => 0,
+  );
+  memoryAttempts.delete(userId);
 }

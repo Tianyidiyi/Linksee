@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="./styles/theme.css" />
 </head>
 
-<body class="app-shell assistant-shell">
+<body class="app-shell assistant-shell academic-shell">
     <div class="sidebar-trigger" aria-hidden="true"></div>
     <aside class="sidebar">
         <div class="user-profile">
@@ -23,9 +23,9 @@
         </div>
 
         <nav class="side-nav" aria-label="助教功能导航">
-            <button class="nav-item is-active" data-target="panel-review" type="button">待批改提交</button>
-            <button class="nav-item" data-target="panel-history" type="button">批改记录</button>
-            <button class="nav-item" data-target="panel-courses" type="button">助教分配</button>
+            <button class="nav-item is-active" data-target="panel-review" type="button">检查工作台</button>
+            <button class="nav-item" data-target="panel-history" type="button">处理记录</button>
+            <button class="nav-item" data-target="panel-courses" type="button">负责课程</button>
         </nav>
         <div class="sidebar-actions">
             <button id="userSettingsBtn" class="nav-item nav-item-ghost" type="button">用户设置</button>
@@ -36,94 +36,123 @@
     <div class="workspace">
         <div class="content-container">
             <div class="page-panel is-active" id="panel-review">
-                <div class="assistant-grid-layout">
-
-                    <div class="assistant-main-col">
-                        <section class="card">
-                            <div class="dashboard-section-intro">
-                                <h2 class="card-title">待批改提交</h2>
-                                <p>优先关注处于复审链路中的提交，避免教师批改队列被无效阻塞。</p>
-                            </div>
-                            <div class="list" id="assistantSubmissionList"></div>
-                            <div class="dashboard-empty-state" id="assistantSubmissionEmpty" hidden>
-                                <strong>暂无待批改提交</strong>
-                                <p>当前没有可处理的提交。</p>
-                            </div>
-                            <div class="dashboard-filter-bar">
-                                <div class="dashboard-filter-meta">
-                                    <span id="assistantPendingCount">当前待处理 0 条</span>
-                                    <span class="dashboard-filter-tag" id="assistantReviewCount">复审链路: 0</span>
-                                    <span class="dashboard-filter-tag" id="assistantNewCount">新提交: 0</span>
-                                </div>
-                                <span class="dashboard-soft-note">建议优先处理评审中项目</span>
-                            </div>
-                        </section>
+                <section class="card assistant-review-workbench-card">
+                    <div class="dashboard-section-intro">
+                        <h2 class="card-title">检查工作台</h2>
                     </div>
-
-                    <div class="assistant-side-col">
-                        <section class="card">
-                            <div class="dashboard-section-intro">
-                                <h1 class="card-title">工作概览</h1>
-                                <p>帮助你快速判断本周负责课程、检查量和当前工作负荷。</p>
-                            </div>
-                            <div class="meta" id="metaInfo">正在加载登录信息...</div>
-                            <div class="stat-grid">
-                                <div class="stat">
-                                    <strong id="assistantCourseCount">0</strong>
-                                    <span>负责课程</span>
-                                </div>
-                                <div class="stat">
-                                    <strong id="assistantNeedCheckCount">0</strong>
-                                    <span>待检查提交</span>
+                    <div class="dashboard-card-body">
+                        <div class="meta" id="metaInfo">正在加载登录信息...</div>
+                        <div class="dashboard-inline-grid">
+                            <div class="dashboard-subcard">
+                                <h3 class="dashboard-subcard-title">工作概览</h3>
+                                <div class="stat-grid">
+                                    <div class="stat"><strong id="assistantCourseCount">0</strong><span>绑定课程</span></div>
+                                    <div class="stat"><strong id="assistantNeedCheckCount">0</strong><span>待检查提交</span></div>
                                 </div>
                             </div>
-                        </section>
+                            <div class="dashboard-subcard">
+                                <h3 class="dashboard-subcard-title">当前课程</h3>
+                                <select class="dashboard-select" id="assistantCourseSelect"></select>
+                            </div>
+                        </div>
 
-                        <section class="card">
-                            <div class="dashboard-section-intro">
-                                <h2 class="card-title">快速入口</h2>
-                                <p>把批改和检查两个高频入口固定到最短路径。</p>
-                            </div>
-                            <div class="action-group">
-                                <a class="btn btn-primary" href="./grading-hub.html">进入批改台</a>
-                                <a class="btn btn-secondary" href="./assistant-check.html">进入检查台</a>
-                            </div>
-                        </section>
+                        <div class="assistant-review-workbench">
+                            <section class="dashboard-subcard assistant-review-queue">
+                                <div class="dashboard-split-row">
+                                    <h3 class="dashboard-subcard-title">待处理队列</h3>
+                                    <button id="assistantReloadBtn" class="btn btn-secondary" type="button">刷新</button>
+                                </div>
+                                <div class="list dashboard-scroll-region" id="assistantSubmissionList"></div>
+                                <div class="dashboard-empty-state" id="assistantSubmissionEmpty" hidden>
+                                    <strong>暂无待检查提交</strong>
+                                    <p>当前课程没有待处理提交。</p>
+                                </div>
+                                <div class="dashboard-filter-bar">
+                                    <div class="dashboard-filter-meta">
+                                        <span id="assistantPendingCount">当前待处理 0 条</span>
+                                        <span class="dashboard-filter-tag" id="assistantReviewCount">评审中: 0</span>
+                                        <span class="dashboard-filter-tag" id="assistantNewCount">新提交: 0</span>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section class="assistant-review-editor">
+                                <div class="dashboard-subcard">
+                                    <h3 class="dashboard-subcard-title">当前提交</h3>
+                                    <div class="dashboard-empty-state" id="assistantReviewContext">请选择左侧提交</div>
+                                    <label class="user-settings-field">
+                                        <span>Submission ID</span>
+                                        <input id="assistantSubmissionId" class="dashboard-input" />
+                                    </label>
+                                    <label class="user-settings-field">
+                                        <span>Review ID</span>
+                                        <input id="assistantReviewId" class="dashboard-input" />
+                                    </label>
+                                </div>
+
+                                <div class="dashboard-inline-grid dashboard-split-scroll-grid">
+                                    <div class="dashboard-subcard">
+                                        <h3 class="dashboard-subcard-title">复核意见</h3>
+                                        <label class="user-settings-field">
+                                            <span>结论</span>
+                                            <select id="assistantReviewStatus" class="dashboard-select">
+                                                <option value="approved">通过</option>
+                                                <option value="needs_changes">退回修改</option>
+                                                <option value="rejected">拒绝</option>
+                                            </select>
+                                        </label>
+                                        <label class="user-settings-field">
+                                            <span>意见</span>
+                                            <textarea id="assistantCommentInput" class="dashboard-textarea" placeholder="请输入复核意见"></textarea>
+                                        </label>
+                                    </div>
+
+                                    <div class="dashboard-subcard">
+                                        <h3 class="dashboard-subcard-title">成绩草稿</h3>
+                                        <label class="user-settings-field">
+                                            <span>分数 (0-100)</span>
+                                            <input id="assistantScoreInput" class="dashboard-input" type="number" min="0" max="100" placeholder="输入分数" />
+                                        </label>
+                                        <div class="dashboard-panel-actions">
+                                            <button id="assistantStartBtn" class="btn btn-secondary academic-btn-block" type="button" disabled>开始检查</button>
+                                            <button id="assistantReviewSaveBtn" class="btn btn-primary academic-btn-block" type="button" disabled>提交复核</button>
+                                            <button id="assistantReviewUpdateBtn" class="btn btn-secondary academic-btn-block" type="button">更新复核</button>
+                                            <button id="assistantDraftSaveBtn" class="btn btn-secondary academic-btn-block" type="button" disabled>保存成绩草稿</button>
+                                            <button id="assistantMarkReviewedBtn" class="btn btn-secondary academic-btn-block" type="button">标记已阅</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="dashboard-empty-state" id="assistantActionResult" hidden></div>
+                            </section>
+                        </div>
                     </div>
-                </div>
+                </section>
             </div>
 
             <div class="page-panel" id="panel-history">
                 <section class="card">
                     <div class="dashboard-section-intro">
-                        <h2 class="card-title">最近批改记录</h2>
-                        <p>回看最近处理过的提交状态，方便追踪返工和复审结果。</p>
+                        <h2 class="card-title">处理记录</h2>
                     </div>
-                    <div class="list" id="assistantHistoryList">
-                        <div class="list-item">
-                            <div class="list-main">
-                                <div class="list-row">
-                                    <strong>需求调研报告</strong>
-                                    <span class="chip">分数 85</span>
+                    <div class="dashboard-card-body">
+                        <div class="dashboard-inline-grid dashboard-split-scroll-grid">
+                            <div class="dashboard-subcard">
+                                <h3 class="dashboard-subcard-title">导出</h3>
+                                <select id="assistantExportCourse" class="dashboard-select"></select>
+                                <div class="dashboard-panel-actions">
+                                    <button id="assistantExportReviews" class="btn btn-primary academic-btn-block" type="button">导出批改记录</button>
+                                    <button id="assistantExportGrades" class="btn btn-secondary academic-btn-block" type="button">导出成绩</button>
                                 </div>
-                                <div class="muted">评审时间：2026-03-22</div>
                             </div>
-                            <span class="badge badge-approved">已通过</span>
-                        </div>
-                        <div class="list-item">
-                            <div class="list-main">
-                                <div class="list-row">
-                                    <strong>原型评审材料</strong>
-                                    <span class="chip">分数 --</span>
+                            <div class="dashboard-subcard">
+                                <h3 class="dashboard-subcard-title">最近成绩记录</h3>
+                                <div class="list dashboard-scroll-region" id="assistantHistoryList"></div>
+                                <div class="dashboard-empty-state" id="assistantHistoryEmpty" hidden>
+                                    <strong>暂无处理记录</strong>
+                                    <p>保存成绩草稿或教师发布成绩后会显示在这里。</p>
                                 </div>
-                                <div class="muted">评审时间：2026-03-28</div>
                             </div>
-                            <span class="badge badge-error">待修改</span>
                         </div>
-                    </div>
-                    <div class="dashboard-empty-state" id="assistantHistoryEmpty" hidden>
-                        <strong>暂无额外待复核记录</strong>
-                        <p>除上方两条已展示任务外，目前没有新的异常返工项或跨课程冲突需要处理。</p>
                     </div>
                 </section>
             </div>
@@ -131,17 +160,10 @@
             <div class="page-panel" id="panel-courses">
                 <section class="card">
                     <div class="dashboard-section-intro">
-                        <h2 class="card-title">助教分配</h2>
-                        <p>展示当前负责课程与教师绑定关系，便于确认责任范围。</p>
+                        <h2 class="card-title">负责课程</h2>
                     </div>
-                    <div class="list" id="assistantCourseList">
-                        <div class="list-item dashboard-list-item-vertical">
-                            <div class="dashboard-split-row">
-                                <strong>软件工程实践</strong>
-                                <span class="badge badge-active">进行中</span>
-                            </div>
-                            <div class="muted">课程编号：12 · 教师：2023000001</div>
-                        </div>
+                    <div class="dashboard-card-body">
+                        <div class="list dashboard-scroll-region" id="assistantCourseList"></div>
                     </div>
                 </section>
             </div>
@@ -155,39 +177,302 @@
     <script src="./scripts/leaf-pile.js"></script>
     <script>
         if (!linkseePage.requireAuth()) { throw new Error("auth required"); }
-        initDashboardShell({
-            avatarStorageKey: "assistant_avatar_data_url",
-        });
-        (async function () {
-            var list = document.getElementById("assistantSubmissionList");
-            var empty = document.getElementById("assistantSubmissionEmpty");
-            var courseCount = document.getElementById("assistantCourseCount");
-            var needCheckCount = document.getElementById("assistantNeedCheckCount");
-            var pendingCount = document.getElementById("assistantPendingCount");
-            var reviewCount = document.getElementById("assistantReviewCount");
-            var newCount = document.getElementById("assistantNewCount");
-            if (!window.linkseeApi) return;
-            try {
-                var courses = await window.linkseeApi.getJson("/api/v1/courses");
-                var courseRows = Array.isArray(courses.data) ? courses.data : [];
-                if (courseCount) courseCount.textContent = String(courseRows.length);
-                if (needCheckCount) needCheckCount.textContent = String(courseRows.length);
-                if (list) {
-                    list.innerHTML = courseRows.map(function (course) {
-                        return '<div class="list-item"><div class="list-main"><div class="list-row"><strong>' + linkseePage.escapeHtml(course.name || "--") + '</strong><span class="chip">' + linkseePage.escapeHtml(course.courseNo || course.id || "--") + '</span></div><div class="muted">status=' + linkseePage.escapeHtml(course.status || "--") + '</div></div><a class="tag" href="./grading-hub.html">open</a></div>';
-                    }).join("");
-                }
-                if (empty) empty.hidden = courseRows.length > 0;
-                if (pendingCount) pendingCount.textContent = "当前待处理 " + courseRows.length + " 条";
-                if (reviewCount) reviewCount.textContent = "复审链路: " + courseRows.length;
-                if (newCount) newCount.textContent = "新提交: " + courseRows.length;
-            } catch (err) {
-                if (empty) {
-                    empty.hidden = false;
-                    empty.querySelector("p").textContent = err.message || "加载失败";
-                }
+        initDashboardShell({ avatarStorageKey: "assistant_avatar_data_url" });
+
+        var state = {
+            courses: [],
+            reviews: [],
+            grades: [],
+            selected: null,
+            currentCourseId: "",
+            currentGradeId: "",
+        };
+
+        function q(selector) {
+            return document.querySelector(selector);
+        }
+
+        function formatDate(value) {
+            if (!value) return "--";
+            var date = new Date(value);
+            return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString("zh-CN", { hour12: false });
+        }
+
+        function pickCourseStatus(course) {
+            if (!course || !course.status) return "--";
+            if (course.status === "active") return "进行中";
+            if (course.status === "draft") return "草稿";
+            if (course.status === "archived") return "已归档";
+            return course.status;
+        }
+
+        function rowsOf(payload) {
+            return Array.isArray(payload && payload.data) ? payload.data : [];
+        }
+
+        function setResult(title, message, isError) {
+            var node = q("#assistantActionResult");
+            if (!node) return;
+            node.hidden = false;
+            node.classList.toggle("is-error", Boolean(isError));
+            node.innerHTML = "<strong>" + linkseePage.escapeHtml(title) + "</strong><p>" + linkseePage.escapeHtml(message || "") + "</p>";
+        }
+
+        function clearResult() {
+            var node = q("#assistantActionResult");
+            if (!node) return;
+            node.hidden = true;
+            node.classList.remove("is-error");
+            node.innerHTML = "";
+        }
+
+        function currentCourseName() {
+            var course = state.courses.find(function (row) { return String(row.id) === String(state.currentCourseId); });
+            return course ? (course.name || course.courseNo || course.id) : "--";
+        }
+
+        function renderCourseOptions() {
+            var options = state.courses.map(function (course) {
+                return '<option value="' + linkseePage.escapeHtml(course.id) + '">' + linkseePage.escapeHtml(course.name || course.courseNo || course.id) + '</option>';
+            }).join("");
+            q("#assistantCourseSelect").innerHTML = options || '<option value="">暂无绑定课程</option>';
+            q("#assistantExportCourse").innerHTML = options || '<option value="">暂无绑定课程</option>';
+            if (!state.currentCourseId && state.courses[0]) {
+                state.currentCourseId = String(state.courses[0].id);
             }
-        })();
+            q("#assistantCourseSelect").value = state.currentCourseId;
+            q("#assistantExportCourse").value = state.currentCourseId;
+        }
+
+        function renderCourseList() {
+            var list = q("#assistantCourseList");
+            list.innerHTML = state.courses.map(function (course) {
+                return '<div class="list-item dashboard-list-item-vertical"><div class="dashboard-split-row"><strong>' + linkseePage.escapeHtml(course.name || "--") + '</strong><span class="badge badge-active">' + linkseePage.escapeHtml(pickCourseStatus(course)) + '</span></div><div class="muted">课程编号：' + linkseePage.escapeHtml(course.courseNo || course.id || "--") + ' · 学年学期：' + linkseePage.escapeHtml(String(course.academicYear || "--")) + ' / ' + linkseePage.escapeHtml(String(course.semester || "--")) + '</div></div>';
+            }).join("") || '<div class="dashboard-empty-state"><strong>暂无负责课程</strong><p>当前账号尚未绑定课程。</p></div>';
+        }
+
+        function renderQueue() {
+            var list = q("#assistantSubmissionList");
+            var empty = q("#assistantSubmissionEmpty");
+            var reviewing = state.reviews.filter(function (row) { return row.status === "under_review"; }).length;
+            var submitted = state.reviews.filter(function (row) { return row.status === "submitted"; }).length;
+            q("#assistantCourseCount").textContent = String(state.courses.length);
+            q("#assistantNeedCheckCount").textContent = String(state.reviews.length);
+            q("#assistantPendingCount").textContent = "当前待处理 " + state.reviews.length + " 条";
+            q("#assistantReviewCount").textContent = "评审中: " + reviewing;
+            q("#assistantNewCount").textContent = "新提交: " + submitted;
+
+            if (!state.reviews.length) {
+                list.innerHTML = "";
+                empty.hidden = false;
+                return;
+            }
+            empty.hidden = true;
+            list.innerHTML = state.reviews.map(function (review) {
+                var stageTitle = review.stage && review.stage.title ? review.stage.title : "未命名阶段";
+                var groupNo = review.group && (review.group.groupNo || review.group.name) ? (review.group.groupNo || review.group.name) : "--";
+                var selected = state.selected && String(state.selected.id) === String(review.id);
+                return '<div class="list-item dashboard-list-item-interactive' + (selected ? ' dashboard-list-item-selected' : '') + '" data-submission-id="' + linkseePage.escapeHtml(review.id) + '"><div class="list-main"><div class="list-row"><strong>' + linkseePage.escapeHtml(stageTitle) + '</strong><span class="chip">' + linkseePage.escapeHtml(currentCourseName()) + '</span></div><div class="muted">状态：' + linkseePage.escapeHtml(review.status || "--") + ' · 小组：' + linkseePage.escapeHtml(String(groupNo)) + ' · 提交时间：' + linkseePage.escapeHtml(formatDate(review.submittedAt || review.createdAt)) + '</div></div><span class="badge badge-pending">' + linkseePage.escapeHtml(review.status || "--") + '</span></div>';
+            }).join("");
+            document.querySelectorAll("#assistantSubmissionList .list-item").forEach(function (item) {
+                item.addEventListener("click", function () {
+                    selectReview(item.getAttribute("data-submission-id"));
+                });
+            });
+        }
+
+        function renderHistory() {
+            var list = q("#assistantHistoryList");
+            var empty = q("#assistantHistoryEmpty");
+            if (!state.grades.length) {
+                list.innerHTML = "";
+                empty.hidden = false;
+                return;
+            }
+            empty.hidden = true;
+            list.innerHTML = state.grades.slice(0, 20).map(function (grade) {
+                var score = grade.score === null || grade.score === undefined ? "--" : String(grade.score);
+                var stageTitle = grade.stage && grade.stage.title ? grade.stage.title : "未命名阶段";
+                var statusLabel = grade.status === "published" ? "已发布" : "草稿";
+                return '<div class="list-item"><div class="list-main"><div class="list-row"><strong>' + linkseePage.escapeHtml(stageTitle) + '</strong><span class="chip">分数 ' + linkseePage.escapeHtml(score) + '</span></div><div class="muted">课程：' + linkseePage.escapeHtml(currentCourseName()) + ' · 更新时间：' + linkseePage.escapeHtml(formatDate(grade.updatedAt || grade.createdAt)) + '</div></div><span class="badge badge-approved">' + linkseePage.escapeHtml(statusLabel) + '</span></div>';
+            }).join("");
+        }
+
+        function selectReview(submissionId) {
+            clearResult();
+            state.selected = state.reviews.find(function (row) { return String(row.id) === String(submissionId); }) || null;
+            state.currentGradeId = "";
+            renderQueue();
+            renderSelected();
+        }
+
+        function renderSelected() {
+            var context = q("#assistantReviewContext");
+            var startBtn = q("#assistantStartBtn");
+            var reviewBtn = q("#assistantReviewSaveBtn");
+            var draftBtn = q("#assistantDraftSaveBtn");
+            if (!state.selected) {
+                context.innerHTML = "请选择左侧提交";
+                q("#assistantSubmissionId").value = "";
+                startBtn.disabled = true;
+                reviewBtn.disabled = true;
+                draftBtn.disabled = true;
+                return;
+            }
+            var review = state.selected;
+            var stageTitle = review.stage && review.stage.title ? review.stage.title : "未命名阶段";
+            var groupNo = review.group && (review.group.groupNo || review.group.name) ? (review.group.groupNo || review.group.name) : "--";
+            q("#assistantSubmissionId").value = review.id || "";
+            q("#assistantReviewId").value = "";
+            q("#assistantCommentInput").value = "";
+            q("#assistantScoreInput").value = "";
+            context.innerHTML = '<strong>' + linkseePage.escapeHtml(stageTitle) + '</strong><p>课程：' + linkseePage.escapeHtml(currentCourseName()) + ' · 小组：' + linkseePage.escapeHtml(String(groupNo)) + ' · 提交人：' + linkseePage.escapeHtml(review.submittedBy || "--") + ' · 状态：' + linkseePage.escapeHtml(review.status || "--") + '</p>';
+            startBtn.disabled = review.status !== "submitted";
+            reviewBtn.disabled = false;
+            draftBtn.disabled = review.status !== "approved" && review.status !== "reviewed";
+        }
+
+        async function loadCourseData(keepSelection) {
+            if (!state.currentCourseId) {
+                state.reviews = [];
+                state.grades = [];
+                state.selected = null;
+                renderQueue();
+                renderHistory();
+                renderSelected();
+                return;
+            }
+            var previousId = keepSelection && state.selected ? String(state.selected.id) : "";
+            var payloads = await Promise.all([
+                window.linkseeApi.getJson("/api/v1/courses/" + encodeURIComponent(state.currentCourseId) + "/pending-reviews"),
+                window.linkseeApi.getJson("/api/v1/courses/" + encodeURIComponent(state.currentCourseId) + "/grades").catch(function () { return { data: [] }; }),
+            ]);
+            state.reviews = rowsOf(payloads[0]);
+            state.grades = rowsOf(payloads[1]).sort(function (a, b) {
+                return new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime();
+            });
+            state.selected = previousId ? state.reviews.find(function (row) { return String(row.id) === previousId; }) || state.selected : state.reviews[0] || null;
+            renderQueue();
+            renderHistory();
+            renderSelected();
+        }
+
+        async function loadAll() {
+            var payload = await window.linkseeApi.getJson("/api/v1/courses");
+            state.courses = rowsOf(payload);
+            renderCourseOptions();
+            renderCourseList();
+            await loadCourseData(false);
+        }
+
+        q("#assistantCourseSelect").addEventListener("change", function () {
+            state.currentCourseId = q("#assistantCourseSelect").value;
+            q("#assistantExportCourse").value = state.currentCourseId;
+            state.selected = null;
+            loadCourseData(false).catch(function (err) { setResult("加载失败", err.message, true); });
+        });
+        q("#assistantReloadBtn").addEventListener("click", function () {
+            loadCourseData(true).catch(function (err) { setResult("刷新失败", err.message, true); });
+        });
+        q("#assistantStartBtn").addEventListener("click", function () {
+            var id = q("#assistantSubmissionId").value.trim();
+            if (!id) return setResult("无法开始", "请先选择或输入 Submission ID", true);
+            window.linkseeApi.postJson("/api/v1/submissions/" + encodeURIComponent(id) + "/reviews/start", {})
+                .then(function () {
+                    setResult("已开始检查", "提交已进入评审中。", false);
+                    return loadCourseData(true);
+                })
+                .catch(function (err) { setResult("开始失败", err.message, true); });
+        });
+        q("#assistantReviewSaveBtn").addEventListener("click", function () {
+            var id = q("#assistantSubmissionId").value.trim();
+            var comment = q("#assistantCommentInput").value.trim();
+            var status = q("#assistantReviewStatus").value;
+            if (!id) return setResult("无法提交", "请先选择或输入 Submission ID", true);
+            window.linkseeApi.postJson("/api/v1/submissions/" + encodeURIComponent(id) + "/reviews", { status: status, comment: comment })
+                .then(function () {
+                    setResult("复核已提交", "复核结论已保存。", false);
+                    if (state.selected && String(state.selected.id) === String(id)) {
+                        state.selected.status = status === "approved" ? "approved" : status;
+                        q("#assistantDraftSaveBtn").disabled = status !== "approved";
+                    }
+                    return status === "approved" ? Promise.resolve() : loadCourseData(false);
+                })
+                .catch(function (err) { setResult("提交失败", err.message, true); });
+        });
+        q("#assistantReviewUpdateBtn").addEventListener("click", function () {
+            var reviewId = q("#assistantReviewId").value.trim();
+            var comment = q("#assistantCommentInput").value.trim();
+            var status = q("#assistantReviewStatus").value;
+            if (!reviewId) return setResult("无法更新", "请填写 Review ID", true);
+            window.linkseeApi.patchJson("/api/v1/reviews/" + encodeURIComponent(reviewId), { status: status, comment: comment })
+                .then(function () {
+                    setResult("复核已更新", "复核意见已保存。", false);
+                    return loadCourseData(true);
+                })
+                .catch(function (err) { setResult("更新失败", err.message, true); });
+        });
+        q("#assistantDraftSaveBtn").addEventListener("click", function () {
+            var id = q("#assistantSubmissionId").value.trim();
+            var score = Number(q("#assistantScoreInput").value);
+            if (!id) return setResult("无法保存", "请先选择或输入 Submission ID", true);
+            window.linkseeApi.postJson("/api/v1/submissions/" + encodeURIComponent(id) + "/grade-drafts", { score: score })
+                .then(function (payload) {
+                    state.currentGradeId = payload && payload.data ? payload.data.id : "";
+                    setResult("草稿已保存", "成绩草稿已保存，发布仍需教师完成。", false);
+                    return loadCourseData(true);
+                })
+                .catch(function (err) { setResult("保存失败", err.message, true); });
+        });
+        q("#assistantMarkReviewedBtn").addEventListener("click", function () {
+            var id = q("#assistantSubmissionId").value.trim();
+            if (!id) return setResult("无法标记", "请填写 Submission ID", true);
+            window.linkseeApi.postJson("/api/v1/submissions/" + encodeURIComponent(id) + "/mark-reviewed", {})
+                .then(function () {
+                    setResult("已标记", "提交已标记为已阅。", false);
+                    return loadCourseData(false);
+                })
+                .catch(function (err) { setResult("标记失败", err.message, true); });
+        });
+
+        function downloadWithAuth(path, filename) {
+            return fetch(window.linkseeApi.getApiBaseUrl() + path, { headers: window.linkseeApi.authHeaders() })
+                .then(function (response) {
+                    if (!response.ok) {
+                        return response.json().catch(function () { return {}; }).then(function (payload) {
+                            throw new Error(payload.message || "导出失败");
+                        });
+                    }
+                    return response.blob();
+                })
+                .then(function (blob) {
+                    var url = URL.createObjectURL(blob);
+                    var link = document.createElement("a");
+                    link.href = url;
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                    URL.revokeObjectURL(url);
+                });
+        }
+
+        q("#assistantExportReviews").addEventListener("click", function () {
+            var courseId = q("#assistantExportCourse").value;
+            if (!courseId) return;
+            downloadWithAuth("/api/v1/courses/" + encodeURIComponent(courseId) + "/reviews/export", "reviews-export.csv")
+                .catch(function (err) { setResult("导出失败", err.message, true); });
+        });
+        q("#assistantExportGrades").addEventListener("click", function () {
+            var courseId = q("#assistantExportCourse").value;
+            if (!courseId) return;
+            downloadWithAuth("/api/v1/courses/" + encodeURIComponent(courseId) + "/grades/export", "grades-export.csv")
+                .catch(function (err) { setResult("导出失败", err.message, true); });
+        });
+
+        loadAll().catch(function (err) {
+            setResult("加载失败", err.message || "请检查后端服务是否正常", true);
+        });
     </script>
 </body>
 

@@ -52,14 +52,40 @@
             "2023019001": "assistant",
             "2023010001": "student",
         };
+        const currentUserId = localStorage.getItem("auth_user_id") || "";
         const storedRole = localStorage.getItem("auth_role");
-        const storedUserId = localStorage.getItem("auth_user_id");
-        const resolvedRole = storedRole || roleByUserId[storedUserId] || "";
+        const token = localStorage.getItem("auth_access_token") || "";
+        const authOrigin = localStorage.getItem("auth_origin") || appOrigin;
 
-        if (resolvedRole && roleToPage[resolvedRole]) {
-            localStorage.setItem("auth_role", resolvedRole);
-            window.location.href = `${appOrigin}${appBasePath}/${roleToPage[resolvedRole]}`;
+        function resolveRoleFromUserId(userId) {
+            return roleByUserId[userId] || "";
         }
+
+        async function resolveServerRole() {
+            const fallbackRole = resolveRoleFromUserId(currentUserId) || storedRole || "";
+            if (!token) return fallbackRole;
+            try {
+                const response = await fetch(`${authOrigin}/api/v1/users/me`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                const payload = await response.json().catch(() => ({}));
+                if (response.ok && payload?.ok && payload.data?.role) {
+                    const resolvedUserId = payload.data.id || currentUserId || "";
+                    localStorage.setItem("auth_role", payload.data.role);
+                    localStorage.setItem("auth_user_id", resolvedUserId);
+                    localStorage.setItem("auth_force_change_password", payload.data.forceChangePassword ? "true" : "false");
+                    return payload.data.role;
+                }
+            } catch (_err) {}
+            return fallbackRole;
+        }
+
+        resolveServerRole().then((resolvedRole) => {
+            if (resolvedRole && roleToPage[resolvedRole]) {
+                localStorage.setItem("auth_role", resolvedRole);
+                window.location.href = `${appOrigin}${appBasePath}/${roleToPage[resolvedRole]}`;
+            }
+        });
 
         document.querySelectorAll(".role-btn").forEach((btn) => {
             btn.addEventListener("click", () => {

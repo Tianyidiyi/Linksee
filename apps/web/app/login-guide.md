@@ -32,7 +32,7 @@ http://localhost:3001/app/login.html
 
 - Academic (教务): 2022000001 / ChangeMe123!
 - Teacher (老师): 2023000001 / ChangeMe123!
-- Assistant (助教): 2023019001 / ChangeMe123!
+- Assistant (助教): 2023019001 /  ChangeMe123!
 - Student (学生): 2023010001 / ChangeMe123!
 
 The dashboard entry page reads `auth_role` or maps the user ID to auto-redirect into each role view.

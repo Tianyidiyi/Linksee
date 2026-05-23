@@ -23,6 +23,15 @@
     isolation: isolate;
 }
 
+body.app-shell:not([data-background-preset="dongda"]),
+body.dashboard-shell-background:not([data-background-preset="dongda"]),
+body.academic-shell:not([data-background-preset="dongda"]),
+body.teacher-shell:not([data-background-preset="dongda"]),
+body.student-shell:not([data-background-preset="dongda"]),
+body.assistant-shell:not([data-background-preset="dongda"]) {
+    background: var(--app-theme-start);
+}
+
 .app-shell::before,
 .dashboard-shell-background::before,
 .academic-shell::before,
@@ -61,6 +70,15 @@
     animation: background-wave-drift 5.2s ease-in-out infinite;
 }
 
+body.app-shell:not([data-background-preset="dongda"])::before,
+body.dashboard-shell-background:not([data-background-preset="dongda"])::before,
+body.academic-shell:not([data-background-preset="dongda"])::before,
+body.teacher-shell:not([data-background-preset="dongda"])::before,
+body.student-shell:not([data-background-preset="dongda"])::before,
+body.assistant-shell:not([data-background-preset="dongda"])::before {
+    content: none;
+}
+
 .app-shell::after,
 .dashboard-shell-background::after,
 .academic-shell::after,
@@ -85,6 +103,15 @@
         min(26vw, 420px) auto,
         min(40vw, 600px) auto;
     opacity: 0.8;
+}
+
+body.app-shell:not([data-background-preset="dongda"])::after,
+body.dashboard-shell-background:not([data-background-preset="dongda"])::after,
+body.academic-shell:not([data-background-preset="dongda"])::after,
+body.teacher-shell:not([data-background-preset="dongda"])::after,
+body.student-shell:not([data-background-preset="dongda"])::after,
+body.assistant-shell:not([data-background-preset="dongda"])::after {
+    content: none;
 }
 
 @media (max-width: 720px) {

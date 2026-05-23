@@ -42,51 +42,57 @@ export const authRouter = Router();
 authRouter.post(
   "/login",
   async (req: Request<unknown, unknown, LoginRequestBody>, res: Response) => {
-    const { userId, password } = req.body ?? {};
-    if (!userId || !password || !isValidUserId(userId)) {
-      return fail(res, 400, "VALIDATION_FAILED", "userId must be 10 digits and password is required");
+    try {
+      const { userId, password } = req.body ?? {};
+      if (!userId || !password || !isValidUserId(userId)) {
+        return fail(res, 400, "VALIDATION_FAILED", "userId must be 10 digits and password is required");
+      }
+
+      if (await isLoginLocked(userId)) {
+        return fail(res, 423, "CONFLICT", "Too many failed attempts. Try again later.");
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!user || !user.isActive) {
+        await recordLoginFailure(userId);
+        return invalidCredentials(res);
+      }
+
+      const passwordOk = await argon2.verify(user.passwordHash, password);
+      if (!passwordOk) {
+        await recordLoginFailure(userId);
+        return invalidCredentials(res);
+      }
+
+      await clearLoginFailures(userId);
+
+      const accessToken = signAccessToken({
+        sub: user.id,
+        role: user.role,
+        forceChangePassword: user.forceChangePassword,
+      });
+      const refreshToken = createRefreshToken();
+      await storeRefreshToken(refreshToken, user.id);
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { lastLoginAt: new Date() },
+      });
+
+      return ok(res, {
+        accessToken,
+        refreshToken,
+        expiresIn: "30m",
+        role: user.role,
+        forceChangePassword: user.forceChangePassword,
+      });
+    } catch (err) {
+      console.error("[auth] login failed", err);
+      return fail(res, 503, "SERVICE_UNAVAILABLE", "Login service is temporarily unavailable");
     }
-
-    if (await isLoginLocked(userId)) {
-      return fail(res, 423, "CONFLICT", "Too many failed attempts. Try again later.");
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user || !user.isActive) {
-      await recordLoginFailure(userId);
-      return invalidCredentials(res);
-    }
-
-    const passwordOk = await argon2.verify(user.passwordHash, password);
-    if (!passwordOk) {
-      await recordLoginFailure(userId);
-      return invalidCredentials(res);
-    }
-
-    await clearLoginFailures(userId);
-
-    const accessToken = signAccessToken({
-      sub: user.id,
-      role: user.role,
-      forceChangePassword: user.forceChangePassword,
-    });
-    const refreshToken = createRefreshToken();
-    await storeRefreshToken(refreshToken, user.id);
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { lastLoginAt: new Date() },
-    });
-
-    return ok(res, {
-      accessToken,
-      refreshToken,
-      expiresIn: "30m",
-      forceChangePassword: user.forceChangePassword,
-    });
   },
 );
 
@@ -134,6 +140,8 @@ authRouter.post(
         accessToken,
         refreshToken: nextRefreshToken,
         expiresIn: "30m",
+        role: user.role,
+        forceChangePassword: user.forceChangePassword,
       },
     });
   },

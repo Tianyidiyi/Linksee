@@ -9,10 +9,26 @@ export const minioClient = new Client({
   secretKey: env.minioSecretKey,
 });
 
+async function withTimeout<T>(operation: Promise<T>, label: string, timeoutMs = 1500): Promise<T> {
+  let timeout: NodeJS.Timeout | undefined;
+  try {
+    return await Promise.race([
+      operation,
+      new Promise<T>((_, reject) => {
+        timeout = setTimeout(() => reject(new Error(`${label} timed out`)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+  }
+}
+
 async function ensureBucketReady(bucket: string, publicRead: boolean): Promise<void> {
-  const exists = await minioClient.bucketExists(bucket);
+  const exists = await withTimeout(minioClient.bucketExists(bucket), `MinIO bucket check "${bucket}"`);
   if (!exists) {
-    await minioClient.makeBucket(bucket, "");
+    await withTimeout(minioClient.makeBucket(bucket, ""), `MinIO bucket create "${bucket}"`);
     console.log(`[minio] bucket "${bucket}" created`);
   }
 
@@ -31,7 +47,7 @@ async function ensureBucketReady(bucket: string, publicRead: boolean): Promise<v
       },
     ],
   });
-  await minioClient.setBucketPolicy(bucket, policy);
+  await withTimeout(minioClient.setBucketPolicy(bucket, policy), `MinIO bucket policy "${bucket}"`);
 }
 
 export async function ensureBuckets(): Promise<void> {
