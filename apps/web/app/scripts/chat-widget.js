@@ -1,609 +1,873 @@
 (function () {
-    if (window.linkseeChatWidget) {
-        return;
-    }
+    if (window.linkseeChatWidget) return;
 
     var state = {
         open: false,
         mode: "list",
         conversations: [],
         selected: null,
-        participants: new Map(),
+        participants: [],
+        participantsMap: new Map(),
         messages: [],
         me: null,
         unreadTotal: 0,
-        position: { left: 24, top: 120 },
-        drag: null,
+        replyTo: null,
+        mention: { open: false, start: -1, keyword: "", options: [], index: 0 },
     };
+
+    function q(selector, root) { return (root || document).querySelector(selector); }
+    function qs(selector, root) { return Array.from((root || document).querySelectorAll(selector)); }
+    function escapeHtml(value) {
+        return String(value || "").replace(/[&<>"']/g, function (ch) {
+            return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch];
+        });
+    }
+    function showToast(msg, danger) {
+        var host = q("[data-chat-toast-host]", state.panel);
+        if (!host) return;
+        var el = document.createElement("div");
+        el.className = "chat-toast" + (danger ? " danger" : "");
+        el.textContent = msg;
+        host.appendChild(el);
+        setTimeout(function () {
+            el.style.opacity = "0";
+            setTimeout(function () { el.remove(); }, 220);
+        }, 2200);
+    }
+    function defaultAvatar() {
+        return "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239CA3AF'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
+    }
+    function userName(user) {
+        return (user && user.profile && user.profile.realName) || (user && user.id) || "未知成员";
+    }
+    function userAvatar(user) {
+        return (user && user.profile && user.profile.avatarUrl) || defaultAvatar();
+    }
+    function auth() {
+        return {
+            token: localStorage.getItem("auth_access_token") || "",
+            userId: localStorage.getItem("auth_user_id") || "",
+            role: localStorage.getItem("auth_role") || "",
+        };
+    }
+    function isStaff() {
+        var role = auth().role;
+        return role === "teacher" || role === "assistant" || role === "academic";
+    }
+    function mentionName(id) {
+        var u = state.participantsMap.get(String(id));
+        return u ? userName(u) : id;
+    }
+    function messagePath(scopeType, scopeId) {
+        return scopeType === "group"
+            ? "/api/v1/groups/" + encodeURIComponent(scopeId) + "/messages"
+            : "/api/v1/courses/" + encodeURIComponent(scopeId) + "/messages";
+    }
+    function announcementPath(scopeType, scopeId) {
+        return scopeType === "group"
+            ? "/api/v1/groups/" + encodeURIComponent(scopeId) + "/announcements"
+            : "/api/v1/courses/" + encodeURIComponent(scopeId) + "/announcements";
+    }
+    function searchPath(scopeType, scopeId, keyword) {
+        return messagePath(scopeType, scopeId) + "/search?q=" + encodeURIComponent(keyword);
+    }
+    function parseMentions(content) {
+        var set = new Set();
+        (content.match(/@([A-Za-z0-9_\-\u4e00-\u9fa5]+)/g) || []).forEach(function (m) {
+            var raw = m.slice(1);
+            state.participants.forEach(function (p) {
+                if (p.profile && p.profile.realName === raw) set.add(p.id);
+            });
+        });
+        return Array.from(set);
+    }
 
     function css(text) {
         var style = document.createElement("style");
-        style.setAttribute("data-linksee-chat-widget", "true");
         style.textContent = text;
         document.head.appendChild(style);
     }
 
     css(`
-        .linksee-chat-launcher {
-            position: relative;
-            width: 40px;
-            height: 40px;
-            border: 1px solid var(--border);
-            border-radius: 999px;
-            background: rgba(255,255,255,.72);
-            box-shadow: var(--shadow-sm);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--ink-soft);
-            cursor: pointer;
-        }
-        .linksee-chat-launcher.is-floating {
-            position: fixed;
-            top: max(18px, env(safe-area-inset-top));
-            right: max(18px, env(safe-area-inset-right));
-            z-index: 120;
-            width: 68px;
-            height: 68px;
-            background: rgba(255,255,255,.88);
-            backdrop-filter: blur(16px);
-        }
-        .linksee-chat-launcher.is-active { border-color: var(--accent-outline); }
-        .linksee-chat-launcher svg { width: 18px; height: 18px; }
-        .linksee-chat-launcher.is-floating svg { width: 34px; height: 34px; }
-        .linksee-chat-dot {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            width: 9px;
-            height: 9px;
-            border-radius: 50%;
-            background: #1d4ed8;
-            box-shadow: 0 0 0 2px rgba(255,255,255,.96);
-            display: none;
-        }
-        .linksee-chat-dot.is-visible { display: block; }
-        .linksee-chat-panel {
-            position: fixed;
-            z-index: 80;
-            width: min(1150px, calc(100vw - 32px));
-            height: min(850px, calc(100vh - 40px));
-            background: rgba(248, 250, 249, 0.94);
-            border: 1px solid var(--border);
-            box-shadow: 0 32px 90px rgba(15,23,42,.18);
-            border-radius: 24px;
-            backdrop-filter: blur(22px);
-            overflow: hidden;
-            display: none;
-            left: 24px;
-            top: 120px;
-        }
-        body.linksee-chat-docked-open .workspace {
-            justify-content: flex-start;
-            padding-right: calc(50vw + 8px);
-            transition: padding-right var(--motion-base) var(--ease-standard);
-        }
-        body.linksee-chat-docked-open .content-container {
-            max-width: none;
-            margin-left: 0;
-            margin-right: 0;
-            padding-left: clamp(16px, 2vw, 32px);
-            padding-right: clamp(16px, 2vw, 32px);
-            transition: padding var(--motion-base) var(--ease-standard);
-        }
-        body.linksee-chat-docked-open .page-panel {
-            width: 100%;
-        }
-        body.linksee-chat-docked-open .linksee-chat-launcher.is-floating {
-            opacity: 0;
-            pointer-events: none;
-        }
-        .linksee-chat-panel.is-docked {
-            left: auto !important;
-            top: 16px !important;
-            right: 16px;
-            bottom: 16px;
-            width: calc(50vw - 24px);
-            height: calc(100vh - 32px);
-            border-radius: 28px;
-        }
-        .linksee-chat-panel.is-open { display: grid; }
-        .linksee-chat-panel.is-list { grid-template-columns: 360px minmax(0,1fr); }
-        .linksee-chat-panel.is-chat { grid-template-columns: 1fr; }
-        .linksee-chat-left {
-            border-right: 1px solid var(--border);
-            display: grid;
-            grid-template-rows: auto 1fr;
-            min-width: 0;
-            background: rgba(255,255,255,.62);
-        }
-        .linksee-chat-right {
-            display: grid;
-            grid-template-rows: auto 1fr auto;
-            min-width: 0;
-            background: rgba(255,255,255,.54);
-        }
-        .linksee-chat-header {
-            display:flex;
-            align-items:center;
-            justify-content:space-between;
-            gap:12px;
-            padding:14px 16px;
-            border-bottom: 1px solid var(--border);
-            cursor: move;
-            user-select:none;
-        }
-        .linksee-chat-header strong { font-size: 15px; }
-        .linksee-chat-actions { display:flex; gap:8px; align-items:center; }
-        .linksee-chat-icon-btn {
-            width:32px;height:32px;border-radius:999px;border:1px solid var(--border);
-            background: rgba(255,255,255,.72); cursor:pointer; display:inline-flex;
-            align-items:center; justify-content:center; color: var(--ink-soft);
-        }
-        .linksee-chat-search {
-            padding: 12px 14px; border-bottom: 1px solid var(--border);
-        }
-        .linksee-chat-search input {
-            width:100%; padding:10px 12px; border-radius: 12px; border:1px solid var(--border);
-            background: rgba(255,255,255,.8); font: inherit;
-        }
-        .linksee-chat-list { overflow:auto; padding: 10px; display:grid; gap:10px; }
-        .linksee-chat-item {
-            display:flex; align-items:center; gap:12px; padding:12px; border-radius: 16px;
-            border:1px solid transparent; cursor:pointer; background: rgba(255,255,255,.7);
-        }
-        .linksee-chat-item.is-active { border-color: var(--accent-outline); background: rgba(15,118,110,.08); }
-        .linksee-chat-avatar { width:46px; height:46px; border-radius: 50%; overflow:hidden; flex:none; background: linear-gradient(135deg,var(--accent),var(--accent-bright)); }
-        .linksee-chat-avatar img { width:100%; height:100%; object-fit:cover; }
-        .linksee-chat-item-meta { min-width:0; flex:1; display:grid; gap:4px; }
-        .linksee-chat-item-meta strong, .linksee-chat-item-meta span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        .linksee-chat-badge {
-            display:inline-flex; align-items:center; justify-content:center; min-width: 24px; height: 24px; padding:0 8px;
-            border-radius:999px; background: rgba(37,99,235,.14); color: #1d4ed8; font-size:12px; font-weight:700;
-        }
-        .linksee-chat-empty { display:grid; place-items:center; color: var(--muted); padding: 32px 20px; text-align:center; }
-        .linksee-chat-stream { overflow:auto; padding: 18px; display:grid; gap: 14px; align-content:start; }
-        .linksee-chat-bubble-row { display:flex; gap: 10px; align-items:flex-end; }
-        .linksee-chat-bubble-row.me { justify-content:flex-end; }
-        .linksee-chat-bubble {
-            max-width: min(72%, 640px); border-radius: 18px; padding: 12px 14px; background:#fff; border:1px solid var(--border);
-            box-shadow: var(--shadow-sm);
-        }
-        .linksee-chat-bubble.me { background: linear-gradient(135deg, rgba(15,118,110,.12), rgba(45,212,191,.18)); }
-        .linksee-chat-bubble-head { display:flex; align-items:center; gap:8px; margin-bottom: 6px; font-size: 12px; color: var(--muted-strong); }
-        .linksee-chat-bubble-head img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
-        .linksee-chat-composer { padding: 14px 16px; border-top: 1px solid var(--border); display:grid; gap:10px; }
-        .linksee-chat-composer textarea {
-            width:100%; min-height: 86px; resize: vertical; border-radius: 16px; border:1px solid var(--border);
-            padding: 12px; background: rgba(255,255,255,.82); font: inherit;
-        }
-        .linksee-chat-mini { font-size: 12px; color: var(--muted-strong); }
-        @media (max-width: 1024px) {
-            body.linksee-chat-docked-open .workspace { padding-right: 0; }
-            body.linksee-chat-docked-open .content-container {
-                padding-left: var(--space-5);
-                padding-right: var(--space-5);
-            }
-            .linksee-chat-panel.is-docked {
-                left: 8px !important;
-                right: auto;
-                top: 8px !important;
-                bottom: auto;
-                width: calc(100vw - 16px);
-                height: calc(100vh - 16px);
-                border-radius: 24px;
-            }
-        }
-        @media (max-width: 860px) {
-            .linksee-chat-panel { width: calc(100vw - 16px); height: calc(100vh - 16px); left: 8px; top: 8px; }
-            .linksee-chat-panel.is-list { grid-template-columns: 1fr; }
-            .linksee-chat-left { display: none; }
-        }
+        .linksee-chat-launcher{position:fixed;top:20px;right:20px;z-index:120;width:62px;height:62px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.9);display:grid;place-items:center;cursor:pointer}
+        .linksee-chat-launcher svg{width:30px;height:30px}
+        .linksee-chat-dot{position:absolute;right:7px;top:7px;width:9px;height:9px;border-radius:50%;background:#2563eb;display:none}
+        .linksee-chat-dot.show{display:block}
+        body.linksee-chat-docked-open .workspace{padding-right:calc(360px + 20px);transition:padding-right .2s ease}
+        body.linksee-chat-docked-open.chat-expanded .workspace{padding-right:calc(700px + 20px)}
+        .linksee-chat-panel{position:fixed;right:16px;top:16px;bottom:16px;width:min(340px,calc(100vw - 24px));z-index:119;border:1px solid var(--border);background:#f8fafc;border-radius:18px;display:none;grid-template-rows:auto auto 1fr auto;overflow:hidden;transition:width .2s ease}
+        .linksee-chat-panel.expanded{width:min(680px,calc(100vw - 24px))}
+        .linksee-chat-panel.open{display:grid}
+        .chat-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border);background:#fff}
+        .chat-head strong{font-size:15px}
+        .chat-body{overflow:auto;padding:14px 12px;display:grid;gap:10px;align-content:start;background:#f3f6fb}
+        .chat-row{display:flex;gap:8px;align-items:flex-end}
+        .chat-row.me{justify-content:flex-end}
+        .chat-avatar{width:36px;height:36px;border-radius:50%;overflow:hidden;background:#dbe3ee;flex:none}
+        .chat-avatar img{width:100%;height:100%;object-fit:cover}
+        .chat-msg{max-width:78%;background:#fff;border:1px solid #dde3eb;border-radius:12px;padding:8px 10px;position:relative}
+        .chat-msg.me{background:#e9f7ef;border-color:#c8ebd5}
+        .chat-meta{font-size:12px;color:#64748b;display:flex;gap:8px;margin-bottom:4px}
+        .chat-del{color:#94a3b8;font-style:italic}
+        .chat-files a{display:block;color:#0f766e;text-decoration:none}
+        .chat-quote{margin:4px 0 6px;padding:6px 8px;border-left:3px solid #cbd5e1;background:#f8fafc;color:#475569;font-size:12px}
+        .chat-toolbar{display:flex;align-items:center;gap:10px;padding:6px 8px;border-bottom:1px solid #e2e8f0;background:transparent}
+        .chat-tool{border:none;background:transparent;display:inline-flex;gap:6px;align-items:center;color:#334155;cursor:pointer;padding:4px 6px;border-radius:8px}
+        .chat-tool:hover{background:#f1f5f9}
+        .chat-composer{margin-top:auto;padding:0;background:#fff;border-top:1px solid #e2e8f0;position:sticky;bottom:0;z-index:2}
+        .chat-reply{display:none;margin-bottom:8px;padding:7px 10px;background:#f1f5f9;border-radius:8px;font-size:12px;color:#475569}
+        .chat-reply.show{display:block}
+        .chat-box{border:none;border-radius:0;background:#fff;position:relative;min-height:150px;display:grid;grid-template-rows:auto 1fr}
+        .chat-box textarea{width:100%;min-height:148px;border:none;outline:none;resize:none;padding:10px 12px 54px;font:inherit;background:transparent}
+        .chat-send{position:absolute;right:12px;bottom:12px;width:56px;height:36px;border:none;border-radius:12px;background:#0f766e;color:#fff;cursor:pointer;font-weight:700}
+        .chat-drop{position:absolute;inset:0;background:rgba(15,118,110,.08);border:2px dashed #0f766e;border-radius:0;display:none;place-items:center;color:#0f766e;font-weight:600}
+        .chat-drop.show{display:grid}
+        .chat-mention{position:absolute;left:10px;bottom:44px;width:240px;max-height:190px;overflow:auto;border:1px solid #dbe3eb;background:#fff;border-radius:10px;box-shadow:0 12px 28px rgba(15,23,42,.14);display:none;z-index:3}
+        .chat-mention.show{display:block}
+        .chat-mention-item{padding:8px 10px;display:flex;gap:8px;align-items:center;cursor:pointer}
+        .chat-mention-item.active,.chat-mention-item:hover{background:#f1f5f9}
+        .chat-menu{position:fixed;z-index:140;min-width:120px;border:1px solid #d8e0ea;background:#fff;border-radius:10px;box-shadow:0 12px 24px rgba(15,23,42,.18);display:none}
+        .chat-menu button{width:100%;border:none;background:transparent;text-align:left;padding:8px 10px;cursor:pointer}
+        .chat-menu button:hover{background:#f1f5f9}
+        .chat-toast-host{position:absolute;right:12px;bottom:150px;display:grid;gap:8px;z-index:130}
+        .chat-toast{background:#0f172a;color:#fff;padding:8px 10px;border-radius:8px;font-size:12px;opacity:.95;transition:opacity .2s}
+        .chat-toast.danger{background:#b91c1c}
+        .chat-search-box{display:none;padding:8px 12px;border-bottom:1px solid var(--border);background:#fff}
+        .chat-search-box.show{display:flex;gap:8px}
+        .chat-search-box input{flex:1;border:1px solid #d5deea;border-radius:9px;padding:8px 10px}
+        .chat-conversation-item{display:grid;gap:4px;padding:10px 12px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;cursor:pointer}
+        .chat-conversation-item:hover{border-color:#b6c4d5}
+        .chat-conversation-item .line2{font-size:12px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .chat-box .chat-toolbar{position:static;left:auto;right:auto;top:auto;padding:8px 10px;border-bottom:1px solid #e2e8f0;background:#fff}
     `);
 
-    function q(selector, root) {
-        return (root || document).querySelector(selector);
-    }
-
-    function qs(selector, root) {
-        return Array.from((root || document).querySelectorAll(selector));
-    }
-
-    function defaultAvatar() {
-        return "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239CA3AF'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
-    }
-
-    function avatarOf(user) {
-        return (user && user.profile && user.profile.avatarUrl) || defaultAvatar();
-    }
-
-    function nameOf(user) {
-        return (user && user.profile && user.profile.realName) || (user && user.id) || "未知用户";
-    }
-
-    function getAuth() {
-        return {
-            userId: localStorage.getItem("auth_user_id") || "",
-            realName: localStorage.getItem("auth_real_name") || "",
-            role: localStorage.getItem("auth_role") || "",
-            token: localStorage.getItem("auth_access_token") || "",
-        };
-    }
-
-    function getDashboardRolePage(role) {
-        return {
-            academic: "academic-dashboard.html",
-            teacher: "teacher-dashboard.html",
-            assistant: "assistant-dashboard.html",
-            student: "student-dashboard.html",
-        }[role] || "dashboard.html";
-    }
-
-    function getOrigin() {
-        return window.location.origin && window.location.origin !== "null" ? window.location.origin : "http://localhost:3001";
-    }
-
-    function getBasePath() {
-        return window.location.pathname.includes("/app/") ? "/app" : "";
-    }
-
-    function getUrl(path) {
-        return getOrigin() + getBasePath() + path;
-    }
-
-    function createLauncher(target, floating) {
-        var button = document.createElement("button");
-        button.className = "linksee-chat-launcher" + (floating ? " is-floating" : "");
-        button.type = "button";
-        button.setAttribute("aria-label", "消息");
-        button.setAttribute("title", "打开聊天消息");
-        button.innerHTML = "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='5' width='18' height='14' rx='2'/><path d='m3 7 9 6 9-6'/></svg><span class='linksee-chat-dot'></span>";
-        target.appendChild(button);
-        return button;
+    function createLauncher() {
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "linksee-chat-launcher";
+        btn.innerHTML = "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8'><rect x='3' y='5' width='18' height='14' rx='2'></rect><path d='m3 7 9 6 9-6'></path></svg><span class='linksee-chat-dot'></span>";
+        document.body.appendChild(btn);
+        return btn;
     }
 
     function createPanel() {
         var panel = document.createElement("section");
         panel.className = "linksee-chat-panel";
         panel.innerHTML = `
-            <div class="linksee-chat-left">
-                <div class="linksee-chat-header" data-drag-handle="true">
-                    <div><strong>消息</strong><div class="linksee-chat-mini">群聊列表</div></div>
+            <div class="chat-head">
+                <div><strong data-chat-title>消息</strong><div class="muted tiny" data-chat-subtitle>选择会话</div></div>
+                <div class="action-row">
+                    <button class="btn btn-ghost" data-chat-action="back">列表</button>
+                    <button class="btn btn-ghost" data-chat-action="close">关闭</button>
                 </div>
-                <div class="linksee-chat-search"><input type="text" placeholder="搜索群聊" data-role="search" /></div>
-                <div class="linksee-chat-list" data-role="conversation-list"></div>
             </div>
-            <div class="linksee-chat-right">
-                <div class="linksee-chat-header" data-drag-handle="true">
-                    <div>
-                        <strong data-role="chat-title">请选择群聊</strong>
-                        <div class="linksee-chat-mini" data-role="chat-meta">--</div>
+            <div class="chat-search-box" data-chat-search-box>
+                <input type="text" placeholder="搜索历史消息" data-chat-search-input>
+                <button class="btn btn-ghost" data-chat-action="search-run">搜索</button>
+                <button class="btn btn-ghost" data-chat-action="search-exit">退出</button>
+            </div>
+            <div class="chat-body" data-chat-stream></div>
+            <div class="chat-composer">
+                <div class="chat-reply" data-chat-reply></div>
+                <div class="chat-box" data-chat-drop-zone>
+                    <div class="chat-toolbar">
+                        <button class="chat-tool" data-chat-action="announcement">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 11 14-5v12L3 13z"></path><path d="M11 14v5"></path></svg>
+                            <span>群公告</span>
+                        </button>
+                        <button class="chat-tool" data-chat-action="history">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+                            <span>历史记录</span>
+                        </button>
                     </div>
-                    <div class="linksee-chat-actions">
-                        <button class="linksee-chat-icon-btn" data-action="back" title="返回群聊列表">←</button>
-                        <button class="linksee-chat-icon-btn" data-action="close" title="关闭">×</button>
-                    </div>
+                    <textarea data-chat-composer placeholder="输入消息，回车发送，Shift+Enter换行"></textarea>
+                    <div class="chat-drop" data-chat-drop-hint>松开即可上传文件</div>
+                    <div class="chat-mention" data-chat-mention></div>
+                    <button type="button" class="chat-send" data-chat-action="send">发送</button>
                 </div>
-                <div class="linksee-chat-stream" data-role="message-stream">
-                    <div class="linksee-chat-empty">请选择一个群聊开始聊天</div>
-                </div>
-                <div class="linksee-chat-composer">
-                    <textarea data-role="composer" placeholder="输入消息，Enter 发送，Shift+Enter 换行"></textarea>
-                    <div class="action-row">
-                        <button class="btn btn-primary" data-action="send">发送</button>
-                        <button class="btn btn-ghost" data-action="read">标记已读</button>
-                    </div>
-                </div>
-            </div>`;
+            </div>
+            <div class="chat-menu" data-chat-menu></div>
+            <div class="chat-toast-host" data-chat-toast-host></div>`;
         document.body.appendChild(panel);
         return panel;
     }
 
-    function setDotVisible(visible) {
-        var dot = q(".linksee-chat-launcher .linksee-chat-dot");
-        if (dot) {
-            dot.classList.toggle("is-visible", Boolean(visible));
+    function setUnread(visible) {
+        var dot = q(".linksee-chat-dot", state.launcher);
+        if (dot) dot.classList.toggle("show", Boolean(visible));
+    }
+
+    function syncTopActionsHidden(hidden) {
+        var nodes = [
+            q(".top-actions"),
+            q("#studentTodoWidget"),
+            q("#studentTodoToggle"),
+            q("#studentTodoPopover"),
+        ].filter(Boolean);
+
+        nodes.forEach(function (node) {
+            if (!node) return;
+            if (hidden) {
+                if (!node.dataset.chatPrevDisplay) {
+                    node.dataset.chatPrevDisplay = node.style.display || "";
+                }
+                if (!node.dataset.chatPrevVisibility) {
+                    node.dataset.chatPrevVisibility = node.style.visibility || "";
+                }
+                if (!node.dataset.chatPrevPointer) {
+                    node.dataset.chatPrevPointer = node.style.pointerEvents || "";
+                }
+                node.style.display = "none";
+                node.style.visibility = "hidden";
+                node.style.pointerEvents = "none";
+            } else {
+                node.style.display = node.dataset.chatPrevDisplay || "";
+                node.style.visibility = node.dataset.chatPrevVisibility || "";
+                node.style.pointerEvents = node.dataset.chatPrevPointer || "";
+            }
+        });
+
+        if (state.launcher) {
+            state.launcher.style.display = hidden ? "none" : "";
+            state.launcher.style.visibility = hidden ? "hidden" : "";
+            state.launcher.style.pointerEvents = hidden ? "none" : "";
         }
+    }
+
+    function setPanelMode(mode) {
+        state.mode = mode === "chat" ? "chat" : "list";
+        if (!state.panel) return;
+        state.panel.classList.toggle("expanded", state.mode === "chat");
+        document.body.classList.toggle("chat-expanded", state.mode === "chat");
+        var composer = q(".chat-composer", state.panel);
+        var searchBox = q("[data-chat-search-box]", state.panel);
+        var backBtn = q("[data-chat-action='back']", state.panel);
+        if (composer) composer.style.display = state.mode === "chat" ? "block" : "none";
+        if (searchBox) searchBox.classList.remove("show");
+        if (backBtn) backBtn.style.display = state.mode === "chat" ? "inline-flex" : "none";
+    }
+
+    function normalizeParticipant(row) {
+        var user = row.user || row.assistant || row.teacher || row;
+        return {
+            id: String(user.id || row.userId || row.assistantUserId || row.teacherUserId || ""),
+            profile: {
+                realName: (user.profile && user.profile.realName) || user.realName || user.name || String(user.id || ""),
+                avatarUrl: (user.profile && user.profile.avatarUrl) || user.avatarUrl || "",
+            },
+        };
     }
 
     async function loadMe() {
-        if (!window.linkseeApi) return null;
         var payload = await window.linkseeApi.getJson("/api/v1/users/me");
         state.me = payload.data || null;
-        if (state.me && state.me.profile && state.me.profile.realName) {
-            localStorage.setItem("auth_real_name", state.me.profile.realName);
-        }
-        return state.me;
     }
-
     async function loadConversations() {
-        if (!window.linkseeApi) return [];
         var payload = await window.linkseeApi.getJson("/api/v1/conversations");
         state.conversations = Array.isArray(payload.data) ? payload.data : [];
-        state.unreadTotal = state.conversations.reduce((sum, row) => sum + (Number(row.unreadCount) || 0), 0);
-        setDotVisible(state.unreadTotal > 0);
-        return state.conversations;
+        if (!state.conversations.length && auth().role === "student") {
+            state.conversations = [{
+                id: "mock-student-conv",
+                scopeType: "mock",
+                scopeId: "mock-student",
+                title: "虚拟测试会话",
+                roomKey: "mock:student",
+                unreadCount: 0,
+                lastMessage: {
+                    id: "mock-msg-0",
+                    senderId: "system",
+                    content: "这是用于前端测试的虚拟会话，可直接发送消息、回复、右键删除。",
+                    createdAt: new Date().toISOString(),
+                },
+            }];
+        }
+        state.unreadTotal = state.conversations.reduce(function (s, c) { return s + (Number(c.unreadCount) || 0); }, 0);
+        setUnread(state.unreadTotal > 0);
     }
-
-    function renderConversations(filterText) {
-        var list = q("[data-role='conversation-list']", state.panel);
-        var rows = state.conversations.filter(function (row) {
-            if (!filterText) return true;
-            var text = (row.title || row.roomKey || "").toLowerCase();
-            return text.indexOf(filterText.toLowerCase()) !== -1;
-        });
-        if (!rows.length) {
-            list.innerHTML = '<div class="linksee-chat-empty">暂无会话</div>';
+    async function loadParticipants() {
+        state.participants = [];
+        state.participantsMap.clear();
+        if (!state.selected) return;
+        if (state.selected.scopeType === "mock") {
+            var meId = auth().userId || "student";
+            state.participants = [
+                { id: "system", profile: { realName: "系统助手", avatarUrl: "" } },
+                { id: meId, profile: { realName: localStorage.getItem("auth_real_name") || meId, avatarUrl: localStorage.getItem("auth_avatar_url") || "" } },
+            ];
+            state.participants.forEach(function (u) { state.participantsMap.set(String(u.id), u); });
             return;
         }
-        list.innerHTML = rows.map(function (row) {
-            return [
-                '<div class="linksee-chat-item' + (state.selected && String(state.selected.id) === String(row.id) ? ' is-active' : '') + '" data-id="' + row.id + '">',
-                '<div class="linksee-chat-avatar"><img alt="" src="' + avatarOf(row.lastMessage && row.lastMessage.sender) + '"></div>',
-                '<div class="linksee-chat-item-meta">',
-                '<strong>' + escapeHtml(row.title || row.roomKey) + '</strong>',
-                '<span class="muted">' + escapeHtml(row.lastMessage && row.lastMessage.content ? row.lastMessage.content : "暂无消息") + '</span>',
-                '</div>',
-                row.unreadCount ? '<span class="linksee-chat-badge">' + row.unreadCount + '</span>' : '',
-                '</div>',
-            ].join("");
-        }).join("");
-
-        qs(".linksee-chat-item", list).forEach(function (item) {
-            item.addEventListener("click", function () {
-                var target = state.conversations.find(function (row) { return String(row.id) === String(item.getAttribute("data-id")); });
-                if (target) {
-                    openConversation(target);
-                }
-            });
-        });
-    }
-
-    function escapeHtml(value) {
-        return String(value || "").replace(/[&<>"']/g, function (ch) {
-            return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch];
-        });
-    }
-
-    async function loadParticipants() {
-        state.participants = new Map();
-        if (!state.selected) return;
         var path = state.selected.scopeType === "group"
             ? "/api/v1/groups/" + encodeURIComponent(state.selected.scopeId) + "/members"
             : "/api/v1/courses/" + encodeURIComponent(state.selected.scopeId) + "/members";
         var payload = await window.linkseeApi.getJson(path);
         var rows = Array.isArray(payload.data) ? payload.data : [];
-        rows.forEach(function (row) {
-            var user = row.user || row.assistant || {};
-            var id = user.id || row.userId || row.assistantUserId;
-            if (id) {
-                state.participants.set(String(id), user);
-            }
+        rows.map(normalizeParticipant).forEach(function (u) {
+            if (!u.id) return;
+            state.participants.push(u);
+            state.participantsMap.set(u.id, u);
         });
     }
-
     async function loadMessages() {
         if (!state.selected) {
             state.messages = [];
-            renderMessages();
             return;
         }
-        var path = state.selected.scopeType === "group"
-            ? "/api/v1/groups/" + encodeURIComponent(state.selected.scopeId) + "/messages"
-            : "/api/v1/courses/" + encodeURIComponent(state.selected.scopeId) + "/messages";
-        var payload = await window.linkseeApi.getJson(path);
-        state.messages = Array.isArray(payload.data) ? payload.data : [];
-        renderMessages();
+        if (state.selected.scopeType === "mock") {
+            if (!Array.isArray(state.selected.__mockMessages)) {
+                state.selected.__mockMessages = [{
+                    id: "mock-msg-0",
+                    senderId: "system",
+                    content: "这是用于前端测试的虚拟会话，可直接发送消息、回复、右键删除。",
+                    files: null,
+                    mentions: [],
+                    replyToId: null,
+                    createdAt: new Date().toISOString(),
+                    deletedAt: null,
+                }];
+            }
+            state.messages = state.selected.__mockMessages.slice();
+            return;
+        }
+        var payload = await window.linkseeApi.getJson(messagePath(state.selected.scopeType, state.selected.scopeId));
+        state.messages = Array.isArray(payload.data) ? payload.data.slice().reverse() : [];
+    }
+
+    function renderConversationSelector() {
+        var stream = q("[data-chat-stream]", state.panel);
+        if (!state.conversations.length) {
+            stream.innerHTML = "<div class='muted'>暂无会话</div>";
+            return;
+        }
+        stream.innerHTML = state.conversations.map(function (c) {
+            return "<div class='chat-conversation-item' data-chat-open='" + c.id + "'>" +
+                "<strong>" + escapeHtml(c.title || c.roomKey || ("会话 " + c.id)) + "</strong>" +
+                "<div class='line2'>" + escapeHtml((c.lastMessage && c.lastMessage.content) || "暂无消息") + "</div>" +
+                (c.unreadCount ? "<div class='line2'>未读 " + c.unreadCount + "</div>" : "") +
+                "</div>";
+        }).join("");
+    }
+
+    function buildReplyQuote(message) {
+        if (!message) return "";
+        var sender = state.participantsMap.get(String(message.senderId));
+        var name = sender ? userName(sender) : message.senderId;
+        var snippet = message.content || (message.files ? "[文件消息]" : "[消息]");
+        return "回复 " + name + "： " + snippet.slice(0, 80);
+    }
+
+    function renderReply() {
+        var box = q("[data-chat-reply]", state.panel);
+        if (!state.replyTo) {
+            box.classList.remove("show");
+            box.textContent = "";
+            return;
+        }
+        box.classList.add("show");
+        box.textContent = buildReplyQuote(state.replyTo) + "（Esc 取消）";
     }
 
     function renderMessages() {
-        var stream = q("[data-role='message-stream']", state.panel);
-        var title = q("[data-role='chat-title']", state.panel);
-        var meta = q("[data-role='chat-meta']", state.panel);
+        var stream = q("[data-chat-stream]", state.panel);
+        var title = q("[data-chat-title]", state.panel);
+        var subtitle = q("[data-chat-subtitle]", state.panel);
         if (!state.selected) {
-            stream.innerHTML = '<div class="linksee-chat-empty">请选择一个群聊开始聊天</div>';
-            title.textContent = "请选择群聊";
-            meta.textContent = "--";
+            title.textContent = "消息";
+            subtitle.textContent = "请选择会话（点击后展开）";
+            setPanelMode("list");
+            renderConversationSelector();
             return;
         }
-        title.textContent = state.selected.title || state.selected.roomKey;
-        meta.textContent = state.selected.scopeType === "group" ? "群聊" : "课程群聊";
-
+        setPanelMode("chat");
+        title.textContent = state.selected.title || state.selected.roomKey || "会话";
+        subtitle.textContent = state.selected.scopeType === "group" ? "小组聊天" : "课程聊天";
         if (!state.messages.length) {
-            stream.innerHTML = '<div class="linksee-chat-empty">当前没有消息</div>';
+            stream.innerHTML = "<div class='muted'>还没有消息，开始聊聊吧。</div>";
             return;
         }
 
-        stream.innerHTML = state.messages.map(function (row) {
-            var me = row.senderId === getAuth().userId;
-            var user = state.participants.get(String(row.senderId)) || { id: row.senderId, profile: { realName: row.senderId, avatarUrl: defaultAvatar() } };
+        stream.innerHTML = state.messages.map(function (m) {
+            var me = String(m.senderId) === String(auth().userId);
+            var sender = state.participantsMap.get(String(m.senderId));
+            var deleted = Boolean(m.deletedAt);
+            var quoted = state.messages.find(function (x) { return String(x.id) === String(m.replyToId || ""); });
+            var mentions = Array.isArray(m.mentions) ? m.mentions.map(function (id) { return "@" + escapeHtml(mentionName(id)); }).join(" ") : "";
+            var filesHtml = "";
+            if (Array.isArray(m.files) && m.files.length) {
+                filesHtml = "<div class='chat-files'>" + m.files.map(function (f, i) {
+                    return "<a href='#' data-chat-file='" + escapeHtml(String(m.id)) + ":" + i + "'>" + escapeHtml(f.name || "附件") + "</a>";
+                }).join("") + "</div>";
+            }
             return [
-                '<div class="linksee-chat-bubble-row' + (me ? ' me' : '') + '">',
-                me ? '' : '<div class="linksee-chat-avatar" style="width:40px;height:40px"><img alt="" src="' + avatarOf(user) + '"></div>',
-                '<div class="linksee-chat-bubble' + (me ? ' me' : '') + '">',
-                '<div class="linksee-chat-bubble-head">',
-                me ? '' : '<img alt="" src="' + avatarOf(user) + '">',
-                '<strong>' + escapeHtml(nameOf(user)) + '</strong>',
-                '<span>' + new Date(row.createdAt).toLocaleString("zh-CN", { hour12: false }) + '</span>',
-                '</div>',
-                '<div>' + escapeHtml(row.content || "") + '</div>',
-                '</div>',
-                me ? '<div class="linksee-chat-avatar" style="width:40px;height:40px"><img alt="" src="' + avatarOf(state.me) + '"></div>' : '',
-                '</div>',
+                "<div class='chat-row" + (me ? " me" : "") + "'>",
+                me ? "" : "<div class='chat-avatar'><img src='" + userAvatar(sender) + "' alt=''></div>",
+                "<div class='chat-msg" + (me ? " me" : "") + "' data-chat-message-id='" + m.id + "'>",
+                "<div class='chat-meta'><strong>" + escapeHtml(sender ? userName(sender) : m.senderId) + "</strong><span>" + new Date(m.createdAt).toLocaleString("zh-CN", { hour12: false }) + "</span></div>",
+                quoted ? "<div class='chat-quote'>" + escapeHtml(buildReplyQuote(quoted)) + "</div>" : "",
+                deleted ? "<div class='chat-del'>该消息已删除</div>" : ("<div>" + escapeHtml(m.content || "") + "</div>"),
+                mentions ? ("<div class='muted tiny'>" + mentions + "</div>") : "",
+                deleted ? "" : filesHtml,
+                "</div>",
+                me ? "<div class='chat-avatar'><img src='" + userAvatar(state.me) + "' alt=''></div>" : "",
+                "</div>",
             ].join("");
         }).join("");
         stream.scrollTop = stream.scrollHeight;
     }
 
-    async function openConversation(row) {
-        state.selected = row;
-        renderConversations(q("[data-role='search']", state.panel).value.trim());
-        state.mode = "chat";
-        state.panel.classList.remove("is-list");
-        state.panel.classList.add("is-chat");
+    async function openConversationById(id) {
+        var target = state.conversations.find(function (c) { return String(c.id) === String(id); });
+        if (!target) return;
+        state.selected = target;
+        state.replyTo = null;
+        renderReply();
         await loadParticipants();
         await loadMessages();
-    }
-
-    function backToList() {
-        state.mode = "list";
-        state.panel.classList.remove("is-chat");
-        state.panel.classList.add("is-list");
-        renderConversations(q("[data-role='search']", state.panel).value.trim());
         renderMessages();
     }
 
-    async function sendMessage() {
-        if (!state.selected) return;
-        var composer = q("[data-role='composer']", state.panel);
-        var text = composer.value.trim();
-        if (!text) return;
-        var path = state.selected.scopeType === "group"
-            ? "/api/v1/groups/" + encodeURIComponent(state.selected.scopeId) + "/messages"
-            : "/api/v1/courses/" + encodeURIComponent(state.selected.scopeId) + "/messages";
-        await window.linkseeApi.postJson(path, { type: "text", content: text });
-        composer.value = "";
+    function backToList() {
+        state.selected = null;
+        state.replyTo = null;
+        renderReply();
+        renderMessages();
+    }
+
+    async function sendAnnouncement() {
+        if (!state.selected) return showToast("请先选择会话", true);
+        if (!isStaff()) return showToast("仅教师/助教可发布公告", true);
+        var text = window.prompt("请输入公告内容");
+        if (!text || !text.trim()) return;
+        if (state.selected.scopeType === "mock") {
+            state.selected.__mockMessages.push({
+                id: "mock-ann-" + Date.now(),
+                senderId: auth().userId || "student",
+                content: "【公告】" + text.trim(),
+                files: { type: "announcement" },
+                mentions: [],
+                replyToId: null,
+                createdAt: new Date().toISOString(),
+                deletedAt: null,
+            });
+            await loadMessages();
+            renderMessages();
+            return showToast("公告已发布（mock）");
+        }
+        await window.linkseeApi.postJson(announcementPath(state.selected.scopeType, state.selected.scopeId), { content: text.trim() });
+        showToast("公告已发布");
+        await loadMessages();
+        renderMessages();
+    }
+
+    async function searchHistory() {
+        if (!state.selected) return showToast("请先选择会话", true);
+        var box = q("[data-chat-search-box]", state.panel);
+        box.classList.add("show");
+        q("[data-chat-search-input]", box).focus();
+    }
+
+    async function runSearch() {
+        var input = q("[data-chat-search-input]", state.panel);
+        var keyword = (input.value || "").trim();
+        if (!keyword) return showToast("请输入关键词", true);
+        if (state.selected && state.selected.scopeType === "mock") {
+            state.messages = (state.selected.__mockMessages || []).filter(function (m) {
+                return String(m.content || "").indexOf(keyword) >= 0;
+            });
+            renderMessages();
+            return showToast("已切换到搜索结果（mock）");
+        }
+        var payload = await window.linkseeApi.getJson(searchPath(state.selected.scopeType, state.selected.scopeId, keyword));
+        state.messages = Array.isArray(payload.data) ? payload.data.slice().reverse() : [];
+        renderMessages();
+        showToast("已切换到搜索结果");
+    }
+
+    async function closeSearch() {
+        q("[data-chat-search-box]", state.panel).classList.remove("show");
+        q("[data-chat-search-input]", state.panel).value = "";
+        await loadMessages();
+        renderMessages();
+    }
+
+    async function sendText() {
+        if (!state.selected) return showToast("请先选择会话", true);
+        var ta = q("[data-chat-composer]", state.panel);
+        var content = (ta.value || "").trim();
+        if (!content) return;
+        if (state.selected.scopeType === "mock") {
+            var mentionsMock = parseMentions(content);
+            state.selected.__mockMessages.push({
+                id: "mock-msg-" + Date.now(),
+                senderId: auth().userId || "student",
+                content: content,
+                files: null,
+                mentions: mentionsMock,
+                replyToId: state.replyTo ? String(state.replyTo.id) : null,
+                createdAt: new Date().toISOString(),
+                deletedAt: null,
+            });
+            ta.value = "";
+            state.replyTo = null;
+            renderReply();
+            closeMention();
+            await loadMessages();
+            renderMessages();
+            return;
+        }
+        var body = { type: "text", content: content };
+        var mentions = parseMentions(content);
+        if (mentions.length) body.mentions = mentions;
+        if (state.replyTo) body.replyToId = String(state.replyTo.id);
+        await window.linkseeApi.postJson(messagePath(state.selected.scopeType, state.selected.scopeId), body);
+        ta.value = "";
+        state.replyTo = null;
+        renderReply();
+        closeMention();
         await loadConversations();
         await loadMessages();
+        renderMessages();
     }
 
-    async function markRead() {
-        if (!state.selected || !state.selected.lastMessage) return;
-        await window.linkseeApi.postJson("/api/v1/conversations/" + encodeURIComponent(state.selected.id) + "/read", {
-            messageId: state.selected.lastMessage.id,
+    async function uploadFiles(fileList) {
+        if (!state.selected) return showToast("请先选择会话", true);
+        var files = Array.from(fileList || []);
+        if (!files.length) return;
+        if (state.selected.scopeType === "mock") {
+            files.forEach(function (file) {
+                state.selected.__mockMessages.push({
+                    id: "mock-file-" + Date.now() + "-" + file.name,
+                    senderId: auth().userId || "student",
+                    content: file.name,
+                    files: [{ name: file.name, size: file.size, mimeType: file.type || "application/octet-stream", objectKey: "mock://" + file.name }],
+                    mentions: [],
+                    replyToId: null,
+                    createdAt: new Date().toISOString(),
+                    deletedAt: null,
+                });
+            });
+            await loadMessages();
+            renderMessages();
+            return showToast("已上传 " + files.length + " 个文件（mock）");
+        }
+        var sent = 0;
+        for (var i = 0; i < files.length; i += 1) {
+            var file = files[i];
+            try {
+                var presign = await window.linkseeApi.postJson("/api/v1/chat/files/presign-upload", {
+                    scopeType: state.selected.scopeType,
+                    scopeId: String(state.selected.scopeId),
+                    fileName: file.name,
+                    mimeType: file.type || "application/octet-stream",
+                    size: file.size,
+                });
+                var data = presign.data || {};
+                var headerMap = data.headers || {};
+                var putResp = await fetch(data.uploadUrl, {
+                    method: "PUT",
+                    headers: headerMap,
+                    body: file,
+                });
+                if (!putResp.ok) throw new Error("上传文件失败");
+                var meta = {
+                    objectKey: data.objectKey,
+                    name: file.name,
+                    size: file.size,
+                    mimeType: file.type || "application/octet-stream",
+                    uploadedAt: new Date().toISOString(),
+                };
+                var body = { type: "file", content: file.name, files: [meta] };
+                if (state.replyTo) body.replyToId = String(state.replyTo.id);
+                await window.linkseeApi.postJson(messagePath(state.selected.scopeType, state.selected.scopeId), body);
+                sent += 1;
+            } catch (err) {
+                showToast("文件“" + file.name + "”上传失败：" + (err && err.message ? err.message : "未知错误"), true);
+            }
+        }
+        if (sent > 0) {
+            showToast("已上传 " + sent + " 个文件");
+            await loadConversations();
+            await loadMessages();
+            renderMessages();
+        }
+    }
+
+    async function downloadMessageFile(messageId, index) {
+        var msg = state.messages.find(function (m) { return String(m.id) === String(messageId); });
+        if (!msg || !Array.isArray(msg.files) || !msg.files[index]) return;
+        var f = msg.files[index];
+        if (state.selected && state.selected.scopeType === "mock") {
+            return showToast("mock 会话不提供真实下载链接");
+        }
+        var payload = await window.linkseeApi.getJson("/api/v1/chat/files/presign-download?objectKey=" + encodeURIComponent(f.objectKey));
+        window.open(payload.data.downloadUrl, "_blank");
+    }
+
+    function openMention(start, keyword) {
+        var list = q("[data-chat-mention]", state.panel);
+        state.mention.start = start;
+        state.mention.keyword = keyword || "";
+        state.mention.options = state.participants.filter(function (p) {
+            var name = (p.profile.realName || "").toLowerCase();
+            var id = String(p.id || "").toLowerCase();
+            var key = state.mention.keyword.toLowerCase();
+            return !key || name.indexOf(key) >= 0 || id.indexOf(key) >= 0;
+        }).slice(0, 8);
+        state.mention.index = 0;
+        if (!state.mention.options.length) {
+            closeMention();
+            return;
+        }
+        list.innerHTML = state.mention.options.map(function (u, i) {
+            return "<div class='chat-mention-item" + (i === 0 ? " active" : "") + "' data-chat-mention-id='" + u.id + "'>" +
+                "<div class='chat-avatar' style='width:24px;height:24px'><img src='" + userAvatar(u) + "' alt=''></div>" +
+                "<span>" + escapeHtml(userName(u)) + " (" + escapeHtml(u.id) + ")</span></div>";
+        }).join("");
+        list.classList.add("show");
+        state.mention.open = true;
+    }
+
+    function closeMention() {
+        state.mention.open = false;
+        var list = q("[data-chat-mention]", state.panel);
+        list.classList.remove("show");
+        list.innerHTML = "";
+    }
+
+    function applyMention(userId) {
+        var target = state.participantsMap.get(String(userId));
+        if (!target) return;
+        var ta = q("[data-chat-composer]", state.panel);
+        var cursor = ta.selectionStart;
+        var text = ta.value;
+        var head = text.slice(0, state.mention.start);
+        var tail = text.slice(cursor);
+        ta.value = head + "@" + userName(target) + " " + tail;
+        var pos = (head + "@" + userName(target) + " ").length;
+        ta.setSelectionRange(pos, pos);
+        ta.focus();
+        closeMention();
+    }
+
+    function refreshMentionByInput() {
+        var ta = q("[data-chat-composer]", state.panel);
+        var cursor = ta.selectionStart;
+        var text = ta.value.slice(0, cursor);
+        var at = text.lastIndexOf("@");
+        if (at < 0) return closeMention();
+        var part = text.slice(at + 1);
+        if (/\s/.test(part)) return closeMention();
+        openMention(at, part);
+    }
+
+    function openContextMenu(message, x, y) {
+        var menu = q("[data-chat-menu]", state.panel);
+        var canDelete = String(message.senderId) === String(auth().userId) || isStaff();
+        var items = [
+            "<button type='button' data-chat-menu-action='reply'>回复</button>",
+            canDelete ? "<button type='button' data-chat-menu-action='delete'>删除</button>" : "",
+        ].join("");
+        menu.innerHTML = items;
+        menu.style.left = x + "px";
+        menu.style.top = y + "px";
+        menu.style.display = "block";
+        menu.dataset.messageId = String(message.id);
+    }
+
+    function closeContextMenu() {
+        var menu = q("[data-chat-menu]", state.panel);
+        menu.style.display = "none";
+        menu.innerHTML = "";
+        menu.dataset.messageId = "";
+    }
+
+    async function deleteMessage(messageId) {
+        if (!state.selected) return;
+        if (state.selected.scopeType === "mock") {
+            state.selected.__mockMessages = (state.selected.__mockMessages || []).map(function (m) {
+                if (String(m.id) !== String(messageId)) return m;
+                return Object.assign({}, m, { content: null, files: null, mentions: null, deletedAt: new Date().toISOString() });
+            });
+            await loadMessages();
+            renderMessages();
+            return showToast("消息已删除（mock）");
+        }
+        await window.linkseeApi.request(messagePath(state.selected.scopeType, state.selected.scopeId) + "/" + encodeURIComponent(messageId), {
+            method: "DELETE",
+            headers: window.linkseeApi.authHeaders(),
         });
-        await loadConversations();
+        showToast("消息已删除");
+        await loadMessages();
+        renderMessages();
     }
 
-    function startDrag(event) {
-        if (state.panel && state.panel.classList.contains("is-docked")) return;
-        var header = event.target.closest("[data-drag-handle='true']");
-        if (!header) return;
-        state.drag = {
-            startX: event.clientX,
-            startY: event.clientY,
-            left: state.position.left,
-            top: state.position.top,
-        };
-        event.preventDefault();
-    }
+    function bindEvents() {
+        state.launcher.addEventListener("click", function () {
+            state.open = !state.open;
+            state.panel.classList.toggle("open", state.open);
+            document.body.classList.toggle("linksee-chat-docked-open", state.open);
+            syncTopActionsHidden(state.open);
+            if (state.open) {
+                loadConversations().then(function () {
+                    renderMessages();
+                    return state.selected ? openConversationById(state.selected.id) : null;
+                }).catch(function (e) { showToast(e.message || "加载失败", true); });
+            }
+        });
 
-    function moveDrag(event) {
-        if (!state.drag) return;
-        var dx = event.clientX - state.drag.startX;
-        var dy = event.clientY - state.drag.startY;
-        state.position.left = Math.max(8, state.drag.left + dx);
-        state.position.top = Math.max(8, state.drag.top + dy);
-        state.panel.style.left = state.position.left + "px";
-        state.panel.style.top = state.position.top + "px";
-    }
-
-    function endDrag() {
-        state.drag = null;
-    }
-
-    function ensureWidget() {
-        var topActions = q(".top-actions");
-        if (!state.launcher) {
-            state.launcher = createLauncher(topActions || document.body, !topActions);
-            state.launcher.addEventListener("click", function () {
-                togglePanel();
-            });
-        }
-        if (!state.panel) {
-            state.panel = createPanel();
-            state.panel.style.left = state.position.left + "px";
-            state.panel.style.top = state.position.top + "px";
-            state.panel.addEventListener("pointerdown", startDrag);
-            window.addEventListener("pointermove", moveDrag);
-            window.addEventListener("pointerup", endDrag);
-
-            state.panel.addEventListener("click", function (event) {
-                var action = event.target && event.target.getAttribute && event.target.getAttribute("data-action");
-                if (!action) return;
-                if (action === "close") closePanel();
+        state.panel.addEventListener("click", function (event) {
+            var actionNode = event.target.closest("[data-chat-action]");
+            if (actionNode) {
+                var action = actionNode.getAttribute("data-chat-action");
+                if (action === "close") {
+                    state.open = false;
+                    state.panel.classList.remove("open");
+                    document.body.classList.remove("linksee-chat-docked-open");
+                    document.body.classList.remove("chat-expanded");
+                    syncTopActionsHidden(false);
+                }
                 if (action === "back") backToList();
-                if (action === "send") sendMessage().catch(function () {});
-                if (action === "read") markRead().catch(function () {});
-            });
+                if (action === "send") sendText().catch(function (e) { showToast(e.message || "发送失败", true); });
+                if (action === "announcement") sendAnnouncement().catch(function (e) { showToast(e.message || "公告发布失败", true); });
+                if (action === "history") searchHistory().catch(function (e) { showToast(e.message || "操作失败", true); });
+                if (action === "search-run") runSearch().catch(function (e) { showToast(e.message || "搜索失败", true); });
+                if (action === "search-exit") closeSearch().catch(function () {});
+                return;
+            }
 
-            var search = q("[data-role='search']", state.panel);
-            search.addEventListener("input", function () {
-                renderConversations(search.value.trim());
-            });
-            var composer = q("[data-role='composer']", state.panel);
-            composer.addEventListener("keydown", function (event) {
-                if (event.key === "Enter" && !event.shiftKey) {
-                    event.preventDefault();
-                    sendMessage().catch(function () {});
+            var conv = event.target.closest("[data-chat-open]");
+            if (conv) {
+                openConversationById(conv.getAttribute("data-chat-open")).catch(function (e) { showToast(e.message || "打开会话失败", true); });
+                return;
+            }
+
+            var fileLink = event.target.closest("[data-chat-file]");
+            if (fileLink) {
+                event.preventDefault();
+                var parts = fileLink.getAttribute("data-chat-file").split(":");
+                downloadMessageFile(parts[0], Number(parts[1])).catch(function (e) { showToast(e.message || "下载失败", true); });
+                return;
+            }
+
+            var mentionItem = event.target.closest("[data-chat-mention-id]");
+            if (mentionItem) {
+                applyMention(mentionItem.getAttribute("data-chat-mention-id"));
+                return;
+            }
+
+            var menuAction = event.target.closest("[data-chat-menu-action]");
+            if (menuAction) {
+                var kind = menuAction.getAttribute("data-chat-menu-action");
+                var messageId = q("[data-chat-menu]", state.panel).dataset.messageId;
+                var msg = state.messages.find(function (m) { return String(m.id) === String(messageId); });
+                closeContextMenu();
+                if (!msg) return;
+                if (kind === "reply") {
+                    state.replyTo = msg;
+                    renderReply();
+                    q("[data-chat-composer]", state.panel).focus();
                 }
-            });
-        }
-    }
-
-    function openPanel() {
-        state.open = true;
-        ensureWidget();
-        document.body.classList.add("linksee-chat-docked-open");
-        state.panel.classList.add("is-open");
-        state.panel.classList.add("is-docked");
-        state.launcher.classList.add("is-active");
-        state.launcher.classList.add("has-open");
-        state.panel.classList.toggle("is-list", state.mode === "list");
-        state.panel.classList.toggle("is-chat", state.mode === "chat");
-        state.panel.style.left = state.position.left + "px";
-        state.panel.style.top = state.position.top + "px";
-        loadConversations()
-            .then(function () {
-                renderConversations(q("[data-role='search']", state.panel).value.trim());
-                if (state.selected) {
-                    return loadParticipants().then(loadMessages);
+                if (kind === "delete") {
+                    deleteMessage(messageId).catch(function (e) { showToast(e.message || "删除失败", true); });
                 }
-            })
-            .catch(function () {});
-    }
+                return;
+            }
+            closeContextMenu();
+        });
 
-    function closePanel() {
-        state.open = false;
-        document.body.classList.remove("linksee-chat-docked-open");
-        if (state.panel) {
-            state.panel.classList.remove("is-open");
-            state.panel.classList.remove("is-docked");
-        }
-        if (state.launcher) {
-            state.launcher.classList.remove("is-active");
-        }
-    }
+        var ta = q("[data-chat-composer]", state.panel);
+        ta.addEventListener("keydown", function (event) {
+            if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                sendText().catch(function (e) { showToast(e.message || "发送失败", true); });
+                return;
+            }
+            if (event.key === "Escape") {
+                if (state.replyTo) {
+                    state.replyTo = null;
+                    renderReply();
+                }
+                closeMention();
+                closeContextMenu();
+                return;
+            }
+            if (state.mention.open && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
+                event.preventDefault();
+                var max = state.mention.options.length;
+                if (!max) return;
+                state.mention.index = (state.mention.index + (event.key === "ArrowDown" ? 1 : -1) + max) % max;
+                qs(".chat-mention-item", state.panel).forEach(function (n, i) {
+                    n.classList.toggle("active", i === state.mention.index);
+                });
+                return;
+            }
+            if (state.mention.open && event.key === "Enter") {
+                event.preventDefault();
+                var pick = state.mention.options[state.mention.index];
+                if (pick) applyMention(pick.id);
+            }
+        });
+        ta.addEventListener("input", refreshMentionByInput);
 
-    function togglePanel() {
-        ensureWidget();
-        if (state.open) {
-            closePanel();
-        } else {
-            openPanel();
-        }
+        var dropZone = q("[data-chat-drop-zone]", state.panel);
+        ["dragenter", "dragover"].forEach(function (evt) {
+            dropZone.addEventListener(evt, function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                q("[data-chat-drop-hint]", dropZone).classList.add("show");
+            });
+        });
+        ["dragleave", "drop"].forEach(function (evt) {
+            dropZone.addEventListener(evt, function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                q("[data-chat-drop-hint]", dropZone).classList.remove("show");
+            });
+        });
+        dropZone.addEventListener("drop", function (e) {
+            var dt = e.dataTransfer;
+            if (!dt || !dt.files || !dt.files.length) return;
+            uploadFiles(dt.files).catch(function (err) { showToast(err.message || "上传失败", true); });
+        });
+
+        state.panel.addEventListener("contextmenu", function (event) {
+            var bubble = event.target.closest("[data-chat-message-id]");
+            if (!bubble) return;
+            event.preventDefault();
+            var id = bubble.getAttribute("data-chat-message-id");
+            var msg = state.messages.find(function (m) { return String(m.id) === String(id); });
+            if (!msg || msg.deletedAt) return;
+            openContextMenu(msg, event.clientX + 2, event.clientY + 2);
+        });
     }
 
     function init() {
-        if (!getAuth().token) return;
-        ensureWidget();
-        loadMe().catch(function () {});
-        loadConversations().catch(function () {});
-        setDotVisible(false);
+        if (!auth().token || !window.linkseeApi) return;
+        state.launcher = createLauncher();
+        state.panel = createPanel();
+        bindEvents();
+        Promise.all([loadMe(), loadConversations()]).then(function () {
+            setUnread(state.unreadTotal > 0);
+            renderMessages();
+        }).catch(function () {});
     }
 
     window.linkseeChatWidget = {
-        open: openPanel,
-        close: closePanel,
-        toggle: togglePanel,
-        refresh: function () {
-            return loadConversations();
+        open: function () {
+            state.open = true;
+            state.panel.classList.add("open");
+            document.body.classList.add("linksee-chat-docked-open");
+            syncTopActionsHidden(true);
+        },
+        close: function () {
+            state.open = false;
+            state.panel.classList.remove("open");
+            document.body.classList.remove("linksee-chat-docked-open");
+            document.body.classList.remove("chat-expanded");
+            syncTopActionsHidden(false);
         },
     };
 
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", init);
-    } else {
-        init();
-    }
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+    else init();
 })();
