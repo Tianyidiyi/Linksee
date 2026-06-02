@@ -1,4 +1,57 @@
 (function () {
+    function mergeTeacherReviewWorkbench() {
+        var workbench = document.getElementById("panel-review-workbench");
+        var grading = document.getElementById("panel-review-detail-source");
+        if (!workbench) return;
+
+        var body = workbench.querySelector(".dashboard-card-body");
+        if (!body || body.querySelector(".teacher-review-workbench")) {
+            if (grading) grading.remove();
+            return;
+        }
+
+        var toolbar = workbench.querySelector(".dashboard-toolbar-row");
+        var gradingBody = grading ? grading.querySelector(".dashboard-card-body") : null;
+        var layout = document.createElement("div");
+        var queue = document.createElement("section");
+        var editor = document.createElement("section");
+
+        layout.className = "teacher-review-workbench";
+        queue.className = "dashboard-subcard teacher-review-queue";
+        editor.className = "teacher-review-editor";
+
+        if (toolbar) {
+            queue.appendChild(toolbar);
+        }
+        while (body.firstChild) {
+            queue.appendChild(body.firstChild);
+        }
+        if (gradingBody) {
+            while (gradingBody.firstChild) {
+                editor.appendChild(gradingBody.firstChild);
+            }
+        }
+
+        layout.appendChild(queue);
+        layout.appendChild(editor);
+        body.appendChild(layout);
+        if (grading) grading.remove();
+    }
+
+    function bindPanelLinks() {
+        document.querySelectorAll("[data-panel-link]").forEach(function (button) {
+            if (button.dataset.boundPanelLink === "1") return;
+            button.dataset.boundPanelLink = "1";
+            button.addEventListener("click", function () {
+                var targetId = button.getAttribute("data-panel-link");
+                var sideNavButton = document.querySelector('.side-nav .nav-item[data-target="' + targetId + '"]');
+                if (sideNavButton) {
+                    sideNavButton.click();
+                }
+            });
+        });
+    }
+
     function qs(selector, root) {
         return (root || document).querySelector(selector);
     }
@@ -22,6 +75,9 @@
     function formatDate(value) {
         if (!value) {
             return "--";
+        }
+        if (window.linkseePage && typeof window.linkseePage.formatDateTime === "function") {
+            return window.linkseePage.formatDateTime(value);
         }
         var date = new Date(value);
         if (Number.isNaN(date.getTime())) {
@@ -475,6 +531,9 @@
     }
 
     window.initTeacherDashboard = function initTeacherDashboard() {
+        mergeTeacherReviewWorkbench();
+        bindPanelLinks();
+
         var state = {
             courses: [],
             pendingReviews: [],

@@ -93,10 +93,13 @@
         .linksee-chat-launcher svg{width:30px;height:30px}
         .linksee-chat-dot{position:absolute;right:7px;top:7px;width:9px;height:9px;border-radius:50%;background:#2563eb;display:none}
         .linksee-chat-dot.show{display:block}
-        body.linksee-chat-docked-open .workspace{padding-right:calc(360px + 20px);transition:padding-right .2s ease}
-        body.linksee-chat-docked-open.chat-expanded .workspace{padding-right:calc(700px + 20px)}
-        .linksee-chat-panel{position:fixed;right:16px;top:16px;bottom:16px;width:min(340px,calc(100vw - 24px));z-index:119;border:1px solid var(--border);background:#f8fafc;border-radius:18px;display:none;grid-template-rows:auto auto 1fr auto;overflow:hidden;transition:width .2s ease}
-        .linksee-chat-panel.expanded{width:min(680px,calc(100vw - 24px))}
+        body.linksee-chat-docked-open .workspace{padding-right:calc(360px + 24px);transition:padding-right .2s ease}
+        body.linksee-chat-docked-open.chat-expanded .workspace{padding-right:calc(700px + 24px)}
+        body.app-shell.linksee-chat-docked-open .workspace{padding-right:calc(360px + 40px)}
+        body.app-shell.linksee-chat-docked-open.chat-expanded .workspace{padding-right:calc(700px + 40px)}
+        .linksee-chat-panel{position:fixed;right:16px;top:calc(var(--linksee-topbar-height, 56px) + 16px);bottom:16px;width:min(340px,calc(100vw - 24px));z-index:280;border:1px solid var(--border);background:#f8fafc;border-radius:18px;display:none;grid-template-rows:auto auto 1fr auto;overflow:hidden;transition:width .2s ease}
+        body.app-shell .linksee-chat-panel{right:24px;top:calc(var(--linksee-topbar-height, 56px) + 16px);bottom:20px;max-height:calc(100vh - var(--linksee-topbar-height, 56px) - 36px)}
+        .linksee-chat-panel.expanded{width:min(680px,calc(100vw - 32px))}
         .linksee-chat-panel.open{display:grid}
         .chat-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border);background:#fff}
         .chat-head strong{font-size:15px}
@@ -142,6 +145,15 @@
     `);
 
     function createLauncher() {
+        var existing = document.querySelector("[data-chat-launcher]");
+        if (existing) {
+            if (!existing.querySelector(".linksee-chat-dot")) {
+                var dot = document.createElement("span");
+                dot.className = "linksee-chat-dot";
+                existing.appendChild(dot);
+            }
+            return existing;
+        }
         var btn = document.createElement("button");
         btn.type = "button";
         btn.className = "linksee-chat-launcher";
@@ -198,40 +210,14 @@
     }
 
     function syncTopActionsHidden(hidden) {
-        var nodes = [
-            q(".top-actions"),
-            q("#studentTodoWidget"),
-            q("#studentTodoToggle"),
-            q("#studentTodoPopover"),
-        ].filter(Boolean);
-
-        nodes.forEach(function (node) {
-            if (!node) return;
-            if (hidden) {
-                if (!node.dataset.chatPrevDisplay) {
-                    node.dataset.chatPrevDisplay = node.style.display || "";
-                }
-                if (!node.dataset.chatPrevVisibility) {
-                    node.dataset.chatPrevVisibility = node.style.visibility || "";
-                }
-                if (!node.dataset.chatPrevPointer) {
-                    node.dataset.chatPrevPointer = node.style.pointerEvents || "";
-                }
-                node.style.display = "none";
-                node.style.visibility = "hidden";
-                node.style.pointerEvents = "none";
-            } else {
-                node.style.display = node.dataset.chatPrevDisplay || "";
-                node.style.visibility = node.dataset.chatPrevVisibility || "";
-                node.style.pointerEvents = node.dataset.chatPrevPointer || "";
-            }
-        });
-
-        if (state.launcher) {
-            state.launcher.style.display = hidden ? "none" : "";
-            state.launcher.style.visibility = hidden ? "hidden" : "";
-            state.launcher.style.pointerEvents = hidden ? "none" : "";
+        // Keep dashboard top-actions stable. Only hide fallback floating launcher
+        // when chat uses standalone mode (no integrated topbar launcher).
+        if (!state.launcher || !state.launcher.classList.contains("linksee-chat-launcher")) {
+            return;
         }
+        state.launcher.style.display = hidden ? "none" : "";
+        state.launcher.style.visibility = hidden ? "hidden" : "";
+        state.launcher.style.pointerEvents = hidden ? "none" : "";
     }
 
     function setPanelMode(mode) {
@@ -373,7 +359,7 @@
         var subtitle = q("[data-chat-subtitle]", state.panel);
         if (!state.selected) {
             title.textContent = "消息";
-            subtitle.textContent = "请选择会话（点击后展开）";
+            subtitle.textContent = "请选择会话";
             setPanelMode("list");
             renderConversationSelector();
             return;
@@ -402,7 +388,7 @@
                 "<div class='chat-row" + (me ? " me" : "") + "'>",
                 me ? "" : "<div class='chat-avatar'><img src='" + userAvatar(sender) + "' alt=''></div>",
                 "<div class='chat-msg" + (me ? " me" : "") + "' data-chat-message-id='" + m.id + "'>",
-                "<div class='chat-meta'><strong>" + escapeHtml(sender ? userName(sender) : m.senderId) + "</strong><span>" + new Date(m.createdAt).toLocaleString("zh-CN", { hour12: false }) + "</span></div>",
+                "<div class='chat-meta'><strong>" + escapeHtml(sender ? userName(sender) : m.senderId) + "</strong><span>" + (window.linkseePage && typeof window.linkseePage.formatDateTime === "function" ? window.linkseePage.formatDateTime(m.createdAt) : new Date(m.createdAt).toLocaleString("zh-CN", { hour12: false })) + "</span></div>",
                 quoted ? "<div class='chat-quote'>" + escapeHtml(buildReplyQuote(quoted)) + "</div>" : "",
                 deleted ? "<div class='chat-del'>该消息已删除</div>" : ("<div>" + escapeHtml(m.content || "") + "</div>"),
                 mentions ? ("<div class='muted tiny'>" + mentions + "</div>") : "",

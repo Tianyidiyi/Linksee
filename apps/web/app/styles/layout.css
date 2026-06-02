@@ -36,6 +36,10 @@ body.app-shell {
     background: transparent;
 }
 
+.app-shell .sidebar-trigger {
+    display: none;
+}
+
 .sidebar {
     width: 360px;
     height: 100vh;
@@ -70,7 +74,9 @@ body.app-shell {
     flex: 1;
     overflow-y: auto;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
     background: transparent;
     position: relative;
 }
@@ -92,6 +98,10 @@ body.app-shell {
     filter: drop-shadow(0 14px 24px rgba(116, 78, 28, 0.12));
     opacity: 0.82;
     animation: leftHintFloat 2.8s var(--ease-standard) infinite;
+}
+
+.student-shell .workspace::after {
+    display: none;
 }
 
 .content-container {
@@ -181,5 +191,44 @@ body.app-shell {
 
     .page {
         padding: var(--space-5);
+    }
+}
+
+body.student-shell {
+    overflow: auto;
+}
+
+.app-shell .sidebar {
+    width: 112px;
+    transform: none;
+    transition: none;
+    z-index: 30;
+    border-right: 1px solid rgba(89, 58, 34, 0.1);
+    box-shadow: none;
+    background: rgba(255, 255, 255, 0.94);
+    padding: 10px 8px 12px;
+    gap: 8px;
+}
+
+.app-shell .workspace {
+    margin-left: 112px;
+}
+
+.app-shell .content-container {
+    max-width: none;
+    padding: 22px 22px 28px;
+}
+
+.app-shell .page-panel {
+    animation: none;
+}
+
+@media (max-width: 900px) {
+    .app-shell .sidebar {
+        width: 86px;
+    }
+
+    .app-shell .workspace {
+        margin-left: 86px;
     }
 }

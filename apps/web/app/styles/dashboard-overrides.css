@@ -459,6 +459,19 @@
     border-bottom: 1px solid var(--border);
 }
 
+/* Dashboard hero/intro areas should read as page bands, not floating cards. */
+.app-shell .page-panel > .card {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+}
+
+.app-shell .dashboard-section-intro {
+    border-bottom: none;
+    padding-bottom: var(--space-2);
+}
+
 .dashboard-kicker {
     font-size: 12px;
     font-weight: 700;
@@ -853,56 +866,37 @@
 }
 
 .student-todo-widget {
-    position: fixed;
-    top: max(18px, env(safe-area-inset-top));
-    right: calc(max(18px, env(safe-area-inset-right)) + 80px);
-    z-index: 120;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
 }
 
 .student-todo-launcher {
     position: relative;
-    width: 68px;
-    height: 68px;
-    display: inline-grid;
-    place-items: center;
-    border: 1px solid rgba(148, 163, 184, 0.26);
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.88);
-    color: var(--accent-strong);
-    box-shadow: var(--shadow-sm);
-    backdrop-filter: blur(18px);
-    cursor: pointer;
-}
-
-.student-todo-launcher:hover {
-    border-color: var(--accent-outline);
-    box-shadow: var(--shadow);
-}
-
-.student-todo-launcher svg {
-    width: 34px;
-    height: 34px;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    color: inherit;
 }
 
 .student-todo-count {
     position: absolute;
-    top: -7px;
-    right: -7px;
-    min-width: 22px;
-    height: 22px;
-    padding: 0 7px;
+    top: 1px;
+    right: 1px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
     display: inline-grid;
     place-items: center;
     border-radius: 999px;
     border: 2px solid rgba(255, 255, 255, 0.94);
     background: #dc2626;
     color: #fff;
-    font-size: 12px;
+    font-size: 10px;
     font-weight: 800;
     line-height: 1;
 }
@@ -916,12 +910,12 @@
     top: calc(100% + 12px);
     right: 0;
     width: min(360px, calc(100vw - 32px));
-    max-height: min(520px, calc(100vh - 112px));
+    max-height: min(520px, calc(100vh - 140px));
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
     overflow: hidden;
     border: 1px solid rgba(148, 163, 184, 0.24);
-    border-radius: 22px;
+    border-radius: 18px;
     background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92));
     box-shadow: var(--shadow);
@@ -1037,6 +1031,220 @@
 
 .centered-page-shell .topbar {
     margin-bottom: var(--space-6);
+}
+
+.app-shell {
+    --linksee-topbar-height: 56px;
+}
+
+.dashboard-topbar {
+    width: auto;
+    max-width: none;
+}
+
+/* Keep topbar as a global viewport layer (outside hero/content flow). */
+.app-shell .dashboard-topbar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 112px;
+    z-index: 260;
+    min-height: var(--linksee-topbar-height);
+    height: var(--linksee-topbar-height);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    padding: 0 24px 0 16px;
+    box-sizing: border-box;
+    overflow: visible;
+}
+
+.app-shell .workspace {
+    width: auto;
+    min-width: 0;
+    min-height: 100vh;
+    padding-top: calc(var(--linksee-topbar-height, 56px) + 8px);
+    overflow-x: hidden;
+    box-sizing: border-box;
+}
+
+.student-shell .dashboard-topbar {
+    min-height: var(--linksee-topbar-height);
+    height: var(--linksee-topbar-height);
+    padding-top: 0;
+    padding-bottom: 0;
+    z-index: 320;
+}
+
+.student-shell .content-container,
+.teacher-shell .content-container,
+.assistant-shell .content-container,
+.academic-shell .content-container {
+    padding-top: 18px;
+}
+
+@media (max-width: 900px) {
+    .app-shell .dashboard-topbar {
+        left: 86px;
+    }
+
+    .app-shell .workspace {
+        width: auto;
+    }
+}
+
+/* Visual-size calibration: chat bubble glyph occupies less viewport than todo glyph. */
+.dashboard-topbar [data-chat-launcher] svg {
+    width: 26px;
+    height: 26px;
+    stroke-width: 2.3;
+    transform: translateY(0.4px);
+}
+
+/* Unified topbar actions for all roles (student/teacher/assistant/academic). */
+.app-shell .dashboard-topbar .top-actions-staff {
+    position: static;
+    display: grid !important;
+    grid-template-columns: repeat(2, 44px);
+    align-items: center;
+    justify-items: center;
+    column-gap: 12px;
+    margin: 0;
+    width: 100px;
+    min-width: 100px;
+    min-height: 44px;
+    height: 44px;
+    overflow: visible;
+    z-index: 420;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    justify-self: end;
+}
+
+.app-shell .dashboard-topbar .top-actions-primary {
+    display: contents !important;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    min-height: 42px;
+    height: 42px;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+}
+
+.app-shell .dashboard-topbar .top-actions-profile {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    height: 44px;
+    padding: 0;
+    margin: 0;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+}
+
+.app-shell .dashboard-topbar .top-actions-profile .avatar-wrapper {
+    width: 44px;
+    height: 44px;
+    margin: 0;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: none;
+    cursor: pointer;
+}
+
+.app-shell .dashboard-topbar .top-actions-profile .avatar-overlay {
+    display: none;
+}
+
+.app-shell .dashboard-topbar .top-actions-profile #userBadge {
+    display: none;
+}
+
+.student-shell .dashboard-topbar .top-actions-student {
+    display: grid !important;
+    grid-template-columns: repeat(3, 44px);
+    column-gap: 12px;
+    align-items: center;
+    justify-items: center;
+    margin: 0;
+    width: 156px;
+    min-width: 156px;
+    justify-self: end;
+}
+
+.student-shell .dashboard-topbar .top-actions-student > .top-actions-primary {
+    display: contents !important;
+}
+
+.student-shell .dashboard-topbar .top-actions-student .student-todo-widget,
+.student-shell .dashboard-topbar .top-actions-student .top-actions-profile {
+    width: 44px;
+    height: 44px;
+    margin: 0;
+    justify-self: center;
+    align-self: center;
+}
+
+.student-shell .dashboard-topbar .topbar-avatar-wrapper {
+    width: 44px;
+    height: 44px;
+}
+
+.student-shell .dashboard-topbar .topbar-avatar-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.app-shell .dashboard-topbar .topbar-left {
+    min-width: 0;
+}
+
+.app-shell .dashboard-topbar .top-actions {
+    flex-wrap: nowrap !important;
+}
+
+.app-shell .dashboard-topbar [data-chat-launcher],
+.app-shell .dashboard-topbar .student-todo-launcher,
+.app-shell .dashboard-topbar .topbar-avatar-wrapper {
+    flex: 0 0 auto;
+}
+
+.student-shell .dashboard-topbar .top-actions-student .top-actions-profile,
+.student-shell .dashboard-topbar .top-actions-student .student-todo-widget {
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.student-shell .dashboard-topbar .top-actions-student > .top-actions-primary {
+    display: contents !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.student-shell .dashboard-topbar .top-actions-student [data-chat-launcher],
+.student-shell .dashboard-topbar .top-actions-student .student-todo-launcher,
+.student-shell .dashboard-topbar .top-actions-student .topbar-avatar-wrapper {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box;
+    justify-self: center;
+    align-self: center;
+}
+
+.student-shell .dashboard-topbar .top-actions-student .top-actions-profile {
+    margin-left: 0;
 }
 
 .centered-page-shell .page > .card {
@@ -1331,15 +1539,15 @@
     }
 
     .student-todo-widget {
-        top: max(18px, env(safe-area-inset-top));
-        right: calc(max(18px, env(safe-area-inset-right)) + 80px);
+        top: auto;
+        right: auto;
     }
 }
 
 @media (max-width: 720px) {
     .student-todo-widget {
-        top: max(18px, env(safe-area-inset-top));
-        right: calc(max(18px, env(safe-area-inset-right)) + 80px);
+        top: auto;
+        right: auto;
     }
 
     .student-todo-popover {

@@ -5,9 +5,14 @@
   "type": "module",
   "scripts": {
     "build": "node --preserve-symlinks-main ./scripts/build.mjs",
-    "pack": "npm pack"
+    "pack": "npm pack",
+    "test:e2e": "playwright test -c ../../tests/e2e/playwright.config.js"
   },
   "files": [
     "dist"
-  ]
+  ],
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "playwright": "^1.60.0"
+  }
 }

@@ -646,7 +646,9 @@
         qs("#extAssistantCourse").onchange = refreshAssistants;
         qs("#extAssistantCreate").onclick = function () {
             var body = { id: qs("#extAssistantId").value.trim(), realName: qs("#extAssistantName").value.trim() };
-            if (qs("#extAssistantPassword").value.trim()) body.defaultPassword = qs("#extAssistantPassword").value.trim();
+            if (qs("#extAssistantPassword").value.trim()) {
+                body.defaultPassword = qs("#extAssistantPassword").value.trim();
+            }
             api().postJson("/api/v1/users/assistants", body).then(function (payload) {
                 setResult(assistantResult, "创建成功", "临时密码：" + ((payload.data && payload.data.temporaryPassword) || "已按输入设置"), false);
             }).catch(function (err) {
