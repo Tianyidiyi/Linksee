@@ -1,10 +1,13 @@
 import { describe, it, expect, jest } from '@jest/globals';
 import {
   buildChatObjectKey,
+  CHAT_FILE_RETENTION_DAYS,
+  CHAT_FILE_RETENTION_MS,
   isAllowedChatMimeType,
   ensureChatFileSize,
   CHAT_FILE_MAX_BYTES,
   isObjectKeyInScope,
+  enrichChatFilesForResponse,
   normalizeChatFiles,
   presignChatDownload,
   presignChatUpload,
@@ -93,6 +96,13 @@ describe('chat-file-storage', () => {
     });
   });
 
+  describe('retention window', () => {
+    it('should use a 7 day chat file retention policy', () => {
+      expect(CHAT_FILE_RETENTION_DAYS).toBe(7);
+      expect(CHAT_FILE_RETENTION_MS).toBe(7 * 24 * 60 * 60 * 1000);
+    });
+  });
+
   describe('object key and scope', () => {
     it('should build scoped object key and validate scope', () => {
       const key = buildChatObjectKey('course', '123', '../../a b?.pdf');
@@ -167,6 +177,39 @@ describe('chat-file-storage', () => {
       });
       expect(docMeta.thumbnailKey).toBeUndefined();
       expect(docMeta.uploadedAt).toBe('2026-01-01T00:00:00.000Z');
+    });
+
+    it('should enrich response files with expiry metadata', () => {
+      const payload = enrichChatFilesForResponse(
+        [
+          {
+            name: 'a.png',
+            objectKey: 'chat/course/1/a.png',
+            size: 12,
+            mimeType: 'image/png',
+            uploadedAt: '2026-06-01T00:00:00.000Z',
+            thumbnailKey: 'chat/course/1/a.png',
+          },
+          {
+            name: 'b.pdf',
+            objectKey: 'chat/course/1/b.pdf',
+            size: 12,
+            mimeType: 'application/pdf',
+            uploadedAt: '2026-06-01T00:00:00.000Z',
+          },
+        ],
+        [
+          {
+            objectKey: 'chat/course/1/a.png',
+            expiresAt: new Date('2026-06-08T00:00:00.000Z'),
+            thumbnailKey: 'chat/course/1/thumb-a.png',
+          },
+        ],
+      ) as Array<Record<string, unknown>>;
+
+      expect(payload[0].expiresAt).toBe('2026-06-08T00:00:00.000Z');
+      expect(payload[0].thumbnailKey).toBe('chat/course/1/a.png');
+      expect(payload[1].expiresAt).toBe('2026-06-08T00:00:00.000Z');
     });
   });
 });

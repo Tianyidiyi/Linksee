@@ -82,6 +82,90 @@
         return Array.from(set);
     }
 
+    function isAllowedChatMimeType(mimeType) {
+        if (!mimeType || typeof mimeType !== "string") return false;
+        if (mimeType.indexOf("text/") === 0) return true;
+        return [
+            "application/pdf",
+            "application/zip",
+            "application/x-zip-compressed",
+            "application/x-rar-compressed",
+            "application/vnd.rar",
+            "application/x-7z-compressed",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.ms-powerpoint",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "application/vnd.ms-excel",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/json",
+            "application/xml",
+            "text/xml",
+            "text/markdown",
+            "text/x-yaml",
+            "application/x-yaml",
+            "text/yaml",
+            "text/x-tex",
+            "application/x-tex",
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+            "image/gif",
+            "video/mp4",
+            "video/webm",
+            "video/quicktime",
+        ].indexOf(mimeType) >= 0;
+    }
+
+    function formatBytes(size) {
+        var value = Number(size) || 0;
+        var units = ["B", "KB", "MB", "GB", "TB"];
+        var unitIndex = 0;
+        while (value >= 1024 && unitIndex < units.length - 1) {
+            value /= 1024;
+            unitIndex += 1;
+        }
+        return (unitIndex === 0 ? String(value) : value.toFixed(value >= 10 ? 0 : 1)) + " " + units[unitIndex];
+    }
+
+    function formatExpiryLabel(file) {
+        if (!file || !file.expiresAt) return "";
+        var expires = new Date(file.expiresAt);
+        if (Number.isNaN(expires.getTime())) return "";
+        var diff = expires.getTime() - Date.now();
+        if (diff <= 0) return "已过期";
+        var hour = 60 * 60 * 1000;
+        var day = 24 * hour;
+        if (diff < day) {
+            var hours = Math.max(1, Math.ceil(diff / hour));
+            return hours + " 小时后过期";
+        }
+        var days = Math.max(1, Math.ceil(diff / day));
+        return days + " 天后过期";
+    }
+
+    function buildFileSummary(files) {
+        if (!Array.isArray(files) || !files.length) return "";
+        var names = files.map(function (file) { return String(file && file.name ? file.name : "附件"); });
+        if (names.length === 1) return names[0];
+        if (names.length === 2) return names[0] + "、" + names[1];
+        return names[0] + " 等 " + names.length + " 个文件";
+    }
+
+    function buildFileMetaText(file) {
+        if (!file) return "";
+        var bits = [];
+        if (file.size !== undefined && file.size !== null) bits.push(formatBytes(file.size));
+        if (file.mimeType) bits.push(file.mimeType);
+        if (file.uploadedAt) {
+            var uploaded = window.linkseePage && typeof window.linkseePage.formatDateTime === "function"
+                ? window.linkseePage.formatDateTime(file.uploadedAt)
+                : new Date(file.uploadedAt).toLocaleString("zh-CN", { hour12: false });
+            bits.push("上传于 " + uploaded);
+        }
+        return bits.join(" · ");
+    }
+
     function css(text) {
         var style = document.createElement("style");
         style.textContent = text;
@@ -112,17 +196,28 @@
         .chat-msg.me{background:#e9f7ef;border-color:#c8ebd5}
         .chat-meta{font-size:12px;color:#64748b;display:flex;gap:8px;margin-bottom:4px}
         .chat-del{color:#94a3b8;font-style:italic}
-        .chat-files a{display:block;color:#0f766e;text-decoration:none}
+        .chat-files{display:grid;gap:8px;margin-top:8px}
+        .chat-file{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid #dbe3eb;border-radius:12px;background:#f8fbfd}
+        .chat-file-icon{width:38px;height:38px;border-radius:10px;background:#e6f0ef;color:#0f766e;display:grid;place-items:center;flex:none}
+        .chat-file-body{display:grid;gap:4px;min-width:0}
+        .chat-file-name{font-weight:600;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .chat-file-meta{display:flex;flex-wrap:wrap;gap:8px;font-size:12px;color:#64748b}
+        .chat-file-expiry{font-size:12px;padding:3px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;white-space:nowrap}
+        .chat-file-expiry.expired{background:#fef2f2;color:#b91c1c}
+        .chat-file-open{border:none;border-radius:10px;background:#0f766e;color:#fff;padding:8px 12px;cursor:pointer;font-weight:600}
+        .chat-file-open:disabled{opacity:.5;cursor:not-allowed}
         .chat-quote{margin:4px 0 6px;padding:6px 8px;border-left:3px solid #cbd5e1;background:#f8fafc;color:#475569;font-size:12px}
-        .chat-toolbar{display:flex;align-items:center;gap:10px;padding:6px 8px;border-bottom:1px solid #e2e8f0;background:transparent}
+        .chat-toolbar{display:flex;align-items:center;gap:10px;padding:6px 8px;border-bottom:1px solid #e2e8f0;background:transparent;flex-wrap:wrap}
         .chat-tool{border:none;background:transparent;display:inline-flex;gap:6px;align-items:center;color:#334155;cursor:pointer;padding:4px 6px;border-radius:8px}
         .chat-tool:hover{background:#f1f5f9}
+        .chat-tool.attach{margin-right:auto}
+        .chat-upload-hint{padding:6px 10px 0;font-size:12px;color:#64748b}
         .chat-composer{margin-top:auto;padding:0;background:#fff;border-top:1px solid #e2e8f0;position:sticky;bottom:0;z-index:2}
         .chat-reply{display:none;margin-bottom:8px;padding:7px 10px;background:#f1f5f9;border-radius:8px;font-size:12px;color:#475569}
         .chat-reply.show{display:block}
-        .chat-box{border:none;border-radius:0;background:#fff;position:relative;min-height:150px;display:grid;grid-template-rows:auto 1fr}
-        .chat-box textarea{width:100%;min-height:148px;border:none;outline:none;resize:none;padding:10px 12px 54px;font:inherit;background:transparent}
-        .chat-send{position:absolute;right:12px;bottom:12px;width:56px;height:36px;border:none;border-radius:12px;background:#0f766e;color:#fff;cursor:pointer;font-weight:700}
+        .chat-box{border:none;border-radius:0;background:#fff;position:relative;min-height:164px;display:grid;grid-template-rows:auto 1fr}
+        .chat-box textarea{width:100%;min-height:162px;border:none;outline:none;resize:none;padding:10px 12px 54px;font:inherit;background:transparent}
+        .chat-send{position:absolute;right:12px;bottom:12px;width:64px;height:40px;border:none;border-radius:12px;background:#0f766e;color:#fff;cursor:pointer;font-weight:700}
         .chat-drop{position:absolute;inset:0;background:rgba(15,118,110,.08);border:2px dashed #0f766e;border-radius:0;display:none;place-items:center;color:#0f766e;font-weight:600}
         .chat-drop.show{display:grid}
         .chat-mention{position:absolute;left:10px;bottom:44px;width:240px;max-height:190px;overflow:auto;border:1px solid #dbe3eb;background:#fff;border-radius:10px;box-shadow:0 12px 28px rgba(15,23,42,.14);display:none;z-index:3}
@@ -183,6 +278,10 @@
                 <div class="chat-reply" data-chat-reply></div>
                 <div class="chat-box" data-chat-drop-zone>
                     <div class="chat-toolbar">
+                        <button class="chat-tool attach" data-chat-action="attach">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.5V7a4 4 0 0 0-8 0v8.5a2.5 2.5 0 0 0 5 0V8"></path><path d="M10 7v8.5a5 5 0 1 0 10 0V9"></path></svg>
+                            <span>附件</span>
+                        </button>
                         <button class="chat-tool" data-chat-action="announcement">
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 11 14-5v12L3 13z"></path><path d="M11 14v5"></path></svg>
                             <span>群公告</span>
@@ -192,6 +291,8 @@
                             <span>历史记录</span>
                         </button>
                     </div>
+                    <input type="file" data-chat-file-input multiple hidden />
+                    <div class="chat-upload-hint">支持图片、文档、视频和压缩包，单文件最多 500MB，附件默认保留 7 天。</div>
                     <textarea data-chat-composer placeholder="输入消息，回车发送，Shift+Enter换行"></textarea>
                     <div class="chat-drop" data-chat-drop-hint>松开即可上传文件</div>
                     <div class="chat-mention" data-chat-mention></div>
@@ -326,9 +427,19 @@
             return;
         }
         stream.innerHTML = state.conversations.map(function (c) {
+            var preview = "暂无消息";
+            if (c.lastMessage) {
+                if (c.lastMessage.messageType === "file") {
+                    preview = buildFileSummary(c.lastMessage.files) || "文件消息";
+                } else if (c.lastMessage.messageType === "announcement") {
+                    preview = "【公告】" + String(c.lastMessage.content || "");
+                } else {
+                    preview = c.lastMessage.content || "暂无消息";
+                }
+            }
             return "<div class='chat-conversation-item' data-chat-open='" + c.id + "'>" +
                 "<strong>" + escapeHtml(c.title || c.roomKey || ("会话 " + c.id)) + "</strong>" +
-                "<div class='line2'>" + escapeHtml((c.lastMessage && c.lastMessage.content) || "暂无消息") + "</div>" +
+                "<div class='line2'>" + escapeHtml(preview) + "</div>" +
                 (c.unreadCount ? "<div class='line2'>未读 " + c.unreadCount + "</div>" : "") +
                 "</div>";
         }).join("");
@@ -338,8 +449,31 @@
         if (!message) return "";
         var sender = state.participantsMap.get(String(message.senderId));
         var name = sender ? userName(sender) : message.senderId;
-        var snippet = message.content || (message.files ? "[文件消息]" : "[消息]");
+        var snippet = message.content || (Array.isArray(message.files) && message.files.length ? "[文件消息]" : "[消息]");
+        if (!message.content && Array.isArray(message.files) && message.files.length) {
+            snippet = message.files.map(function (file) { return file && file.name ? file.name : "附件"; }).join("、");
+        }
         return "回复 " + name + "： " + snippet.slice(0, 80);
+    }
+
+    function renderFileCard(message, file, index) {
+        var expiryText = formatExpiryLabel(file);
+        var expired = expiryText === "已过期";
+        var title = file && file.name ? file.name : "附件";
+        var fileIcon = "<svg viewBox='0 0 24 24' width='18' height='18' fill='none' stroke='currentColor' stroke-width='1.8'><path d='M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z'></path><path d='M14 2v5h5'></path></svg>";
+        return [
+            "<div class='chat-file'>",
+            "<div class='chat-file-icon' aria-hidden='true'>" + fileIcon + "</div>",
+            "<div class='chat-file-body'>",
+            "<div class='chat-file-name' title='" + escapeHtml(title) + "'>" + escapeHtml(title) + "</div>",
+            "<div class='chat-file-meta'>",
+            "<span>" + escapeHtml(buildFileMetaText(file)) + "</span>",
+            expiryText ? "<span class='chat-file-expiry" + (expired ? " expired" : "") + "' title='" + escapeHtml(file.expiresAt || "") + "'>" + escapeHtml(expiryText) + "</span>" : "",
+            "</div>",
+            "</div>",
+            "<button type='button' class='chat-file-open' data-chat-file='" + escapeHtml(String(message.id)) + ":" + index + "'" + (expired ? " disabled" : "") + ">" + (expired ? "已过期" : "下载") + "</button>",
+            "</div>",
+        ].join("");
     }
 
     function renderReply() {
@@ -381,7 +515,7 @@
             var filesHtml = "";
             if (Array.isArray(m.files) && m.files.length) {
                 filesHtml = "<div class='chat-files'>" + m.files.map(function (f, i) {
-                    return "<a href='#' data-chat-file='" + escapeHtml(String(m.id)) + ":" + i + "'>" + escapeHtml(f.name || "附件") + "</a>";
+                    return renderFileCard(m, f, i);
                 }).join("") + "</div>";
             }
             return [
@@ -515,6 +649,23 @@
         renderMessages();
     }
 
+    function getFileInput() {
+        return q("[data-chat-file-input]", state.panel);
+    }
+
+    async function openFilePicker() {
+        var input = getFileInput();
+        if (!input) return;
+        input.value = "";
+        input.click();
+    }
+
+    function buildFileMessageContent(files) {
+        if (!Array.isArray(files) || !files.length) return "附件";
+        if (files.length === 1) return files[0].name || "附件";
+        return buildFileSummary(files);
+    }
+
     async function uploadFiles(fileList) {
         if (!state.selected) return showToast("请先选择会话", true);
         var files = Array.from(fileList || []);
@@ -525,7 +676,14 @@
                     id: "mock-file-" + Date.now() + "-" + file.name,
                     senderId: auth().userId || "student",
                     content: file.name,
-                    files: [{ name: file.name, size: file.size, mimeType: file.type || "application/octet-stream", objectKey: "mock://" + file.name }],
+                    files: [{
+                        name: file.name,
+                        size: file.size,
+                        mimeType: file.type || "application/octet-stream",
+                        objectKey: "mock://" + file.name,
+                        uploadedAt: new Date().toISOString(),
+                        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                    }],
                     mentions: [],
                     replyToId: null,
                     createdAt: new Date().toISOString(),
@@ -536,9 +694,17 @@
             renderMessages();
             return showToast("已上传 " + files.length + " 个文件（mock）");
         }
-        var sent = 0;
+        var supported = [];
         for (var i = 0; i < files.length; i += 1) {
             var file = files[i];
+            if (!isAllowedChatMimeType(file.type || "")) {
+                showToast("文件“" + file.name + "”类型不支持", true);
+                continue;
+            }
+            if (file.size > 500 * 1024 * 1024) {
+                showToast("文件“" + file.name + "”超过 500MB", true);
+                continue;
+            }
             try {
                 var presign = await window.linkseeApi.postJson("/api/v1/chat/files/presign-upload", {
                     scopeType: state.selected.scopeType,
@@ -555,23 +721,23 @@
                     body: file,
                 });
                 if (!putResp.ok) throw new Error("上传文件失败");
-                var meta = {
+                supported.push({
                     objectKey: data.objectKey,
                     name: file.name,
                     size: file.size,
                     mimeType: file.type || "application/octet-stream",
                     uploadedAt: new Date().toISOString(),
-                };
-                var body = { type: "file", content: file.name, files: [meta] };
-                if (state.replyTo) body.replyToId = String(state.replyTo.id);
-                await window.linkseeApi.postJson(messagePath(state.selected.scopeType, state.selected.scopeId), body);
-                sent += 1;
+                    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                });
             } catch (err) {
                 showToast("文件“" + file.name + "”上传失败：" + (err && err.message ? err.message : "未知错误"), true);
             }
         }
-        if (sent > 0) {
-            showToast("已上传 " + sent + " 个文件");
+        if (supported.length > 0) {
+            var body = { type: "file", content: buildFileMessageContent(supported), files: supported };
+            if (state.replyTo) body.replyToId = String(state.replyTo.id);
+            await window.linkseeApi.postJson(messagePath(state.selected.scopeType, state.selected.scopeId), body);
+            showToast("已上传 " + supported.length + " 个文件");
             await loadConversations();
             await loadMessages();
             renderMessages();
@@ -582,11 +748,25 @@
         var msg = state.messages.find(function (m) { return String(m.id) === String(messageId); });
         if (!msg || !Array.isArray(msg.files) || !msg.files[index]) return;
         var f = msg.files[index];
+        if (f.expiresAt && new Date(f.expiresAt).getTime() <= Date.now()) {
+            showToast("附件已过期，无法下载", true);
+            return;
+        }
         if (state.selected && state.selected.scopeType === "mock") {
             return showToast("mock 会话不提供真实下载链接");
         }
         var payload = await window.linkseeApi.getJson("/api/v1/chat/files/presign-download?objectKey=" + encodeURIComponent(f.objectKey));
-        window.open(payload.data.downloadUrl, "_blank");
+        var url = payload && payload.data && payload.data.downloadUrl;
+        if (!url) {
+            throw new Error("下载链接生成失败");
+        }
+        var a = document.createElement("a");
+        a.href = url;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
     }
 
     function openMention(start, keyword) {
@@ -714,6 +894,7 @@
                 }
                 if (action === "back") backToList();
                 if (action === "send") sendText().catch(function (e) { showToast(e.message || "发送失败", true); });
+                if (action === "attach") openFilePicker().catch(function (e) { showToast(e.message || "打开文件选择器失败", true); });
                 if (action === "announcement") sendAnnouncement().catch(function (e) { showToast(e.message || "公告发布失败", true); });
                 if (action === "history") searchHistory().catch(function (e) { showToast(e.message || "操作失败", true); });
                 if (action === "search-run") runSearch().catch(function (e) { showToast(e.message || "搜索失败", true); });
@@ -794,6 +975,11 @@
             }
         });
         ta.addEventListener("input", refreshMentionByInput);
+
+        var fileInput = q("[data-chat-file-input]", state.panel);
+        fileInput.addEventListener("change", function (event) {
+            uploadFiles((event.target && event.target.files) || []).catch(function (err) { showToast(err.message || "上传失败", true); });
+        });
 
         var dropZone = q("[data-chat-drop-zone]", state.panel);
         ["dragenter", "dragover"].forEach(function (evt) {
