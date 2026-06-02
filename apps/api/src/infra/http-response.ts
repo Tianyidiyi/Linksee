@@ -6,6 +6,7 @@ export type ErrorCode =
   | "FORBIDDEN"
   | "NOT_FOUND"
   | "CONFLICT"
+  | "SERVICE_UNAVAILABLE"
   | "INTERNAL_ERROR"
   | "FORCE_CHANGE_PASSWORD";
 
