@@ -12,6 +12,9 @@
         me: null,
         unreadTotal: 0,
         replyTo: null,
+        pendingUploads: [],
+        fileActivity: new Map(),
+        expiryTimer: null,
         mention: { open: false, start: -1, keyword: "", options: [], index: 0 },
     };
 
@@ -156,7 +159,6 @@
         if (!file) return "";
         var bits = [];
         if (file.size !== undefined && file.size !== null) bits.push(formatBytes(file.size));
-        if (file.mimeType) bits.push(file.mimeType);
         if (file.uploadedAt) {
             var uploaded = window.linkseePage && typeof window.linkseePage.formatDateTime === "function"
                 ? window.linkseePage.formatDateTime(file.uploadedAt)
@@ -164,6 +166,36 @@
             bits.push("上传于 " + uploaded);
         }
         return bits.join(" · ");
+    }
+
+    function fileKey(messageId, index) {
+        return String(messageId) + ":" + String(index);
+    }
+
+    function getFileActivity(key) {
+        return state.fileActivity.get(String(key)) || null;
+    }
+
+    function setFileActivity(key, activity) {
+        if (!key) return;
+        if (!activity) {
+            state.fileActivity.delete(String(key));
+            return;
+        }
+        state.fileActivity.set(String(key), activity);
+    }
+
+    function getRenderableMessages() {
+        return state.messages.concat(state.pendingUploads);
+    }
+
+    function createProgressRing(progress, label) {
+        var pct = Math.max(0, Math.min(100, Number(progress) || 0));
+        return [
+            "<div class='chat-file-progress' style='--progress:" + pct + "'>",
+            "<span>" + escapeHtml(label || (pct >= 100 ? "100%" : Math.round(pct) + "%")) + "</span>",
+            "</div>",
+        ].join("");
     }
 
     function css(text) {
@@ -194,17 +226,24 @@
         .chat-avatar img{width:100%;height:100%;object-fit:cover}
         .chat-msg{max-width:78%;background:#fff;border:1px solid #dde3eb;border-radius:12px;padding:8px 10px;position:relative}
         .chat-msg.me{background:#e9f7ef;border-color:#c8ebd5}
+        .chat-msg.is-pending{opacity:.94}
         .chat-meta{font-size:12px;color:#64748b;display:flex;gap:8px;margin-bottom:4px}
         .chat-del{color:#94a3b8;font-style:italic}
         .chat-files{display:grid;gap:8px;margin-top:8px}
         .chat-file{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid #dbe3eb;border-radius:12px;background:#f8fbfd}
-        .chat-file-icon{width:38px;height:38px;border-radius:10px;background:#e6f0ef;color:#0f766e;display:grid;place-items:center;flex:none}
+        .chat-file-icon{width:42px;height:42px;border-radius:12px;background:#e6f0ef;color:#0f766e;display:grid;place-items:center;flex:none;position:relative;overflow:hidden}
+        .chat-file-icon svg{position:relative;z-index:1}
+        .chat-file-progress{position:absolute;inset:1px;border-radius:50%;background:conic-gradient(#0f766e calc(var(--progress) * 1%), rgba(15,118,110,.12) 0);display:grid;place-items:center;-webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));mask:radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));z-index:2;pointer-events:none}
+        .chat-file-progress span{font-size:11px;font-weight:700;color:#0f766e;background:#fff;border-radius:999px;padding:2px 4px;transform:scale(.9);white-space:nowrap}
+        .chat-file.is-pending{opacity:.92}
+        .chat-file.is-pending .chat-file-open{background:#94a3b8}
+        .chat-file.is-pending .chat-file-open:disabled{opacity:1}
         .chat-file-body{display:grid;gap:4px;min-width:0}
         .chat-file-name{font-weight:600;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .chat-file-meta{display:flex;flex-wrap:wrap;gap:8px;font-size:12px;color:#64748b}
         .chat-file-expiry{font-size:12px;padding:3px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;white-space:nowrap}
         .chat-file-expiry.expired{background:#fef2f2;color:#b91c1c}
-        .chat-file-open{border:none;border-radius:10px;background:#0f766e;color:#fff;padding:8px 12px;cursor:pointer;font-weight:600}
+        .chat-file-open{border:none;border-radius:10px;background:#0f766e;color:#fff;padding:8px 12px;cursor:pointer;font-weight:600;min-width:82px}
         .chat-file-open:disabled{opacity:.5;cursor:not-allowed}
         .chat-quote{margin:4px 0 6px;padding:6px 8px;border-left:3px solid #cbd5e1;background:#f8fafc;color:#475569;font-size:12px}
         .chat-toolbar{display:flex;align-items:center;gap:10px;padding:6px 8px;border-bottom:1px solid #e2e8f0;background:transparent;flex-wrap:wrap}
@@ -457,13 +496,19 @@
     }
 
     function renderFileCard(message, file, index) {
+        var key = fileKey(message.id, index);
+        var activity = getFileActivity(key);
         var expiryText = formatExpiryLabel(file);
         var expired = expiryText === "已过期";
         var title = file && file.name ? file.name : "附件";
         var fileIcon = "<svg viewBox='0 0 24 24' width='18' height='18' fill='none' stroke='currentColor' stroke-width='1.8'><path d='M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z'></path><path d='M14 2v5h5'></path></svg>";
+        var progress = activity && typeof activity.progress === "number" ? activity.progress : (file && typeof file.progress === "number" ? file.progress : null);
+        var mode = activity && activity.mode ? activity.mode : (file && file.pending ? "upload" : "");
+        var busy = progress !== null && progress < 100;
+        var buttonText = expired ? "已过期" : (mode === "download" ? (busy ? "下载中" : "下载") : (mode === "upload" ? (busy ? "上传中" : "上传") : "下载"));
         return [
-            "<div class='chat-file'>",
-            "<div class='chat-file-icon' aria-hidden='true'>" + fileIcon + "</div>",
+            "<div class='chat-file" + (file && file.pending ? " is-pending" : "") + "'>",
+            "<div class='chat-file-icon' aria-hidden='true'>" + fileIcon + (progress !== null ? createProgressRing(progress, busy ? Math.round(progress) + "%" : (mode === "download" ? "下载" : "上传")) : "") + "</div>",
             "<div class='chat-file-body'>",
             "<div class='chat-file-name' title='" + escapeHtml(title) + "'>" + escapeHtml(title) + "</div>",
             "<div class='chat-file-meta'>",
@@ -471,7 +516,7 @@
             expiryText ? "<span class='chat-file-expiry" + (expired ? " expired" : "") + "' title='" + escapeHtml(file.expiresAt || "") + "'>" + escapeHtml(expiryText) + "</span>" : "",
             "</div>",
             "</div>",
-            "<button type='button' class='chat-file-open' data-chat-file='" + escapeHtml(String(message.id)) + ":" + index + "'" + (expired ? " disabled" : "") + ">" + (expired ? "已过期" : "下载") + "</button>",
+            "<button type='button' class='chat-file-open' data-chat-file='" + escapeHtml(String(message.id)) + ":" + index + "'" + (expired || mode === "upload" ? " disabled" : "") + ">" + escapeHtml(buttonText) + "</button>",
             "</div>",
         ].join("");
     }
@@ -501,12 +546,13 @@
         setPanelMode("chat");
         title.textContent = state.selected.title || state.selected.roomKey || "会话";
         subtitle.textContent = state.selected.scopeType === "group" ? "小组聊天" : "课程聊天";
-        if (!state.messages.length) {
+        var renderList = getRenderableMessages();
+        if (!renderList.length) {
             stream.innerHTML = "<div class='muted'>还没有消息，开始聊聊吧。</div>";
             return;
         }
 
-        stream.innerHTML = state.messages.map(function (m) {
+        stream.innerHTML = renderList.map(function (m) {
             var me = String(m.senderId) === String(auth().userId);
             var sender = state.participantsMap.get(String(m.senderId));
             var deleted = Boolean(m.deletedAt);
@@ -519,14 +565,14 @@
                 }).join("") + "</div>";
             }
             return [
-                "<div class='chat-row" + (me ? " me" : "") + "'>",
+                "<div class='chat-row" + (me ? " me" : "") + (m.pending ? " is-pending" : "") + "'>",
                 me ? "" : "<div class='chat-avatar'><img src='" + userAvatar(sender) + "' alt=''></div>",
-                "<div class='chat-msg" + (me ? " me" : "") + "' data-chat-message-id='" + m.id + "'>",
-                "<div class='chat-meta'><strong>" + escapeHtml(sender ? userName(sender) : m.senderId) + "</strong><span>" + (window.linkseePage && typeof window.linkseePage.formatDateTime === "function" ? window.linkseePage.formatDateTime(m.createdAt) : new Date(m.createdAt).toLocaleString("zh-CN", { hour12: false })) + "</span></div>",
+                "<div class='chat-msg" + (me ? " me" : "") + (m.pending ? " is-pending" : "") + "' data-chat-message-id='" + escapeHtml(String(m.id || ("pending-" + m.pendingId))) + "'>",
+                "<div class='chat-meta'><strong>" + escapeHtml(sender ? userName(sender) : m.senderId) + "</strong><span>" + (m.pending ? "上传中" : (window.linkseePage && typeof window.linkseePage.formatDateTime === "function" ? window.linkseePage.formatDateTime(m.createdAt) : new Date(m.createdAt).toLocaleString("zh-CN", { hour12: false }))) + "</span></div>",
                 quoted ? "<div class='chat-quote'>" + escapeHtml(buildReplyQuote(quoted)) + "</div>" : "",
-                deleted ? "<div class='chat-del'>该消息已删除</div>" : ("<div>" + escapeHtml(m.content || "") + "</div>"),
+                m.pending ? "<div class='chat-del'>正在上传附件，请稍候</div>" : (deleted ? "<div class='chat-del'>该消息已删除</div>" : ("<div>" + escapeHtml(m.content || "") + "</div>")),
                 mentions ? ("<div class='muted tiny'>" + mentions + "</div>") : "",
-                deleted ? "" : filesHtml,
+                (deleted || m.pending) ? "" : filesHtml,
                 "</div>",
                 me ? "<div class='chat-avatar'><img src='" + userAvatar(state.me) + "' alt=''></div>" : "",
                 "</div>",
@@ -666,6 +712,34 @@
         return buildFileSummary(files);
     }
 
+    function uploadFileWithProgress(uploadUrl, headers, file, onProgress) {
+        return new Promise(function (resolve, reject) {
+            var xhr = new XMLHttpRequest();
+            xhr.open("PUT", uploadUrl, true);
+            Object.keys(headers || {}).forEach(function (key) {
+                xhr.setRequestHeader(key, headers[key]);
+            });
+            xhr.upload.onprogress = function (event) {
+                if (!event || !event.lengthComputable) return;
+                if (typeof onProgress === "function") {
+                    onProgress(Math.max(0, Math.min(100, (event.loaded / event.total) * 100)));
+                }
+            };
+            xhr.onload = function () {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    if (typeof onProgress === "function") onProgress(100);
+                    resolve();
+                    return;
+                }
+                reject(new Error("上传文件失败"));
+            };
+            xhr.onerror = function () {
+                reject(new Error("上传文件失败"));
+            };
+            xhr.send(file);
+        });
+    }
+
     async function uploadFiles(fileList) {
         if (!state.selected) return showToast("请先选择会话", true);
         var files = Array.from(fileList || []);
@@ -694,6 +768,33 @@
             renderMessages();
             return showToast("已上传 " + files.length + " 个文件（mock）");
         }
+        var pendingId = "pending-upload-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
+        var pendingFiles = files.map(function (file) {
+            return {
+                name: file.name,
+                size: file.size,
+                mimeType: file.type || "application/octet-stream",
+                uploadedAt: new Date().toISOString(),
+                expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                progress: 0,
+                pending: true,
+            };
+        });
+        var pendingMessage = {
+            id: pendingId,
+            pending: true,
+            pendingId: pendingId,
+            senderId: auth().userId || "student",
+            content: buildFileMessageContent(pendingFiles),
+            files: pendingFiles,
+            mentions: [],
+            replyToId: state.replyTo ? String(state.replyTo.id) : null,
+            createdAt: new Date().toISOString(),
+            deletedAt: null,
+        };
+        state.pendingUploads.push(pendingMessage);
+        renderMessages();
+
         var supported = [];
         for (var i = 0; i < files.length; i += 1) {
             var file = files[i];
@@ -715,12 +816,11 @@
                 });
                 var data = presign.data || {};
                 var headerMap = data.headers || {};
-                var putResp = await fetch(data.uploadUrl, {
-                    method: "PUT",
-                    headers: headerMap,
-                    body: file,
+                await uploadFileWithProgress(data.uploadUrl, headerMap, file, function (progress) {
+                    pendingFiles[i].progress = progress;
+                    pendingMessage.files = pendingFiles.slice();
+                    renderMessages();
                 });
-                if (!putResp.ok) throw new Error("上传文件失败");
                 supported.push({
                     objectKey: data.objectKey,
                     name: file.name,
@@ -737,9 +837,14 @@
             var body = { type: "file", content: buildFileMessageContent(supported), files: supported };
             if (state.replyTo) body.replyToId = String(state.replyTo.id);
             await window.linkseeApi.postJson(messagePath(state.selected.scopeType, state.selected.scopeId), body);
+            state.pendingUploads = state.pendingUploads.filter(function (item) { return String(item.id) !== String(pendingId); });
+            renderMessages();
             showToast("已上传 " + supported.length + " 个文件");
             await loadConversations();
             await loadMessages();
+            renderMessages();
+        } else {
+            state.pendingUploads = state.pendingUploads.filter(function (item) { return String(item.id) !== String(pendingId); });
             renderMessages();
         }
     }
@@ -748,6 +853,7 @@
         var msg = state.messages.find(function (m) { return String(m.id) === String(messageId); });
         if (!msg || !Array.isArray(msg.files) || !msg.files[index]) return;
         var f = msg.files[index];
+        var key = fileKey(messageId, index);
         if (f.expiresAt && new Date(f.expiresAt).getTime() <= Date.now()) {
             showToast("附件已过期，无法下载", true);
             return;
@@ -755,18 +861,29 @@
         if (state.selected && state.selected.scopeType === "mock") {
             return showToast("mock 会话不提供真实下载链接");
         }
-        var payload = await window.linkseeApi.getJson("/api/v1/chat/files/presign-download?objectKey=" + encodeURIComponent(f.objectKey));
-        var url = payload && payload.data && payload.data.downloadUrl;
-        if (!url) {
-            throw new Error("下载链接生成失败");
+        try {
+            setFileActivity(key, { mode: "download", progress: 12 });
+            renderMessages();
+            var payload = await window.linkseeApi.getJson("/api/v1/chat/files/presign-download?objectKey=" + encodeURIComponent(f.objectKey));
+            var url = payload && payload.data && payload.data.downloadUrl;
+            if (!url) {
+                throw new Error("下载链接生成失败");
+            }
+            setFileActivity(key, { mode: "download", progress: 72 });
+            renderMessages();
+            var a = document.createElement("a");
+            a.href = url;
+            a.target = "_blank";
+            a.rel = "noopener noreferrer";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        } finally {
+            setTimeout(function () {
+                setFileActivity(key, null);
+                renderMessages();
+            }, 350);
         }
-        var a = document.createElement("a");
-        a.href = url;
-        a.target = "_blank";
-        a.rel = "noopener noreferrer";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
     }
 
     function openMention(start, keyword) {
@@ -867,12 +984,35 @@
         renderMessages();
     }
 
+    function startExpiryTicker() {
+        if (state.expiryTimer) return;
+        state.expiryTimer = setInterval(function () {
+            if (!state.open) return;
+            renderMessages();
+        }, 60000);
+    }
+
+    function stopExpiryTicker() {
+        if (!state.expiryTimer) return;
+        clearInterval(state.expiryTimer);
+        state.expiryTimer = null;
+    }
+
+    function setChatOpen(nextOpen) {
+        state.open = Boolean(nextOpen);
+        state.panel.classList.toggle("open", state.open);
+        document.body.classList.toggle("linksee-chat-docked-open", state.open);
+        syncTopActionsHidden(state.open);
+        if (state.open) {
+            startExpiryTicker();
+        } else {
+            stopExpiryTicker();
+        }
+    }
+
     function bindEvents() {
         state.launcher.addEventListener("click", function () {
-            state.open = !state.open;
-            state.panel.classList.toggle("open", state.open);
-            document.body.classList.toggle("linksee-chat-docked-open", state.open);
-            syncTopActionsHidden(state.open);
+            setChatOpen(!state.open);
             if (state.open) {
                 loadConversations().then(function () {
                     renderMessages();
@@ -886,11 +1026,8 @@
             if (actionNode) {
                 var action = actionNode.getAttribute("data-chat-action");
                 if (action === "close") {
-                    state.open = false;
-                    state.panel.classList.remove("open");
-                    document.body.classList.remove("linksee-chat-docked-open");
+                    setChatOpen(false);
                     document.body.classList.remove("chat-expanded");
-                    syncTopActionsHidden(false);
                 }
                 if (action === "back") backToList();
                 if (action === "send") sendText().catch(function (e) { showToast(e.message || "发送失败", true); });
@@ -1026,17 +1163,11 @@
 
     window.linkseeChatWidget = {
         open: function () {
-            state.open = true;
-            state.panel.classList.add("open");
-            document.body.classList.add("linksee-chat-docked-open");
-            syncTopActionsHidden(true);
+            setChatOpen(true);
         },
         close: function () {
-            state.open = false;
-            state.panel.classList.remove("open");
-            document.body.classList.remove("linksee-chat-docked-open");
+            setChatOpen(false);
             document.body.classList.remove("chat-expanded");
-            syncTopActionsHidden(false);
         },
     };
 

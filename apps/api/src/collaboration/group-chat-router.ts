@@ -10,7 +10,6 @@ import { createEventEnvelope } from "../events/event-builder.js";
 import { pushSocketEvent } from "../events/realtime-publisher.js";
 import {
   CHAT_MENTION_LIMIT,
-  enrichChatFilesForResponse,
   ensureGroupConversation,
   getConversationId,
   normalizeMentions,
@@ -20,6 +19,7 @@ import {
 import {
   CHAT_FILE_MAX_BYTES,
   ensureChatFileSize,
+  enrichChatFilesForResponse,
   isAllowedChatMimeType,
   isObjectKeyInScope,
   normalizeChatFiles,
