@@ -19,6 +19,8 @@ import {
 import {
   CHAT_FILE_MAX_BYTES,
   ensureChatFileSize,
+  type ChatFileRow,
+  enrichChatFilesForResponse,
   isAllowedChatMimeType,
   isObjectKeyInScope,
   normalizeChatFiles,
@@ -35,6 +37,13 @@ const messageSelect = {
   senderId: true,
   content: true,
   files: true,
+  filesMeta: {
+    select: {
+      objectKey: true,
+      expiresAt: true,
+      thumbnailKey: true,
+    },
+  },
   mentions: true,
   replyToId: true,
   eventId: true,
@@ -43,6 +52,18 @@ const messageSelect = {
   editedAt: true,
   deletedAt: true,
 } as unknown as Prisma.ChatMessageSelect;
+
+function serializeChatMessage(message: Record<string, unknown>): Record<string, unknown> {
+  const filesMeta = Array.isArray(message.filesMeta) ? (message.filesMeta as ChatFileRow[]) : [];
+  const files = enrichChatFilesForResponse(message.files, filesMeta) as unknown;
+  const output = { ...message };
+  delete (output as { filesMeta?: unknown }).filesMeta;
+  return {
+    ...output,
+    files,
+    messageType: resolveMessageType(files, typeof message.content === "string" ? message.content : null),
+  };
+}
 
 function forbidden(res: Response, message = "Insufficient permissions"): void {
   res.status(403).json({ ok: false, code: "FORBIDDEN", message });
@@ -169,10 +190,7 @@ courseChatRouter.get("/courses/:courseId/messages", requireAuth, async (req: Req
   const items = hasMore ? messages.slice(0, limit) : messages;
   const nextCursor = items.length > 0 ? items[items.length - 1].id.toString() : null;
 
-  const mapped = items.map((message) => ({
-    ...message,
-    messageType: resolveMessageType(message.files, message.content),
-  }));
+  const mapped = items.map((message) => serializeChatMessage(message as unknown as Record<string, unknown>));
 
   res.json({ ok: true, data: serializeBigInt(mapped), paging: { hasMore, nextCursor } });
 });
@@ -250,19 +268,20 @@ courseChatRouter.post("/courses/:courseId/messages", requireAuth, async (req: Re
     if (existing && existing.conversationId === conversationId) {
       return res.status(201).json({
         ok: true,
-        data: serializeBigInt({ ...existing, messageType: resolveMessageType(existing.files, existing.content) }),
+        data: serializeBigInt(serializeChatMessage(existing as unknown as Record<string, unknown>)),
       });
     }
   }
 
   const files = filesInput.length > 0 ? filesInput.map((file) => toChatFileMetadata(file)) : null;
+  const fileExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
   const event = createEventEnvelope("course.message.created", {
     courseId: courseId.toString(),
     senderId: req.user!.id,
     content,
     messageType,
-    files,
+    files: files ? files.map((file) => ({ ...file, expiresAt: fileExpiresAt.toISOString() })) : files,
     mentions,
     replyToId: replyToId ? replyToId.toString() : null,
   });
@@ -297,6 +316,14 @@ courseChatRouter.post("/courses/:courseId/messages", requireAuth, async (req: Re
     });
   }
 
+  const fileRows = files && files.length > 0
+    ? files.map((file) => ({
+        objectKey: file.objectKey,
+        expiresAt: fileExpiresAt,
+        thumbnailKey: file.thumbnailKey ?? null,
+      }))
+    : [];
+
   const outboundEvent = {
     ...event,
     id: eventId,
@@ -310,7 +337,10 @@ courseChatRouter.post("/courses/:courseId/messages", requireAuth, async (req: Re
 
   res.status(201).json({
     ok: true,
-    data: serializeBigInt({ ...message, messageType: resolveMessageType(message.files, message.content) }),
+    data: serializeBigInt(serializeChatMessage({
+      ...message,
+      filesMeta: fileRows,
+    } as unknown as Record<string, unknown>)),
   });
 });
 
@@ -408,10 +438,7 @@ courseChatRouter.get("/courses/:courseId/messages/search", requireAuth, async (r
     select: messageSelect,
   });
 
-  const mapped = messages.map((message) => ({
-    ...message,
-    messageType: resolveMessageType(message.files, message.content),
-  }));
+  const mapped = messages.map((message) => serializeChatMessage(message as unknown as Record<string, unknown>));
 
   res.json({ ok: true, data: serializeBigInt(mapped) });
 });
@@ -480,7 +507,7 @@ courseChatRouter.patch("/courses/:courseId/messages/:messageId", requireAuth, as
 
   res.json({
     ok: true,
-    data: serializeBigInt({ ...updated, messageType: resolveMessageType(updated.files, updated.content) }),
+    data: serializeBigInt(serializeChatMessage(updated as unknown as Record<string, unknown>)),
   });
 });
 
@@ -529,6 +556,6 @@ courseChatRouter.delete("/courses/:courseId/messages/:messageId", requireAuth, a
 
   res.json({
     ok: true,
-    data: serializeBigInt({ ...updated, messageType: resolveMessageType(updated.files, updated.content) }),
+    data: serializeBigInt(serializeChatMessage(updated as unknown as Record<string, unknown>)),
   });
 });

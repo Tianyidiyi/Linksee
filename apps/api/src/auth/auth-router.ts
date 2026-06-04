@@ -167,14 +167,14 @@ authRouter.post(
 authRouter.post(
   "/change-password",
   requireAuth,
-  async (req: Request<unknown, unknown, { currentPassword: string; newPassword: string }>, res: Response) => {
+  async (req: Request<unknown, unknown, { currentPassword?: string; newPassword?: string }>, res: Response) => {
     const userId = req.user!.id;
     const { currentPassword, newPassword } = req.body ?? {};
-    if (!currentPassword || !newPassword) {
+    if (!newPassword) {
       return res.status(400).json({
         ok: false,
         code: "VALIDATION_FAILED",
-        message: "currentPassword and newPassword are required",
+        message: "newPassword is required",
       });
     }
 
@@ -192,9 +192,20 @@ authRouter.post(
       return res.status(404).json({ ok: false, code: "USER_NOT_FOUND", message: "User not found" });
     }
 
-    const currentOk = await argon2.verify(user.passwordHash, currentPassword);
-    if (!currentOk) {
-      return res.status(403).json({ ok: false, code: "FORBIDDEN", message: "Current password is incorrect" });
+    if (user.forceChangePassword) {
+      // 首次强制改密场景：无需提供旧密码
+    } else {
+      if (!currentPassword) {
+        return res.status(400).json({
+          ok: false,
+          code: "VALIDATION_FAILED",
+          message: "currentPassword is required",
+        });
+      }
+      const currentOk = await argon2.verify(user.passwordHash, currentPassword);
+      if (!currentOk) {
+        return res.status(403).json({ ok: false, code: "FORBIDDEN", message: "Current password is incorrect" });
+      }
     }
 
     const passwordHash = await argon2.hash(newPassword);

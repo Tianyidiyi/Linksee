@@ -79,28 +79,70 @@
     }
 
     function initDashboardNav() {
-        var navItems = document.querySelectorAll(".side-nav .nav-item");
+        var navItems = Array.from(document.querySelectorAll(".side-nav .nav-item, .sidebar-actions .nav-item[data-action='open-settings']"));
         if (!navItems.length) {
             return;
         }
 
+        var panels = Array.from(document.querySelectorAll(".page-panel"));
+        var panelMap = panels.reduce(function (map, panel) {
+            if (panel && panel.id) {
+                map[panel.id] = panel;
+            }
+            return map;
+        }, {});
+
+        function deactivateCurrentPanel() {
+            var currentPanel = document.querySelector(".page-panel.is-active");
+            if (currentPanel) {
+                currentPanel.classList.remove("is-active");
+            }
+        }
+
+        function deactivateCurrentNav() {
+            var currentBtn = document.querySelector(".side-nav .nav-item.is-active, .sidebar-actions .nav-item.is-active");
+            if (currentBtn) {
+                currentBtn.classList.remove("is-active");
+            }
+        }
+
         navItems.forEach(function (btn) {
+            if (btn.dataset.boundDashboardNav === "1") {
+                return;
+            }
+            btn.dataset.boundDashboardNav = "1";
             btn.addEventListener("click", function () {
                 var targetId = btn.getAttribute("data-target");
+                var action = btn.getAttribute("data-action");
+                var isStudentShell = document.body.classList.contains("student-shell");
 
-                navItems.forEach(function (el) {
-                    el.classList.remove("is-active");
-                });
-                document.querySelectorAll(".page-panel").forEach(function (panel) {
-                    panel.classList.remove("is-active");
-                });
+                if (action === "open-settings") {
+                    deactivateCurrentNav();
+                    btn.classList.add("is-active");
+                    if (window.linkseeUserSettings) {
+                        window.linkseeUserSettings.open();
+                    }
+                    return;
+                }
+
+                if (btn.classList.contains("is-active")) {
+                    return;
+                }
+
+                deactivateCurrentNav();
+                deactivateCurrentPanel();
 
                 btn.classList.add("is-active");
-                var targetPanel = document.getElementById(targetId);
+                var targetPanel = panelMap[targetId] || document.getElementById(targetId);
                 if (targetPanel) {
                     targetPanel.classList.add("is-active");
                 }
-                scheduleAdaptivePanelSync();
+                if (window.linkseeUserSettings && typeof window.linkseeUserSettings.close === "function") {
+                    window.linkseeUserSettings.close();
+                }
+                if (!isStudentShell) {
+                    scheduleAdaptivePanelSync();
+                }
             });
         });
     }
@@ -222,7 +264,13 @@
     }
 
     function scheduleAdaptivePanelSync() {
-        window.requestAnimationFrame(syncAdaptivePanels);
+        if (window.__linkseeAdaptivePanelRaf) {
+            return;
+        }
+        window.__linkseeAdaptivePanelRaf = window.requestAnimationFrame(function () {
+            window.__linkseeAdaptivePanelRaf = 0;
+            syncAdaptivePanels();
+        });
     }
 
     function initAdaptivePanels() {
@@ -232,6 +280,9 @@
 
         var container = document.querySelector(".content-container");
         if (container && window.ResizeObserver) {
+            if (window.__linkseeAdaptivePanelObserver && typeof window.__linkseeAdaptivePanelObserver.disconnect === "function") {
+                window.__linkseeAdaptivePanelObserver.disconnect();
+            }
             var observer = new ResizeObserver(scheduleAdaptivePanelSync);
             observer.observe(container);
             window.__linkseeAdaptivePanelObserver = observer;
@@ -242,6 +293,7 @@
         var avatarWrapper = document.getElementById("avatarWrapper");
         var avatarInput = document.getElementById("avatarInput");
         var avatarImage = document.getElementById("avatarImage");
+        var metaInfo = document.getElementById("metaInfo");
 
         if (!avatarWrapper || !avatarInput || !avatarImage) {
             return;
@@ -249,9 +301,20 @@
 
         var defaultAvatar = avatarImage.src;
         var savedAvatar = localStorage.getItem(avatarStorageKey);
+        var sharedAvatar = localStorage.getItem("auth_avatar_url");
 
         if (savedAvatar) {
             avatarImage.src = savedAvatar;
+            var topbarAvatarImage1 = document.querySelector(".topbar-avatar-image");
+            if (topbarAvatarImage1) {
+                topbarAvatarImage1.src = savedAvatar;
+            }
+        } else if (sharedAvatar) {
+            avatarImage.src = sharedAvatar;
+            var topbarAvatarImage2 = document.querySelector(".topbar-avatar-image");
+            if (topbarAvatarImage2) {
+                topbarAvatarImage2.src = sharedAvatar;
+            }
         }
 
         avatarWrapper.addEventListener("click", function () {
@@ -266,6 +329,23 @@
                 return;
             }
 
+            var allowTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+            if (allowTypes.indexOf(file.type) === -1) {
+                if (metaInfo) {
+                    metaInfo.textContent = "头像格式不支持，仅允许 jpg/png/webp/gif";
+                }
+                avatarInput.value = "";
+                return;
+            }
+
+            if (file.size > 5 * 1024 * 1024) {
+                if (metaInfo) {
+                    metaInfo.textContent = "头像文件超过 5MB，请压缩后重试";
+                }
+                avatarInput.value = "";
+                return;
+            }
+
             var reader = new FileReader();
             reader.onload = function (loadEvent) {
                 var nextAvatar = loadEvent.target && loadEvent.target.result;
@@ -274,6 +354,7 @@
                     if (!window.linkseeApi) {
                         savedAvatar = nextAvatar;
                         localStorage.setItem(avatarStorageKey, nextAvatar);
+                        localStorage.setItem("auth_avatar_url", nextAvatar);
                     }
                 }
             };
@@ -292,35 +373,39 @@
                         avatarImage.src = avatarUrl;
                         savedAvatar = avatarUrl;
                         localStorage.setItem(avatarStorageKey, avatarUrl);
+                        localStorage.setItem("auth_avatar_url", avatarUrl);
+                        var topbarAvatarImage3 = document.querySelector(".topbar-avatar-image");
+                        if (topbarAvatarImage3) {
+                            topbarAvatarImage3.src = avatarUrl;
+                        }
+                        if (metaInfo) {
+                            var userId = localStorage.getItem("auth_user_id") || "";
+                            var realName = localStorage.getItem("auth_real_name") || "";
+                            metaInfo.textContent = userId
+                                ? ("当前登录账号：" + userId + (realName ? " · " + realName : ""))
+                                : "头像已更新";
+                        }
                     }
+                    avatarInput.value = "";
                 })
-                .catch(function () {
+                .catch(function (err) {
                     avatarImage.src = savedAvatar || defaultAvatar;
+                    if (metaInfo) {
+                        metaInfo.textContent = (err && err.message)
+                            ? ("头像上传失败：" + err.message)
+                            : "头像上传失败，请稍后重试";
+                    }
+                    avatarInput.value = "";
                 });
         });
     }
 
-    function updateProfileDisplay(realName, bio, userId) {
+    function updateProfileDisplay(realName, _bio, userId) {
         var userBadge = document.getElementById("userBadge");
-        var userProfile = document.querySelector(".user-profile");
         var resolvedName = realName || userId || "--";
-        var descriptionId = "userProfileDescription";
-        var descriptionEl = document.getElementById(descriptionId);
 
         if (userBadge) {
             userBadge.textContent = resolvedName;
-        }
-
-        if (userProfile && !descriptionEl) {
-            descriptionEl = document.createElement("div");
-            descriptionEl.id = descriptionId;
-            descriptionEl.className = "dashboard-soft-note user-profile-description";
-            userProfile.appendChild(descriptionEl);
-        }
-
-        if (descriptionEl) {
-            descriptionEl.textContent = bio || "";
-            descriptionEl.hidden = !bio;
         }
     }
 
@@ -349,10 +434,12 @@
         window.linkseeApi.getJson("/api/v1/users/me")
             .then(function (payload) {
                 var data = payload && payload.data ? payload.data : {};
+                localStorage.setItem("auth_me_payload", JSON.stringify(data));
                 var userId = data.userId || data.id || localStorage.getItem("auth_user_id");
                 var role = data.role || data.userRole || "";
                 var realName = data.profile && data.profile.realName ? data.profile.realName : "";
                 var bio = data.profile && typeof data.profile.bio === "string" ? data.profile.bio : "";
+                var avatarUrl = data.profile && typeof data.profile.avatarUrl === "string" ? data.profile.avatarUrl : "";
 
                 if (userId) {
                     localStorage.setItem("auth_user_id", userId);
@@ -365,6 +452,17 @@
                     localStorage.setItem("auth_real_name", realName);
                 }
                 localStorage.setItem("auth_bio", bio || "");
+                if (avatarUrl) {
+                    localStorage.setItem("auth_avatar_url", avatarUrl);
+                    var avatarImage = document.getElementById("avatarImage");
+                    if (avatarImage) {
+                        avatarImage.src = avatarUrl;
+                    }
+                    var topbarAvatarImage = document.querySelector(".topbar-avatar-image");
+                    if (topbarAvatarImage) {
+                        topbarAvatarImage.src = avatarUrl;
+                    }
+                }
                 if (metaInfo && realName) {
                     metaInfo.textContent = "当前登录账号：" + userId + " · " + realName;
                 } else if (metaInfo && userId) {
@@ -372,7 +470,11 @@
                 }
                 updateProfileDisplay(realName, bio, userId);
                 if (data.forceChangePassword && window.linkseeUserSettings) {
-                    window.linkseeUserSettings.open();
+                    if (typeof window.linkseeUserSettings.openForcePassword === "function") {
+                        window.linkseeUserSettings.openForcePassword("当前账号首次登录需先修改密码。");
+                    } else {
+                        window.linkseeUserSettings.open();
+                    }
                 }
             })
             .catch(function () {
@@ -380,9 +482,78 @@
             });
     }
 
+    function ensureForceChangePasswordFlow() {
+        var forcePromptShownOnce = false;
+
+        function isForceRequired() {
+            return localStorage.getItem("auth_force_change_password") === "true"
+                || document.body.classList.contains("force-password-required");
+        }
+
+        function openWithMessage(message, options) {
+            if (!window.linkseeUserSettings) {
+                return;
+            }
+            if (options && options.once && forcePromptShownOnce) {
+                return;
+            }
+            if (typeof window.linkseeUserSettings.openForcePassword === "function") {
+                window.linkseeUserSettings.openForcePassword(message || "检测到账号需要先修改密码后才能继续操作。");
+                forcePromptShownOnce = true;
+                return;
+            }
+            window.linkseeUserSettings.open();
+            forcePromptShownOnce = true;
+        }
+
+        if (localStorage.getItem("auth_force_change_password") === "true") {
+            openWithMessage("当前账号需要先修改密码后才能访问业务接口。", { once: true });
+        }
+
+        window.addEventListener("linksee:force-change-password", function (event) {
+            var detail = event && event.detail ? event.detail : {};
+            openWithMessage(detail.message || "当前账号需要先修改密码后才能访问业务接口。", { once: true });
+        });
+
+        document.addEventListener("click", function (event) {
+            if (!isForceRequired()) {
+                return;
+            }
+            var target = event.target;
+            if (!(target instanceof Element)) {
+                return;
+            }
+
+            var logoutBtn = target.closest("#logoutBtn");
+            if (logoutBtn) {
+                return;
+            }
+
+            var inSettingsDialog = target.closest(".user-settings-dialog");
+            if (inSettingsDialog) {
+                var allowed = target.closest("[data-action='change-password'], [data-field='newPassword'], [data-field='confirmPassword']");
+                if (allowed) {
+                    return;
+                }
+            }
+
+            var isInteractive = target.closest("button, a, input, textarea, select, .avatar-wrapper, .nav-item");
+            if (!isInteractive) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+            if (window.linkseeUserSettings && typeof window.linkseeUserSettings.nudgeForcePassword === "function") {
+                window.linkseeUserSettings.nudgeForcePassword("请先完成密码修改，再继续其他操作。");
+            } else {
+                openWithMessage("请先完成密码修改，再继续其他操作。", { once: true });
+            }
+        }, true);
+    }
+
     function initLogout(avatarStorageKey) {
         var logoutBtn = document.getElementById("logoutBtn");
-        var settingsBtn = document.getElementById("userSettingsBtn");
         if (!logoutBtn) {
             return;
         }
@@ -395,19 +566,12 @@
             localStorage.removeItem("auth_role");
             localStorage.removeItem("auth_real_name");
             localStorage.removeItem("auth_bio");
+            localStorage.removeItem("auth_avatar_url");
             localStorage.removeItem("auth_force_change_password");
             localStorage.removeItem("auth_origin");
             localStorage.removeItem(avatarStorageKey);
         window.location.href = appBase.appOrigin + appBase.appBasePath + "/login.html";
         });
-
-        if (settingsBtn) {
-            settingsBtn.addEventListener("click", function () {
-                if (window.linkseeUserSettings) {
-                    window.linkseeUserSettings.open();
-                }
-            });
-        }
     }
 
     function initChatLauncher() {
@@ -415,7 +579,7 @@
             var existing = document.querySelector('script[data-linksee-chat-widget-src]');
             if (!existing) {
                 var script = document.createElement("script");
-                script.src = "./scripts/chat-widget.js";
+                script.src = "./scripts/chat-widget.js?v=20260603w";
                 script.async = true;
                 script.setAttribute("data-linksee-chat-widget-src", "true");
                 document.head.appendChild(script);
@@ -437,6 +601,7 @@
         sortDashboardNav();
         initSessionMeta();
         syncSessionWithServer();
+        ensureForceChangePasswordFlow();
         initDashboardNav();
         initAdaptivePanels();
         initAvatarControls(avatarStorageKey);

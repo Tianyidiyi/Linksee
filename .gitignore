@@ -12,3 +12,12 @@ dist/
 # ─── 构建产物 ────────────────────────────────────────────────────────────────────
 apps/*/dist/
 packages/*/dist/
+
+# ─── 临时文件（本地调试，不提交）───────────────────────────────────────────────
+tmp/
+
+# ─── Playwright 输出（本地测试，不提交）──────────────────────────────────────
+playwright-report/
+test-results/
+apps/web/playwright-report/
+apps/web/test-results/

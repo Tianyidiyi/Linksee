@@ -746,7 +746,7 @@
                     <h2 id="loginTitle">账号登录</h2>
                     <button class="dialog-close" id="closeModalBtn" type="button" aria-label="关闭登录窗口">×</button>
                 </div>
-                <p>请输入 10 位一卡通号与密码。</p>
+                <p>请输入 10 位一卡通号与密码，登录后将按角色自动进入工作台。</p>
                 <form id="loginForm" class="form">
                     <div class="field">
                         <label for="userId">一卡通号</label>
@@ -764,8 +764,6 @@
                         <button class="btn-primary" id="loginBtn" type="submit">登录</button>
                     </div>
                 </form>
-                <button class="clear-inline" id="clearBtn" type="button">清除本地登录</button>
-                <p class="card-note">清除本地登录仅会移除当前浏览器保存的登录状态。</p>
             </section>
         </div>
         </div>
@@ -777,7 +775,30 @@
                 : "";
         const storedAuthOrigin = localStorage.getItem("auth_origin") || "";
         const appOrigin = runtimeOrigin || "http://localhost:3001";
-        const authOrigin = storedAuthOrigin || "http://localhost:3001";
+        const DEV_HOSTS = { "localhost": true, "127.0.0.1": true, "::1": true };
+
+        function normalizeAuthOrigin() {
+            if (!storedAuthOrigin) {
+                return "http://localhost:3001";
+            }
+            try {
+                const storedUrl = new URL(storedAuthOrigin);
+                const runtime = runtimeOrigin ? new URL(runtimeOrigin) : null;
+                const isHttp = storedUrl.protocol === "http:" || storedUrl.protocol === "https:";
+                const runtimeOk = runtime
+                    ? (storedUrl.hostname === runtime.hostname || (DEV_HOSTS[storedUrl.hostname] && DEV_HOSTS[runtime.hostname]))
+                    : DEV_HOSTS[storedUrl.hostname];
+                if (isHttp && !storedUrl.username && !storedUrl.password && runtimeOk) {
+                    const normalized = storedAuthOrigin.replace(/\/$/, "");
+                    localStorage.setItem("auth_origin", normalized);
+                    return normalized;
+                }
+            } catch (_err) {}
+            localStorage.removeItem("auth_origin");
+            return "http://localhost:3001";
+        }
+
+        const authOrigin = normalizeAuthOrigin();
         const appBasePath = window.location.pathname.includes("/app/") ? "/app" : "";
         const roleToPage = {
             academic: "academic-dashboard.html",
@@ -785,18 +806,15 @@
             assistant: "assistant-dashboard.html",
             student: "student-dashboard.html",
         };
-        const roleByUserId = {
-            "2022000001": "academic",
-            "2023000001": "teacher",
-            "2023019001": "assistant",
-            "2023010001": "student",
-        };
+
+        function normalizeRole(value) {
+            return String(value || "").trim().toLowerCase();
+        }
 
         const loginForm = document.getElementById("loginForm");
         const userIdInput = document.getElementById("userId");
         const passwordInput = document.getElementById("password");
         const loginBtn = document.getElementById("loginBtn");
-        const clearBtn = document.getElementById("clearBtn");
         const errorBox = document.getElementById("errorBox");
         const successBox = document.getElementById("successBox");
         const startBtn = document.getElementById("startBtn");
@@ -866,11 +884,8 @@
             localStorage.removeItem("auth_role");
             localStorage.removeItem("auth_real_name");
             localStorage.removeItem("auth_bio");
+            localStorage.removeItem("auth_avatar_url");
             localStorage.removeItem("auth_force_change_password");
-        }
-
-        function resolveRoleFromUserId(userId) {
-            return roleByUserId[userId] || "";
         }
 
         async function fetchJsonWithTimeout(url, options, timeoutMs) {
@@ -896,7 +911,7 @@
                 if (!response.ok || !payload?.ok || !payload.data) {
                     return;
                 }
-                const role = payload.data.role || payload.data.userRole || fallbackRole;
+                const role = normalizeRole(payload.data.role || payload.data.userRole || fallbackRole);
                 if (role) {
                     localStorage.setItem("auth_role", role);
                 }
@@ -909,6 +924,33 @@
             }).catch(() => {
                 // Login should not be blocked by profile hydration.
             });
+        }
+
+        async function resolveRoleAfterLogin(accessToken, userId) {
+            if (!accessToken) {
+                return "";
+            }
+            try {
+                const { response, payload } = await fetchJsonWithTimeout(`${authOrigin}/api/v1/users/me`, {
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                    },
+                }, 6000);
+                if (!response.ok || !payload?.ok || !payload?.data) {
+                    return "";
+                }
+                const role = normalizeRole(payload.data.role || payload.data.userRole);
+                if (role) {
+                    localStorage.setItem("auth_role", role);
+                }
+                const resolvedUserId = payload.data.id || userId;
+                if (resolvedUserId) {
+                    localStorage.setItem("auth_user_id", resolvedUserId);
+                }
+                return role;
+            } catch (_err) {
+                return "";
+            }
         }
 
         loginForm.addEventListener("submit", async (event) => {
@@ -954,12 +996,23 @@
                 localStorage.setItem("auth_user_id", userId);
                 localStorage.setItem("auth_force_change_password", data.forceChangePassword ? "true" : "false");
 
-                let role = data.role || data.userRole || (data.user && data.user.role) || resolveRoleFromUserId(userId);
-                if (role) localStorage.setItem("auth_role", role);
+                let role = normalizeRole(
+                    data.role ||
+                    data.userRole ||
+                    (data.user && data.user.role)
+                );
+                if (!role || !roleToPage[role]) {
+                    role = await resolveRoleAfterLogin(data.accessToken || "", userId);
+                }
+                if (!role || !roleToPage[role]) {
+                    setNotice(errorBox, "登录成功但角色无效，请联系管理员");
+                    return;
+                }
+                localStorage.setItem("auth_role", role);
                 syncProfileAfterLogin(data.accessToken || "", userId, role);
 
                 setNotice(successBox, "登录成功，正在进入工作台...");
-                window.location.href = `${appOrigin}${appBasePath}/dashboard.html`;
+                window.location.href = `${appOrigin}${appBasePath}/${roleToPage[role]}`;
             } catch (err) {
                 setNotice(errorBox, err && err.name === "AbortError"
                     ? "登录服务响应超时，请检查 auth 服务是否正常运行"
@@ -968,12 +1021,6 @@
                 loginBtn.disabled = false;
                 loginBtn.textContent = "登录";
             }
-        });
-
-        clearBtn.addEventListener("click", () => {
-            clearLocalSession();
-            localStorage.removeItem("auth_origin");
-            setNotice(successBox, "已清除本地登录");
         });
 
         startBtn.addEventListener("click", openLoginModal);

@@ -68,6 +68,23 @@ selfRouter.get("/me", requireAuth, async (req: Request, res: Response) => {
       isActive: true,
       forceChangePassword: true,
       lastLoginAt: true,
+      studentProfile: {
+        select: {
+          stuNo: true,
+          grade: true,
+          cohort: true,
+          major: true,
+          adminClass: true,
+        },
+      },
+      teacherProfile: {
+        select: {
+          teacherNo: true,
+          title: true,
+          college: true,
+          researchDirection: true,
+        },
+      },
       profile: {
         select: {
           realName: true,
@@ -85,6 +102,13 @@ selfRouter.get("/me", requireAuth, async (req: Request, res: Response) => {
     return res.status(404).json({ ok: false, code: "USER_NOT_FOUND", message: "User not found" });
   }
 
+  const assistantBinding = user.role === "assistant"
+    ? await prisma.teacherAssistant.findUnique({
+        where: { assistantUserId: userId },
+        select: { teacherUserId: true },
+      })
+    : null;
+
   return res.json({
     ok: true,
     data: {
@@ -100,6 +124,28 @@ selfRouter.get("/me", requireAuth, async (req: Request, res: Response) => {
         location: user.profile?.location ?? null,
         email: user.profile?.email ?? null,
       },
+      studentProfile: user.studentProfile
+        ? {
+            stuNo: user.studentProfile.stuNo ?? null,
+            grade: user.studentProfile.grade ?? null,
+            cohort: user.studentProfile.cohort ?? null,
+            major: user.studentProfile.major ?? null,
+            adminClass: user.studentProfile.adminClass ?? null,
+          }
+        : null,
+      teacherProfile: user.teacherProfile
+        ? {
+            teacherNo: user.teacherProfile.teacherNo ?? null,
+            title: user.teacherProfile.title ?? null,
+            college: user.teacherProfile.college ?? null,
+            researchDirection: user.teacherProfile.researchDirection ?? null,
+          }
+        : null,
+      assistantProfile: user.role === "assistant"
+        ? {
+            teacherUserId: assistantBinding?.teacherUserId ?? null,
+          }
+        : null,
     },
   });
 });

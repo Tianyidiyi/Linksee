@@ -10,6 +10,7 @@ export type ChatFileMetadata = {
   mimeType: string;
   uploadedAt: string;
   thumbnailKey?: string;
+  expiresAt?: string;
 };
 
 export type ChatFileInput = {
@@ -22,6 +23,8 @@ export type ChatFileInput = {
 
 export const CHAT_FILE_MAX_BYTES = 500 * 1024 * 1024;
 export const CHAT_FILE_PRESIGN_TTL_SECONDS = 30 * 60;
+export const CHAT_FILE_RETENTION_DAYS = 7;
+export const CHAT_FILE_RETENTION_MS = CHAT_FILE_RETENTION_DAYS * 24 * 60 * 60 * 1000;
 
 const allowedMimeTypes = new Set([
   "application/pdf",
@@ -127,4 +130,53 @@ export function toChatFileMetadata(input: ChatFileInput): ChatFileMetadata {
     uploadedAt: input.uploadedAt ?? new Date().toISOString(),
     thumbnailKey,
   };
+}
+
+export type ChatFileRow = {
+  objectKey: string;
+  expiresAt: Date | string;
+  thumbnailKey?: string | null;
+};
+
+function toIsoDate(value: Date | string | null | undefined): string | null {
+  if (!value) return null;
+  try {
+    return new Date(value).toISOString();
+  } catch {
+    return null;
+  }
+}
+
+export function enrichChatFilesForResponse(files: unknown, fileRows: ChatFileRow[]): unknown {
+  if (!Array.isArray(files)) {
+    return files ?? null;
+  }
+
+  const rowMap = new Map<string, ChatFileRow>();
+  for (const row of fileRows) {
+    rowMap.set(row.objectKey, row);
+  }
+
+  return files.map((file) => {
+    if (!file || typeof file !== "object" || Array.isArray(file)) {
+      return file;
+    }
+
+    const record = file as Record<string, unknown>;
+    const objectKey = typeof record.objectKey === "string" ? record.objectKey : "";
+    const uploadedAt = typeof record.uploadedAt === "string" ? record.uploadedAt : "";
+    const row = objectKey ? rowMap.get(objectKey) : null;
+
+    const expiresAt = toIsoDate(row?.expiresAt) || (uploadedAt ? new Date(new Date(uploadedAt).getTime() + CHAT_FILE_RETENTION_MS).toISOString() : "");
+    const thumbnailKey =
+      typeof record.thumbnailKey === "string"
+        ? record.thumbnailKey
+        : row?.thumbnailKey ?? undefined;
+
+    return {
+      ...record,
+      ...(expiresAt ? { expiresAt } : {}),
+      ...(thumbnailKey ? { thumbnailKey } : {}),
+    };
+  });
 }

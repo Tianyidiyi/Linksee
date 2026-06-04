@@ -19,6 +19,8 @@ import {
 import {
   CHAT_FILE_MAX_BYTES,
   ensureChatFileSize,
+  type ChatFileRow,
+  enrichChatFilesForResponse,
   isAllowedChatMimeType,
   isObjectKeyInScope,
   normalizeChatFiles,
@@ -35,6 +37,13 @@ const messageSelect = {
   senderId: true,
   content: true,
   files: true,
+  filesMeta: {
+    select: {
+      objectKey: true,
+      expiresAt: true,
+      thumbnailKey: true,
+    },
+  },
   mentions: true,
   replyToId: true,
   eventId: true,
@@ -43,6 +52,18 @@ const messageSelect = {
   editedAt: true,
   deletedAt: true,
 } as unknown as Prisma.ChatMessageSelect;
+
+function serializeChatMessage(message: Record<string, unknown>): Record<string, unknown> {
+  const filesMeta = Array.isArray(message.filesMeta) ? (message.filesMeta as ChatFileRow[]) : [];
+  const files = enrichChatFilesForResponse(message.files, filesMeta) as unknown;
+  const output = { ...message };
+  delete (output as { filesMeta?: unknown }).filesMeta;
+  return {
+    ...output,
+    files,
+    messageType: resolveMessageType(files, typeof message.content === "string" ? message.content : null),
+  };
+}
 
 function forbidden(res: Response, message = "Insufficient permissions"): void {
   fail(res, 403, "FORBIDDEN", message);
@@ -176,10 +197,7 @@ groupChatRouter.get("/groups/:groupId/messages", requireAuth, async (req: Reques
   const items = hasMore ? messages.slice(0, limit) : messages;
   const nextCursor = items.length > 0 ? items[items.length - 1].id.toString() : null;
 
-  const mapped = items.map((message) => ({
-    ...message,
-    messageType: resolveMessageType(message.files, message.content),
-  }));
+  const mapped = items.map((message) => serializeChatMessage(message as unknown as Record<string, unknown>));
 
   res.json({ ok: true, data: serializeBigInt(mapped), paging: { hasMore, nextCursor } });
 });
@@ -261,11 +279,12 @@ groupChatRouter.post("/groups/:groupId/messages", requireAuth, async (req: Reque
       select: messageSelect,
     });
     if (existing && existing.conversationId === conversationId) {
-      return ok(res, serializeBigInt({ ...existing, messageType: resolveMessageType(existing.files, existing.content) }), 201);
+      return ok(res, serializeBigInt(serializeChatMessage(existing as unknown as Record<string, unknown>)), 201);
     }
   }
 
   const files = filesInput.length > 0 ? filesInput.map((file) => toChatFileMetadata(file)) : null;
+  const fileExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
   const event = createEventEnvelope("group.message.created", {
     groupId: groupId.toString(),
@@ -274,7 +293,7 @@ groupChatRouter.post("/groups/:groupId/messages", requireAuth, async (req: Reque
     senderId: req.user!.id,
     content,
     messageType,
-    files,
+    files: files ? files.map((file) => ({ ...file, expiresAt: fileExpiresAt.toISOString() })) : files,
     mentions,
     replyToId: replyToId ? replyToId.toString() : null,
   });
@@ -309,6 +328,14 @@ groupChatRouter.post("/groups/:groupId/messages", requireAuth, async (req: Reque
     });
   }
 
+  const fileRows = files && files.length > 0
+    ? files.map((file) => ({
+        objectKey: file.objectKey,
+        expiresAt: fileExpiresAt,
+        thumbnailKey: file.thumbnailKey ?? null,
+      }))
+    : [];
+
   const outboundEvent = {
     ...event,
     id: eventId,
@@ -320,7 +347,10 @@ groupChatRouter.post("/groups/:groupId/messages", requireAuth, async (req: Reque
 
   await pushSocketEvent(`group:${groupId.toString()}`, outboundEvent);
 
-  ok(res, serializeBigInt({ ...message, messageType: resolveMessageType(message.files, message.content) }), 201);
+  ok(res, serializeBigInt(serializeChatMessage({
+    ...message,
+    filesMeta: fileRows,
+  } as unknown as Record<string, unknown>)), 201);
 });
 
 // ──────────────────────────────────────────────────────────────
@@ -424,10 +454,7 @@ groupChatRouter.get("/groups/:groupId/messages/search", requireAuth, async (req:
     select: messageSelect,
   });
 
-  const mapped = messages.map((message) => ({
-    ...message,
-    messageType: resolveMessageType(message.files, message.content),
-  }));
+  const mapped = messages.map((message) => serializeChatMessage(message as unknown as Record<string, unknown>));
 
   res.json({ ok: true, data: serializeBigInt(mapped) });
 });
@@ -504,7 +531,7 @@ groupChatRouter.patch("/groups/:groupId/messages/:messageId", requireAuth, async
 
   res.json({
     ok: true,
-    data: serializeBigInt({ ...updated, messageType: resolveMessageType(updated.files, updated.content) }),
+    data: serializeBigInt(serializeChatMessage(updated as unknown as Record<string, unknown>)),
   });
 });
 
@@ -561,6 +588,6 @@ groupChatRouter.delete("/groups/:groupId/messages/:messageId", requireAuth, asyn
 
   res.json({
     ok: true,
-    data: serializeBigInt({ ...updated, messageType: resolveMessageType(updated.files, updated.content) }),
+    data: serializeBigInt(serializeChatMessage(updated as unknown as Record<string, unknown>)),
   });
 });

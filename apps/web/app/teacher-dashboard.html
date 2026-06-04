@@ -1,38 +1,70 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="zh-CN">
 
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Linksee 教师工作台</title>
-    <link rel="stylesheet" href="./styles/theme.css" />
+    <link rel="stylesheet" href="./styles/theme.css?v=20260603c" />
 </head>
 
 <body class="app-shell teacher-shell academic-shell">
 
-    <div class="sidebar-trigger" aria-hidden="true"></div>
     <aside class="sidebar">
-        <div class="user-profile">
-            <input type="file" id="avatarInput" accept="image/*" hidden />
-            <div class="avatar-wrapper" id="avatarWrapper" title="点击更换头像">
-                <img id="avatarImage"
-                    src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239CA3AF'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>"
-                    alt="用户头像" />
-                <div class="avatar-overlay">更换</div>
-            </div>
-            <div id="userBadge">ID: --</div>
+        <div class="sidebar-brand" aria-label="Linksee">
+            <span class="sidebar-brand-mark" aria-hidden="true">L</span>
+            <span class="sidebar-brand-text">Linksee</span>
         </div>
-
         <nav class="side-nav" aria-label="教师功能导航">
-            <button class="nav-item is-active" data-target="panel-review-workbench" type="button">批阅工作台</button>
+            <button class="nav-item is-active" data-target="panel-review-workbench" type="button" title="批阅">
+                <span class="nav-item-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21h16"></path><path d="M7 17V9"></path><path d="M12 17V5"></path><path d="M17 17v-3"></path></svg>
+                </span>
+                <span class="nav-item-label">批阅</span>
+            </button>
         </nav>
         <div class="sidebar-actions">
-            <button id="userSettingsBtn" class="nav-item nav-item-ghost" type="button">用户设置</button>
-            <button id="logoutBtn" class="nav-item nav-item-logout" type="button">退出登录</button>
+            <button id="userSettingsBtn" class="nav-item nav-item-ghost" data-action="open-settings" type="button" title="设置">
+                <span class="nav-item-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c1.8-3.6 5-5.4 8-5.4S18.2 16.4 20 20"></path></svg>
+                </span>
+                <span class="nav-item-label">设置</span>
+            </button>
+            <button id="logoutBtn" class="nav-item nav-item-logout" type="button" title="退出登录">
+                <span class="nav-item-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 17l5-5-5-5"></path><path d="M20 12H9"></path><path d="M11 20H6a2 2 0 01-2-2V6a2 2 0 012-2h5"></path></svg>
+                </span>
+                <span class="nav-item-label">退出</span>
+            </button>
         </div>
     </aside>
 
     <div class="workspace">
+        <header class="topbar dashboard-topbar">
+            <div class="topbar-left"></div>
+            <div class="top-actions top-actions-staff">
+                <div class="top-actions-primary" aria-label="快捷操作">
+                    <button class="icon-btn" type="button" data-chat-launcher aria-label="消息">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M7 10h10"></path>
+                            <path d="M7 14h6"></path>
+                            <path d="M21 12c0 4.42-3.58 8-8 8a8.84 8.84 0 0 1-3.4-.67L3 21l1.67-6.6A8.84 8.84 0 0 1 4 11c0-4.42 3.58-8 8-8s9 4.58 9 9z"></path>
+                        </svg>
+                        <span class="linksee-chat-dot"></span>
+                    </button>
+                </div>
+                <div class="user-profile user-profile-inline top-actions-profile">
+                    <input type="file" id="avatarInput" accept="image/*" hidden />
+                    <div class="avatar-wrapper topbar-avatar-wrapper" id="avatarWrapper" title="点击更换头像">
+                        <img class="topbar-avatar-image" id="avatarImage"
+                            src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239CA3AF'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>"
+                            alt="用户头像" />
+                        <div class="avatar-overlay">更换</div>
+                    </div>
+                    <div id="userBadge">ID: --</div>
+                </div>
+            </div>
+        </header>
         <div class="content-container">
             <div class="page-panel is-active" id="panel-review-workbench">
                 <section class="card teacher-review-workbench-card">
@@ -112,64 +144,17 @@
         </div>
     </div>
 
-    <script src="./scripts/api-client.js"></script>
-    <script src="./scripts/dashboard-extensions.js"></script>
-    <script src="./scripts/dashboard-shell.js"></script>
-    <script src="./scripts/user-settings.js"></script>
-    <script src="./scripts/leaf-pile.js"></script>
-    <script src="./scripts/teacher-dashboard.js"></script>
+    <script src="./scripts/api-client.js?v=20260602b"></script>
+    <script src="./scripts/page-utils.js?v=20260602b"></script>
+    <script src="./scripts/dashboard-extensions.js?v=20260602b"></script>
+    <script src="./scripts/dashboard-shell.js?v=20260603w"></script>
+    <script src="./scripts/user-settings.js?v=20260602b"></script>
+    <script src="./scripts/leaf-pile.js?v=20260602b"></script>
+    <script src="./scripts/teacher-dashboard.js?v=20260602b"></script>
     <script>
-        function mergeTeacherReviewWorkbench() {
-            var workbench = document.getElementById("panel-review-workbench");
-            var grading = document.getElementById("panel-review-detail-source");
-            if (!workbench) return;
-
-            var body = workbench.querySelector(".dashboard-card-body");
-            if (!body || body.querySelector(".teacher-review-workbench")) {
-                if (grading) grading.remove();
-                return;
-            }
-
-            var toolbar = workbench.querySelector(".dashboard-toolbar-row");
-            var gradingBody = grading ? grading.querySelector(".dashboard-card-body") : null;
-            var layout = document.createElement("div");
-            var queue = document.createElement("section");
-            var editor = document.createElement("section");
-
-            layout.className = "teacher-review-workbench";
-            queue.className = "dashboard-subcard teacher-review-queue";
-            editor.className = "teacher-review-editor";
-
-            if (toolbar) {
-                queue.appendChild(toolbar);
-            }
-            while (body.firstChild) {
-                queue.appendChild(body.firstChild);
-            }
-            if (gradingBody) {
-                while (gradingBody.firstChild) {
-                    editor.appendChild(gradingBody.firstChild);
-                }
-            }
-
-            layout.appendChild(queue);
-            layout.appendChild(editor);
-            body.appendChild(layout);
-            if (grading) grading.remove();
-        }
-
-        mergeTeacherReviewWorkbench();
+        if (!linkseePage.requireAuth()) { throw new Error("auth required"); }
         initDashboardShell({
             avatarStorageKey: "teacher_avatar_data_url",
-        });
-        document.querySelectorAll("[data-panel-link]").forEach(function (button) {
-            button.addEventListener("click", function () {
-                var targetId = button.getAttribute("data-panel-link");
-                var sideNavButton = document.querySelector('.side-nav .nav-item[data-target="' + targetId + '"]');
-                if (sideNavButton) {
-                    sideNavButton.click();
-                }
-            });
         });
         initTeacherDashboard();
     </script>

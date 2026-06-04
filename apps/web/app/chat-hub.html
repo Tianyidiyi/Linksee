@@ -168,7 +168,7 @@ async function loadMessages() {
                     <div class="bubble-head">
                         ${me ? "" : `<img src="${avatarOf(user)}" alt="">`}
                         <strong>${linkseePage.escapeHtml(nameOf(user))}</strong>
-                        <span class="muted">${new Date(row.createdAt).toLocaleString("zh-CN",{hour12:false})}</span>
+                        <span class="muted">${linkseePage.formatDateTime(row.createdAt)}</span>
                     </div>
                     <div>${linkseePage.escapeHtml(row.content || "")}</div>
                 </div>
