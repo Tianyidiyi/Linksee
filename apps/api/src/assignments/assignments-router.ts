@@ -41,6 +41,46 @@ function serializeAssignmentRecord<T extends { descriptionFiles: Prisma.JsonValu
   };
 }
 
+async function validateAssignmentStatusChange(
+  currentStatus: AssignmentStatus,
+  nextStatus: AssignmentStatus,
+  assignmentId: bigint | null,
+  res: Response,
+): Promise<boolean> {
+  if (!canTransitionAssignmentStatus(currentStatus, nextStatus)) {
+    conflict(res, `Invalid assignment status transition: ${currentStatus} -> ${nextStatus}`);
+    return false;
+  }
+
+  if (nextStatus === AssignmentStatus.active) {
+    if (assignmentId === null) {
+      conflict(res, "Cannot activate assignment without at least one stage");
+      return false;
+    }
+
+    const stageCount = await prisma.assignmentStage.count({ where: { assignmentId } });
+    if (stageCount === 0) {
+      conflict(res, "Cannot activate assignment without at least one stage");
+      return false;
+    }
+  }
+
+  if (assignmentId !== null && nextStatus === AssignmentStatus.archived) {
+    const openStageCount = await prisma.assignmentStage.count({
+      where: {
+        assignmentId,
+        status: { in: [StageStatus.planned, StageStatus.open] },
+      },
+    });
+    if (openStageCount > 0) {
+      conflict(res, "Cannot archive assignment while planned/open stages exist");
+      return false;
+    }
+  }
+
+  return true;
+}
+
 assignmentsRouter.post("/courses/:courseId/assignments", requireAuth, async (req: Request, res: Response) => {
   const courseId = parseBigIntParam(req.params.courseId, "courseId", res);
   if (courseId === null) return;
@@ -90,6 +130,9 @@ assignmentsRouter.post("/courses/:courseId/assignments", requireAuth, async (req
     req.body?.status === undefined ? AssignmentStatus.draft : parseAssignmentStatus(req.body.status);
   if (!status) {
     return validationFailed(res, "status must be draft, active or archived");
+  }
+  if (!(await validateAssignmentStatusChange(AssignmentStatus.draft, status, null, res))) {
+    return;
   }
 
   const assignment = await prisma.assignment.create({
@@ -223,8 +266,8 @@ assignmentsRouter.patch("/assignments/:assignmentId", requireAuth, async (req: R
     if (!nextStatus) {
       return validationFailed(res, "status must be draft, active or archived");
     }
-    if (!canTransitionAssignmentStatus(assignment.status, nextStatus)) {
-      return conflict(res, `Invalid assignment status transition: ${assignment.status} -> ${nextStatus}`);
+    if (!(await validateAssignmentStatusChange(assignment.status, nextStatus, assignmentId, res))) {
+      return;
     }
     nextData.status = nextStatus;
   }
@@ -299,27 +342,8 @@ assignmentsRouter.post("/assignments/:assignmentId/status", requireAuth, async (
   if (!nextStatus) {
     return validationFailed(res, "status must be draft, active or archived");
   }
-  if (!canTransitionAssignmentStatus(assignment.status, nextStatus)) {
-    return conflict(res, `Invalid assignment status transition: ${assignment.status} -> ${nextStatus}`);
-  }
-
-  if (nextStatus === AssignmentStatus.active) {
-    const stageCount = await prisma.assignmentStage.count({ where: { assignmentId } });
-    if (stageCount === 0) {
-      return conflict(res, "Cannot activate assignment without at least one stage");
-    }
-  }
-
-  if (nextStatus === AssignmentStatus.archived) {
-    const openStageCount = await prisma.assignmentStage.count({
-      where: {
-        assignmentId,
-        status: { in: [StageStatus.planned, StageStatus.open] },
-      },
-    });
-    if (openStageCount > 0) {
-      return conflict(res, "Cannot archive assignment while planned/open stages exist");
-    }
+  if (!(await validateAssignmentStatusChange(assignment.status, nextStatus, assignmentId, res))) {
+    return;
   }
 
   const updated = await prisma.assignment.update({

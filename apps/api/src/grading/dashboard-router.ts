@@ -1,4 +1,4 @@
-import { GradeStatus, Role, SubmissionStatus } from "@prisma/client";
+import { AssignmentStatus, CourseMemberStatus, GradeStatus, Role, StageStatus, SubmissionStatus } from "@prisma/client";
 import { Router, type Request, type Response } from "express";
 import { requireAuth } from "../infra/jwt-middleware.js";
 import { prisma } from "../infra/prisma.js";
@@ -12,6 +12,208 @@ function computeProgress(totalStages: number, approvedCount: number): number {
   if (totalStages <= 0) return 0;
   return Math.max(0, Math.min(100, Math.round((approvedCount / totalStages) * 100)));
 }
+
+dashboardRouter.get("/students/dashboard", requireAuth, async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+  const role = req.user!.role as Role;
+  if (role !== Role.student) {
+    return forbidden(res, "Only students can view student dashboard");
+  }
+
+  const memberships = await prisma.courseMember.findMany({
+    where: { userId, status: CourseMemberStatus.active },
+    select: { courseId: true },
+  });
+  const courseIds = memberships.map((item) => item.courseId);
+
+  if (courseIds.length === 0) {
+    return ok(res, { courses: [], todoRows: [], gradeRows: [] });
+  }
+
+  const [courses, assignments] = await prisma.$transaction([
+    prisma.course.findMany({
+      where: { id: { in: courseIds } },
+      orderBy: [{ academicYear: "desc" }, { semester: "desc" }, { createdAt: "desc" }],
+      select: {
+        id: true,
+        courseNo: true,
+        name: true,
+        academicYear: true,
+        semester: true,
+        status: true,
+        description: true,
+        createdAt: true,
+      },
+    }),
+    prisma.assignment.findMany({
+      where: {
+        courseId: { in: courseIds },
+        status: { in: [AssignmentStatus.active, AssignmentStatus.archived] },
+      },
+      orderBy: [{ createdAt: "desc" }],
+      select: {
+        id: true,
+        courseId: true,
+        title: true,
+        description: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    }),
+  ]);
+
+  const assignmentIds = assignments.map((item) => item.id);
+  if (assignmentIds.length === 0) {
+    return ok(res, serializeBigInt({ courses, todoRows: [], gradeRows: [] }));
+  }
+
+  const [groupMemberships, stages] = await prisma.$transaction([
+    prisma.groupMember.findMany({
+      where: { userId, assignmentId: { in: assignmentIds } },
+      select: {
+        assignmentId: true,
+        role: true,
+        joinedAt: true,
+        group: {
+          select: {
+            id: true,
+            groupNo: true,
+            name: true,
+            status: true,
+            _count: { select: { members: true } },
+          },
+        },
+      },
+    }),
+    prisma.assignmentStage.findMany({
+      where: {
+        assignmentId: { in: assignmentIds },
+        status: { in: [StageStatus.open, StageStatus.closed, StageStatus.archived] },
+      },
+      orderBy: [{ stageNo: "asc" }],
+      select: {
+        id: true,
+        assignmentId: true,
+        stageNo: true,
+        title: true,
+        dueAt: true,
+        status: true,
+      },
+    }),
+  ]);
+
+  if (groupMemberships.length === 0 || stages.length === 0) {
+    return ok(res, serializeBigInt({ courses, todoRows: [], gradeRows: [] }));
+  }
+
+  const groupByAssignmentId = new Map(
+    groupMemberships.map((membership) => [
+      membership.assignmentId.toString(),
+      {
+        id: membership.group.id,
+        groupNo: membership.group.groupNo,
+        name: membership.group.name,
+        status: membership.group.status,
+        myRole: membership.role,
+        joinedAt: membership.joinedAt,
+        _count: membership.group._count,
+      },
+    ]),
+  );
+
+  const groupIds = Array.from(new Set(groupMemberships.map((membership) => membership.group.id)));
+  const stageIds = stages.map((stage) => stage.id);
+
+  const [submissions, grades] = await prisma.$transaction([
+    prisma.submission.findMany({
+      where: {
+        groupId: { in: groupIds },
+        stageId: { in: stageIds },
+      },
+      orderBy: [{ stageId: "asc" }, { groupId: "asc" }, { attemptNo: "desc" }],
+      select: {
+        id: true,
+        groupId: true,
+        stageId: true,
+        status: true,
+        attemptNo: true,
+        submittedAt: true,
+        createdAt: true,
+      },
+    }),
+    prisma.stageGrade.findMany({
+      where: {
+        groupId: { in: groupIds },
+        stageId: { in: stageIds },
+        status: GradeStatus.published,
+      },
+      select: {
+        id: true,
+        groupId: true,
+        stageId: true,
+        score: true,
+        status: true,
+        publishedAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    }),
+  ]);
+
+  const courseById = new Map(courses.map((course) => [course.id.toString(), course]));
+  const assignmentById = new Map(assignments.map((assignment) => [assignment.id.toString(), assignment]));
+
+  const latestSubmissionByKey = new Map<string, (typeof submissions)[number]>();
+  for (const submission of submissions) {
+    const key = `${submission.groupId.toString()}::${submission.stageId.toString()}`;
+    if (!latestSubmissionByKey.has(key)) {
+      latestSubmissionByKey.set(key, submission);
+    }
+  }
+
+  const gradeByKey = new Map(
+    grades.map((grade) => [`${grade.groupId.toString()}::${grade.stageId.toString()}`, grade]),
+  );
+
+  const todoRows = stages.flatMap((stage) => {
+    const assignment = assignmentById.get(stage.assignmentId.toString());
+    if (!assignment) return [];
+
+    const group = groupByAssignmentId.get(stage.assignmentId.toString());
+    if (!group) return [];
+
+    const course = courseById.get(assignment.courseId.toString());
+    if (!course) return [];
+
+    const key = `${group.id.toString()}::${stage.id.toString()}`;
+    const submission = latestSubmissionByKey.get(key) ?? null;
+
+    return [{
+      course,
+      assignment,
+      group,
+      stage,
+      submission,
+    }];
+  });
+
+  const gradeRows = todoRows.flatMap((row) => {
+    const key = `${row.group.id.toString()}::${row.stage.id.toString()}`;
+    const grade = gradeByKey.get(key);
+    if (!grade) return [];
+
+    return [{
+      course: row.course,
+      assignment: row.assignment,
+      group: row.group,
+      stage: row.stage,
+      grade,
+    }];
+  });
+
+  return ok(res, serializeBigInt({ courses, todoRows, gradeRows }));
+});
 
 dashboardRouter.get("/courses/:courseId/dashboard", requireAuth, async (req: Request, res: Response) => {
   const courseId = parseBigIntParam(req.params.courseId, "courseId", res);

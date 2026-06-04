@@ -746,7 +746,7 @@
                     <h2 id="loginTitle">账号登录</h2>
                     <button class="dialog-close" id="closeModalBtn" type="button" aria-label="关闭登录窗口">×</button>
                 </div>
-                <p>请输入 10 位一卡通号与密码。</p>
+                <p>请输入 10 位一卡通号与密码，登录后将按角色自动进入工作台。</p>
                 <form id="loginForm" class="form">
                     <div class="field">
                         <label for="userId">一卡通号</label>
@@ -764,8 +764,6 @@
                         <button class="btn-primary" id="loginBtn" type="submit">登录</button>
                     </div>
                 </form>
-                <button class="clear-inline" id="clearBtn" type="button">清除本地登录</button>
-                <p class="card-note">清除本地登录仅会移除当前浏览器保存的登录状态。</p>
             </section>
         </div>
         </div>
@@ -817,7 +815,6 @@
         const userIdInput = document.getElementById("userId");
         const passwordInput = document.getElementById("password");
         const loginBtn = document.getElementById("loginBtn");
-        const clearBtn = document.getElementById("clearBtn");
         const errorBox = document.getElementById("errorBox");
         const successBox = document.getElementById("successBox");
         const startBtn = document.getElementById("startBtn");
@@ -1024,12 +1021,6 @@
                 loginBtn.disabled = false;
                 loginBtn.textContent = "登录";
             }
-        });
-
-        clearBtn.addEventListener("click", () => {
-            clearLocalSession();
-            localStorage.removeItem("auth_origin");
-            setNotice(successBox, "已清除本地登录");
         });
 
         startBtn.addEventListener("click", openLoginModal);

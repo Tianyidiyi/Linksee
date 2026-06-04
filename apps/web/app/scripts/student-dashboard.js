@@ -42,8 +42,9 @@
         }
 
         try {
-            var courses = await window.linkseeApi.getJson("/api/v1/courses");
-            var courseRows = Array.isArray(courses.data) ? courses.data : [];
+            var dashboard = await window.linkseeApi.getJson("/api/v1/students/dashboard");
+            var dashboardData = dashboard && dashboard.data ? dashboard.data : {};
+            var courseRows = Array.isArray(dashboardData.courses) ? dashboardData.courses : [];
             var courseList = document.getElementById("studentCourseList");
             var courseScopeSelect = document.getElementById("studentCourseScopeSelect");
             var courseCount = document.getElementById("studentCourseCount");
@@ -57,58 +58,8 @@
                     return '<option value="' + linkseePage.escapeHtml(course.id) + '">' + linkseePage.escapeHtml(course.name || course.courseNo || course.id) + '</option>';
                 }).join("");
             }
-            var todoRows = [];
-            var gradeRows = [];
-
-            for (var i = 0; i < courseRows.length; i++) {
-                var course = courseRows[i];
-                var assignmentsPayload = await window.linkseeApi.getJson("/api/v1/courses/" + encodeURIComponent(course.id) + "/assignments").catch(function () {
-                    return { data: [] };
-                });
-                var assignments = Array.isArray(assignmentsPayload.data) ? assignmentsPayload.data : [];
-                for (var j = 0; j < assignments.length; j++) {
-                    var assignment = assignments[j];
-                    var myGroupPayload = await window.linkseeApi.getJson("/api/v1/assignments/" + encodeURIComponent(assignment.id) + "/my-group").catch(function () {
-                        return null;
-                    });
-                    if (!myGroupPayload || !myGroupPayload.data) {
-                        continue;
-                    }
-                    var myGroup = myGroupPayload.data;
-                    var groupId = myGroup.id || myGroup.groupId;
-                    var stagesPayload = await window.linkseeApi.getJson("/api/v1/assignments/" + encodeURIComponent(assignment.id) + "/stages").catch(function () {
-                        return { data: [] };
-                    });
-                    var stages = Array.isArray(stagesPayload.data) ? stagesPayload.data : [];
-                    for (var k = 0; k < stages.length; k++) {
-                        var stage = stages[k];
-                        var submissionsPayload = await window.linkseeApi.getJson("/api/v1/stages/" + encodeURIComponent(stage.id) + "/groups/" + encodeURIComponent(groupId) + "/submissions").catch(function () {
-                            return { data: [] };
-                        });
-                        var submissions = Array.isArray(submissionsPayload.data) ? submissionsPayload.data : [];
-                        var latestSubmission = submissions[0] || null;
-                        todoRows.push({
-                            course: course,
-                            assignment: assignment,
-                            group: myGroup,
-                            stage: stage,
-                            submission: latestSubmission,
-                        });
-                        var gradePayload = await window.linkseeApi.getJson("/api/v1/stages/" + encodeURIComponent(stage.id) + "/groups/" + encodeURIComponent(groupId) + "/grade").catch(function () {
-                            return null;
-                        });
-                        if (gradePayload && gradePayload.data) {
-                            gradeRows.push({
-                                course: course,
-                                assignment: assignment,
-                                group: myGroup,
-                                stage: stage,
-                                grade: gradePayload.data,
-                            });
-                        }
-                    }
-                }
-            }
+            var todoRows = Array.isArray(dashboardData.todoRows) ? dashboardData.todoRows : [];
+            var gradeRows = Array.isArray(dashboardData.gradeRows) ? dashboardData.gradeRows : [];
 
             todoRows.sort(function (a, b) {
                 return new Date(a.stage.dueAt || 0).getTime() - new Date(b.stage.dueAt || 0).getTime();

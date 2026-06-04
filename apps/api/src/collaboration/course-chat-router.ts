@@ -19,6 +19,7 @@ import {
 import {
   CHAT_FILE_MAX_BYTES,
   ensureChatFileSize,
+  type ChatFileRow,
   enrichChatFilesForResponse,
   isAllowedChatMimeType,
   isObjectKeyInScope,
@@ -53,7 +54,7 @@ const messageSelect = {
 } as unknown as Prisma.ChatMessageSelect;
 
 function serializeChatMessage(message: Record<string, unknown>): Record<string, unknown> {
-  const filesMeta = Array.isArray(message.filesMeta) ? (message.filesMeta as Array<Record<string, unknown>>) : [];
+  const filesMeta = Array.isArray(message.filesMeta) ? (message.filesMeta as ChatFileRow[]) : [];
   const files = enrichChatFilesForResponse(message.files, filesMeta) as unknown;
   const output = { ...message };
   delete (output as { filesMeta?: unknown }).filesMeta;

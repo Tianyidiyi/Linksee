@@ -423,6 +423,12 @@ export const mvpRoutes: HttpRoute[] = [
   },
   {
     method: "GET",
+    path: "/api/v1/students/dashboard",
+    authRequired: true,
+    module: "grading",
+  },
+  {
+    method: "GET",
     path: "/api/v1/courses/:courseId/dashboard",
     authRequired: true,
     module: "grading",

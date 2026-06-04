@@ -579,7 +579,7 @@
             var existing = document.querySelector('script[data-linksee-chat-widget-src]');
             if (!existing) {
                 var script = document.createElement("script");
-                script.src = "./scripts/chat-widget.js?v=20260602a";
+                script.src = "./scripts/chat-widget.js?v=20260603w";
                 script.async = true;
                 script.setAttribute("data-linksee-chat-widget-src", "true");
                 document.head.appendChild(script);

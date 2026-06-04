@@ -19,6 +19,7 @@ describe("http/routes", () => {
     expect(keys.has("POST /api/v1/submissions/:submissionId/reviews")).toBe(true);
     expect(keys.has("POST /api/v1/submissions/:submissionId/reviews/start")).toBe(true);
     expect(keys.has("POST /api/v1/grades/:gradeId/publish")).toBe(true);
+    expect(keys.has("GET /api/v1/students/dashboard")).toBe(true);
   });
 });
 

@@ -212,24 +212,24 @@
         getJson: function (path) {
             return request(path, { headers: authHeaders() });
         },
-        postJson: function (path, body) {
+        postJson: function (path, body, extraHeaders) {
             return request(path, {
                 method: "POST",
-                headers: authHeaders({ "Content-Type": "application/json" }),
+                headers: authHeaders(Object.assign({ "Content-Type": "application/json" }, extraHeaders || {})),
                 body: JSON.stringify(body || {}),
             });
         },
-        patchJson: function (path, body) {
+        patchJson: function (path, body, extraHeaders) {
             return request(path, {
                 method: "PATCH",
-                headers: authHeaders({ "Content-Type": "application/json" }),
+                headers: authHeaders(Object.assign({ "Content-Type": "application/json" }, extraHeaders || {})),
                 body: JSON.stringify(body || {}),
             });
         },
-        putJson: function (path, body) {
+        putJson: function (path, body, extraHeaders) {
             return request(path, {
                 method: "PUT",
-                headers: authHeaders({ "Content-Type": "application/json" }),
+                headers: authHeaders(Object.assign({ "Content-Type": "application/json" }, extraHeaders || {})),
                 body: JSON.stringify(body || {}),
             });
         },

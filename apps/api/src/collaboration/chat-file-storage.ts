@@ -132,7 +132,7 @@ export function toChatFileMetadata(input: ChatFileInput): ChatFileMetadata {
   };
 }
 
-type ChatFileRow = {
+export type ChatFileRow = {
   objectKey: string;
   expiresAt: Date | string;
   thumbnailKey?: string | null;
