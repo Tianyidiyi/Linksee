@@ -854,41 +854,83 @@
             taskAssignment.onchange = refreshTaskGroup;
             qs("#extTaskReload").onclick = refreshTasks;
         }
-        function taskBody() {
-            var stageSelect = qs("#extTaskStageId");
+        function taskCreateBody() {
+            var leaderAssignee = qs("#studentLeaderTaskAssignee");
+            var leaderStage = qs("#studentLeaderTaskStage");
             return {
-                title: qs("#extTaskTitle").value.trim(),
-                description: qs("#extTaskDesc").value.trim() || null,
-                assigneeIds: qs("#extTaskAssignee").value.trim() ? [qs("#extTaskAssignee").value.trim()] : [],
-                dueAt: qs("#extTaskDue").value ? new Date(qs("#extTaskDue").value).toISOString() : null,
-                priority: qs("#extTaskPriority").value,
-                status: qs("#extTaskStatus").value,
-                stageId: stageSelect && stageSelect.value ? stageSelect.value : undefined,
+                title: qs("#studentLeaderTaskTitle") && qs("#studentLeaderTaskTitle").value.trim(),
+                description: qs("#studentLeaderTaskDesc") && qs("#studentLeaderTaskDesc").value.trim() || null,
+                assigneeIds: leaderAssignee && leaderAssignee.value.trim() ? [leaderAssignee.value.trim()] : [],
+                dueAt: qs("#studentLeaderTaskDue") && qs("#studentLeaderTaskDue").value ? new Date(qs("#studentLeaderTaskDue").value).toISOString() : null,
+                priority: qs("#studentLeaderTaskPriority") && qs("#studentLeaderTaskPriority").value || "medium",
+                stageId: leaderStage && leaderStage.value ? leaderStage.value : undefined,
             };
         }
-        qs("#extTaskCreate").onclick = function () {
-            api().postJson("/api/v1/groups/" + encodeURIComponent(qs("#extTaskGroupId").value) + "/minitasks", taskBody()).then(function () {
-                setResult(taskResult, "创建成功", "任务已创建。", false);
-                return refreshTasks();
+
+        function taskPatchBody() {
+            return {
+                title: qs("#extTaskTitle") && qs("#extTaskTitle").value.trim(),
+                description: qs("#extTaskDesc") && qs("#extTaskDesc").value.trim() || null,
+                dueAt: qs("#extTaskDue") && qs("#extTaskDue").value ? new Date(qs("#extTaskDue").value).toISOString() : null,
+                priority: qs("#extTaskPriority") && qs("#extTaskPriority").value || "medium",
+            };
+        }
+
+        function submitTaskPatch() {
+            var taskIdNode = qs("#extTaskId");
+            if (!taskIdNode || !taskIdNode.value.trim()) return Promise.resolve();
+            if (state.mockEnabled) {
+                var mockTask = (state.tasks || []).find(function (row) {
+                    return String(row.id) === String(taskIdNode.value.trim());
+                });
+                if (!mockTask) return Promise.resolve();
+                upsertTaskRow(Object.assign({}, mockTask, taskPatchBody(), {
+                    updatedAt: new Date().toISOString(),
+                }), { select: true });
+                setResult(taskResult, "已更新", "任务信息已保存。", false);
+                return Promise.resolve();
+            }
+            return api().patchJson("/api/v1/minitasks/" + encodeURIComponent(taskIdNode.value.trim()), taskPatchBody()).then(function (payload) {
+                upsertTaskRow(payload && payload.data ? payload.data : null, { select: true });
+                setResult(taskResult, "已更新", "任务信息已保存。", false);
             }).catch(function (err) {
-                setResult(taskResult, "创建失败", err.message, true);
+                setResult(taskResult, "更新失败", err.message, true);
             });
-        };
-        qs("#extTaskPatch").onclick = function () {
-            api().patchJson("/api/v1/minitasks/" + encodeURIComponent(qs("#extTaskId").value.trim()), taskBody()).then(function () {
-                setResult(taskResult, "保存成功", "任务已更新。", false);
-                return refreshTasks();
-            }).catch(function (err) {
-                setResult(taskResult, "保存失败", err.message, true);
-            });
-        };
-        qs("#extTaskStatusSave").onclick = function () {
-            api().patchJson("/api/v1/minitasks/" + encodeURIComponent(qs("#extTaskId").value.trim()) + "/status", { status: qs("#extTaskStatus").value }).then(function () {
+        }
+
+        function submitTaskStatus() {
+            var taskIdNode = qs("#extTaskId");
+            var statusNode = qs("#extTaskStatus");
+            if (!taskIdNode || !statusNode || !taskIdNode.value.trim()) return Promise.resolve();
+            var currentTask = (state.tasks || []).find(function (row) {
+                return String(row.id) === String(taskIdNode.value.trim());
+            }) || null;
+            if (!currentTask) return Promise.resolve();
+            if (!canCurrentUserUpdateTaskStatus(currentTask, statusNode.value)) {
+                renderSelectedTask();
+                setResult(taskResult, "状态更新失败", "当前账号无权把这条任务改成该状态。", true);
+                return Promise.resolve();
+            }
+            if (state.mockEnabled) {
+                upsertTaskRow(Object.assign({}, currentTask, {
+                    status: statusNode.value,
+                    updatedAt: new Date().toISOString(),
+                }), { select: true });
                 setResult(taskResult, "状态已更新", "任务状态已保存。", false);
-                return refreshTasks();
+                return Promise.resolve();
+            }
+            return api().patchJson("/api/v1/minitasks/" + encodeURIComponent(taskIdNode.value.trim()) + "/status", { status: statusNode.value }).then(function (payload) {
+                upsertTaskRow(payload && payload.data ? payload.data : null, { select: true });
+                setResult(taskResult, "状态已更新", "任务状态已保存。", false);
             }).catch(function (err) {
+                renderSelectedTask();
                 setResult(taskResult, "状态更新失败", err.message, true);
             });
+        }
+
+        var patchTaskBtn = qs("#extTaskPatch");
+        if (patchTaskBtn) patchTaskBtn.onclick = function () {
+            submitTaskPatch();
         };
 
         var submitCourse = qs("#extSubmitCourse");
@@ -939,6 +981,11 @@
 })();
 
 (function () {
+    if (window.linkseeStudentTeamExtensionsLoaded) {
+        return;
+    }
+    window.linkseeStudentTeamExtensionsLoaded = true;
+
     function qs(selector, root) {
         return (root || document).querySelector(selector);
     }
@@ -981,6 +1028,77 @@
         return role || "--";
     }
 
+    function taskAssigneeIds(task) {
+        if (!task) return [];
+        if (Array.isArray(task.assigneeIds) && task.assigneeIds.length) {
+            return task.assigneeIds.map(function (value) { return String(value); });
+        }
+        if (task.assigneeId) return [String(task.assigneeId)];
+        return [];
+    }
+
+    function canCurrentUserUpdateTaskStatus(task, nextStatus) {
+        if (!task) return false;
+        if (task.status === "cancelled" && nextStatus !== "cancelled") return false;
+        var me = String(currentUserId());
+        var isAssignee = taskAssigneeIds(task).includes(me);
+        if (nextStatus === "cancelled") {
+            return Boolean(state.currentGroup && state.currentGroup.myRole === "leader");
+        }
+        return isAssignee;
+    }
+
+    function commitTaskRows(rows, selectedTaskId) {
+        state.tasks = Array.isArray(rows) ? rows.map(function (task) {
+            return Object.assign({}, task, {
+                assigneeIds: taskAssigneeIds(task),
+            });
+        }) : [];
+        if (state.mockEnabled) {
+            var assignment = currentMockAssignment();
+            if (assignment) {
+                assignment.tasks = state.tasks.map(function (task) {
+                    return Object.assign({}, task, {
+                        assigneeIds: taskAssigneeIds(task),
+                    });
+                });
+            }
+        }
+        if (selectedTaskId !== undefined) {
+            state.selectedTaskId = selectedTaskId;
+        }
+        renderStageProgress(state.stages || [], state.tasks);
+        renderTaskSummary(state.tasks);
+        renderActivityFeed(state.tasks);
+        renderWorkbenchState();
+    }
+
+    function upsertTaskRow(nextTask, options) {
+        if (!nextTask || !nextTask.id) return;
+        var rows = Array.isArray(state.tasks) ? state.tasks.slice() : [];
+        var normalized = Object.assign({}, nextTask, {
+            assigneeIds: taskAssigneeIds(nextTask),
+        });
+        var index = rows.findIndex(function (task) {
+            return String(task.id) === String(normalized.id);
+        });
+        if (index >= 0) {
+            rows[index] = Object.assign({}, rows[index], normalized);
+        } else if (options && options.prepend) {
+            rows.unshift(normalized);
+        } else {
+            rows.push(normalized);
+        }
+        commitTaskRows(rows, options && options.select ? normalized.id : state.selectedTaskId);
+    }
+
+    function roleIconMarkup(role) {
+        if (role === "leader") {
+            return '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.2 12.2 7.4l4.6.6-3.3 3.2.8 4.6-4.3-2.2-4.3 2.2.8-4.6L3.2 8l4.6-.6L10 3.2Z"></path></svg>';
+        }
+        return '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="6.6" r="2.7"></circle><path d="M4.8 15.4c1.2-2.4 3.1-3.6 5.2-3.6s4 1.2 5.2 3.6"></path></svg>';
+    }
+
     function groupStatusLabel(status) {
         if (status === "forming") return "组队进行中";
         if (status === "active") return "协作中";
@@ -994,12 +1112,6 @@
         if (status === "rejected") return "已拒绝";
         if (status === "cancelled") return "已取消";
         return status || "--";
-    }
-
-    function miniAvatar(label, tone) {
-        var raw = String(label || "?").trim();
-        var initial = raw ? raw.charAt(0).toUpperCase() : "?";
-        return '<span class="student-mini-avatar' + (tone ? (' is-' + tone) : '') + '" aria-hidden="true">' + escapeHtml(initial) + '</span>';
     }
 
     function isStudentTeamPage() {
@@ -1018,6 +1130,7 @@
         activityFilter: "all",
         mockEnabled: true,
         selectedTaskId: "",
+        syncingTaskEditor: false,
     };
 
     var mockTeamData = [
@@ -1119,6 +1232,188 @@
         return localStorage.getItem("auth_real_name") || "小泉";
     }
 
+    function currentUserAvatarUrl() {
+        return localStorage.getItem("student_avatar_data_url")
+            || localStorage.getItem("auth_avatar_url")
+            || "";
+    }
+
+    function resolveMiniAvatarUrl(label, explicitAvatarUrl, userId) {
+        if (explicitAvatarUrl) return String(explicitAvatarUrl);
+        if (userId && String(userId) === String(currentUserId())) {
+            return currentUserAvatarUrl();
+        }
+        var normalizedLabel = String(label || "").trim();
+        if (normalizedLabel && normalizedLabel === currentUserName()) {
+            return currentUserAvatarUrl();
+        }
+        return "";
+    }
+
+    function miniAvatar(label, tone, explicitAvatarUrl, userId) {
+        var raw = String(label || "?").trim();
+        var initial = raw ? raw.charAt(0).toUpperCase() : "?";
+        var avatarUrl = resolveMiniAvatarUrl(label, explicitAvatarUrl, userId);
+        var numericFallback = !avatarUrl && /^\d+$/.test(raw);
+        return '<span class="student-mini-avatar' + (tone ? (' is-' + tone) : '') + '"' + (avatarUrl ? '' : ' aria-hidden="true"') + '>'
+            + (avatarUrl
+                ? '<img src="' + escapeHtml(avatarUrl) + '" alt="' + escapeHtml(raw || "头像") + '" />'
+                : (numericFallback
+                    ? '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="7" r="3"></circle><path d="M4.6 15.2c1.3-2.4 3.2-3.6 5.4-3.6s4.1 1.2 5.4 3.6"></path></svg>'
+                    : escapeHtml(initial)))
+            + '</span>';
+    }
+
+    function leaderAssignableMembers() {
+        var members = Array.isArray(state.members) ? state.members.slice() : [];
+        if (!members.length && state.currentGroup) {
+            members.push({
+                userId: currentUserId(),
+                displayName: currentUserName(),
+                avatarUrl: currentUserAvatarUrl(),
+                role: state.currentGroup.myRole || "member",
+            });
+        }
+        return members.map(function (member) {
+            return {
+                id: String(member.userId || member.id || ""),
+                label: member.displayName || member.name || member.userId || member.id || "--",
+                avatarUrl: member.avatarUrl || "",
+                role: member.role || "member",
+            };
+        }).filter(function (member) { return member.id; });
+    }
+
+    function updateLeaderTaskAssigneeButton() {
+        var button = qs("#studentLeaderTaskAssigneeButton");
+        var input = qs("#studentLeaderTaskAssignee");
+        if (!button || !input) return;
+        var selectedId = String(input.value || "");
+        var rows = leaderAssignableMembers();
+        var member = rows.find(function (row) { return row.id === selectedId; }) || null;
+        button.innerHTML = member
+            ? '<span class="student-assignee-picker-inner">' + miniAvatar(member.label, member.role === "leader" ? "amber" : "teal", member.avatarUrl, member.id) + '<span>' + escapeHtml(member.label) + '</span></span><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7.5 10 12.5 15 7.5"></path></svg>'
+            : '<span>选择成员</span><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7.5 10 12.5 15 7.5"></path></svg>';
+    }
+
+    function renderLeaderAssigneeMenu() {
+        var menu = qs("#studentLeaderTaskAssigneeMenu");
+        if (!menu) return;
+        var rows = leaderAssignableMembers();
+        if (!rows.length) {
+            menu.innerHTML = '<div class="student-assignee-empty">暂无可选成员</div>';
+            updateLeaderTaskAssigneeButton();
+            return;
+        }
+        menu.innerHTML = rows.map(function (member) {
+            return '<button class="student-assignee-option" type="button" data-leader-assignee="' + escapeHtml(member.id) + '">' +
+                miniAvatar(member.label, member.role === "leader" ? "amber" : "teal", member.avatarUrl, member.id) +
+                '<span class="student-assignee-option-copy"><strong>' + escapeHtml(member.label) + '</strong><small>' + escapeHtml(roleLabel(member.role)) + '</small></span></button>';
+        }).join("");
+        updateLeaderTaskAssigneeButton();
+    }
+
+    function setLeaderTaskPriority(priority) {
+        var value = priority || "medium";
+        var input = qs("#studentLeaderTaskPriority");
+        if (input) input.value = value;
+        qsa("#studentLeaderTaskPriorityGroup .student-priority-choice").forEach(function (button) {
+            button.classList.toggle("is-active", button.getAttribute("data-priority-value") === value);
+        });
+    }
+
+    function openLeaderTaskCreateModal() {
+        var modal = qs("#studentTaskCreateModal");
+        if (!modal) return;
+        renderLeaderAssigneeMenu();
+        updateLeaderTaskAssigneeButton();
+        modal.hidden = false;
+        document.body.classList.add("student-modal-open");
+        var titleInput = qs("#studentLeaderTaskTitle");
+        if (titleInput) window.setTimeout(function () { titleInput.focus(); }, 40);
+    }
+
+    function closeLeaderTaskCreateModal() {
+        var modal = qs("#studentTaskCreateModal");
+        if (!modal) return;
+        modal.hidden = true;
+        document.body.classList.remove("student-modal-open");
+        var assigneeMenu = qs("#studentLeaderTaskAssigneeMenu");
+        var assigneeButton = qs("#studentLeaderTaskAssigneeButton");
+        if (assigneeMenu) assigneeMenu.hidden = true;
+        if (assigneeButton) assigneeButton.setAttribute("aria-expanded", "false");
+    }
+
+    function refreshTeamCustomSelect(select) {
+        if (!select || select.dataset.teamSelectEnhanced !== "1") return;
+        var box = select.nextElementSibling;
+        if (!box || !box.classList.contains("student-team-selectbox")) return;
+        var textNode = qs(".student-team-select-text", box);
+        var menu = qs(".student-team-select-menu", box);
+        var selectedOption = select.options[select.selectedIndex] || select.options[0] || null;
+        if (textNode) textNode.textContent = selectedOption ? selectedOption.textContent : "请选择";
+        if (menu) {
+            menu.innerHTML = Array.from(select.options).map(function (option) {
+                var active = String(option.value) === String(select.value);
+                return '<button class="student-team-select-option' + (active ? ' is-active' : '') + '" type="button" data-team-select-value="' + escapeHtml(option.value) + '">' + escapeHtml(option.textContent) + '</button>';
+            }).join("");
+        }
+    }
+
+    function closeTeamCustomSelects() {
+        qsa(".student-team-selectbox.is-open").forEach(function (box) {
+            box.classList.remove("is-open");
+            var button = qs(".student-team-select-button", box);
+            var menu = qs(".student-team-select-menu", box);
+            if (button) button.setAttribute("aria-expanded", "false");
+            if (menu) menu.hidden = true;
+        });
+    }
+
+    function ensureTeamCustomSelect(select) {
+        if (!select || select.dataset.teamSelectEnhanced === "1") return;
+        select.dataset.teamSelectEnhanced = "1";
+        select.classList.add("student-team-native-select");
+        var box = document.createElement("div");
+        box.className = "student-team-selectbox";
+        box.innerHTML = '<button class="student-team-select-button" type="button" aria-haspopup="listbox" aria-expanded="false"><span class="student-team-select-text">请选择</span><span class="student-team-select-chevron" aria-hidden="true">⌃</span></button><div class="student-team-select-menu" role="listbox" hidden></div>';
+        select.insertAdjacentElement("afterend", box);
+        var button = qs(".student-team-select-button", box);
+        var menu = qs(".student-team-select-menu", box);
+        button.addEventListener("click", function (event) {
+            event.preventDefault();
+            var willOpen = !box.classList.contains("is-open");
+            closeTeamCustomSelects();
+            if (!willOpen) return;
+            refreshTeamCustomSelect(select);
+            box.classList.add("is-open");
+            button.setAttribute("aria-expanded", "true");
+            menu.hidden = false;
+        });
+        menu.addEventListener("click", function (event) {
+            var option = event.target.closest("[data-team-select-value]");
+            if (!option) return;
+            select.value = option.getAttribute("data-team-select-value") || "";
+            select.dispatchEvent(new Event("change", { bubbles: true }));
+            refreshTeamCustomSelect(select);
+            closeTeamCustomSelects();
+        });
+        select.addEventListener("change", function () {
+            refreshTeamCustomSelect(select);
+        });
+        var observer = new MutationObserver(function () {
+            refreshTeamCustomSelect(select);
+        });
+        observer.observe(select, { childList: true, subtree: true, attributes: true, attributeFilter: ["value", "selected"] });
+        refreshTeamCustomSelect(select);
+    }
+
+    function enhanceTeamCustomSelects() {
+        ["#extTaskCourse", "#extTaskAssignment", "#extTaskStageId", "#studentTaskStatusFilter", "#extTaskStatus", "#studentLeaderTaskStage"].forEach(function (selector) {
+            ensureTeamCustomSelect(qs(selector));
+        });
+    }
+
     function mockCourseRows() {
         return mockTeamData.slice();
     }
@@ -1174,10 +1469,6 @@
     var pendingJoinBadge = qs("#studentPendingJoinBadge");
     var joinRequestMeta = qs("#studentJoinRequestMeta");
     var createToggleButton = qs("#studentJoinCreateToggleBtn");
-    var inviteButton = qs("#studentGenerateInviteBtn");
-    var inviteCode = qs("#studentInviteCode");
-    var workbenchInviteButton = qs("#studentWorkbenchGenerateInviteBtn");
-    var workbenchInviteCode = qs("#studentWorkbenchInviteCode");
 
     function setResult(host, title, detail, isError) {
         if (!host) return;
@@ -1220,6 +1511,8 @@
         text("#studentTeamGroupStatus", group ? groupStatusLabel(group.status) : "尚未入组");
         text("#studentTeamRole", group ? roleLabel(group.myRole || "member") : "--");
         text("#studentTeamMemberCount", group && group._count ? ("成员数 " + (group._count.members || 0)) : "成员数 0");
+        var roleIcon = qs("#studentTeamRoleIcon");
+        if (roleIcon) roleIcon.innerHTML = roleIconMarkup(group ? group.myRole || "member" : "member");
         if (createDetails) createDetails.hidden = Boolean(group);
         if (currentGroupBox) currentGroupBox.hidden = !group;
     }
@@ -1296,10 +1589,15 @@
             return;
         }
         var pending = rows.filter(function (row) { return row.status === "pending"; }).length;
+        var leader = Boolean(mine && mine.myRole === "leader");
         text("#studentJoinRequestMeta", "待处理申请 " + pending);
         if (pendingJoinBadge) pendingJoinBadge.textContent = String(pending);
         requestList.innerHTML = rows.length ? rows.map(function (row) {
-            return '<article class="student-request-card">' + miniAvatar(row.applicantUserId || "--", row.status === "pending" ? "rose" : "teal") + '<div class="student-request-copy"><strong>' + escapeHtml(row.applicantUserId || "--") + '</strong><p>' + escapeHtml(row.reason || "申请加入小组") + '</p><small>申请编号 ' + escapeHtml(row.id || "--") + '</small></div><div class="student-request-meta"><span>' + escapeHtml(requestStatusLabel(row.status)) + '</span></div></article>';
+            var actions = leader && row.status === "pending"
+                ? '<div class="student-request-actions"><button class="btn btn-secondary student-leader-mini-btn" type="button" data-request-approve="' + escapeHtml(row.id || "") + '">同意</button><button class="btn btn-secondary student-leader-mini-btn" type="button" data-request-reject="' + escapeHtml(row.id || "") + '">拒绝</button></div>'
+                : "";
+            var note = row.alreadyJoined ? '<em class="student-request-note">该同学已加入其他小组</em>' : "";
+            return '<article class="student-request-card">' + miniAvatar(row.applicantUserId || "--", row.status === "pending" ? "rose" : "teal", "", row.applicantUserId) + '<div class="student-request-copy"><strong>' + escapeHtml(row.applicantUserId || "--") + '</strong><p>' + escapeHtml(row.reason || "申请加入小组") + '</p>' + note + '<div class="student-request-foot"><small>申请编号 ' + escapeHtml(row.id || "--") + '</small>' + actions + '</div></div><div class="student-request-meta"><span>' + escapeHtml(requestStatusLabel(row.status)) + '</span></div></article>';
         }).join("") : '<div class="student-inline-empty">暂无申请记录</div>';
     }
 
@@ -1351,16 +1649,12 @@
 
     function presenceTone(value) {
         if (value === "online") return "online";
-        if (value === "away") return "away";
-        if (value === "offline") return "offline";
-        return "unknown";
+        return "offline";
     }
 
     function presenceLabel(value) {
         if (value === "online") return "在线";
-        if (value === "away") return "暂离";
-        if (value === "offline") return "离线";
-        return "未知";
+        return "离线";
     }
 
     function renderStageProgress(stages, tasks) {
@@ -1418,6 +1712,48 @@
         return status || "--";
     }
 
+    function taskPriorityLabel(priority) {
+        if (priority === "high") return "高";
+        if (priority === "low") return "低";
+        return "中";
+    }
+
+    function taskPriorityTone(priority) {
+        if (priority === "high") return "is-high";
+        if (priority === "low") return "is-low";
+        return "is-medium";
+    }
+
+    function formatTaskDueDisplay(value) {
+        if (!value) return "未设置";
+        var date = new Date(value);
+        if (Number.isNaN(date.getTime())) return "未设置";
+        return [
+            date.getFullYear(),
+            "/",
+            String(date.getMonth() + 1).padStart(2, "0"),
+            "/",
+            String(date.getDate()).padStart(2, "0"),
+            " ",
+            String(date.getHours()).padStart(2, "0"),
+            ":",
+            String(date.getMinutes()).padStart(2, "0")
+        ].join("");
+    }
+
+    function nextTaskStatusValue(status) {
+        if (status === "todo") return "in_progress";
+        if (status === "in_progress") return "done";
+        if (status === "done") return "done";
+        return "cancelled";
+    }
+
+    function nextTaskPriorityValue(priority) {
+        if (priority === "low") return "medium";
+        if (priority === "medium") return "high";
+        return "low";
+    }
+
     function taskStatusTone(status) {
         if (status === "done") return "teal";
         if (status === "in_progress") return "amber";
@@ -1431,7 +1767,7 @@
         var rows = (tasks || []).filter(function (task) {
             return Array.isArray(task.assigneeIds) && task.assigneeIds.some(function (assigneeId) {
                 return String(assigneeId) === String(me);
-            });
+            }) && task.status !== "done" && task.status !== "cancelled";
         }).sort(function (a, b) {
             return new Date(a.dueAt || a.updatedAt || a.createdAt || 0).getTime() - new Date(b.dueAt || b.updatedAt || b.createdAt || 0).getTime();
         });
@@ -1443,6 +1779,7 @@
             return [
                 '<article class="student-task-metric">',
                 '<span class="student-task-metric-dot is-' + escapeHtml(taskStatusTone(task.status)) + '"></span>',
+                miniAvatar(resolveAssigneeLabels(task)[0] || currentUserName(), "own", "", Array.isArray(task.assigneeIds) ? task.assigneeIds[0] : ""),
                 '<div class="student-task-metric-copy">',
                 '<strong>' + escapeHtml(task.title || "未命名任务") + '</strong>',
                 '<small>' + escapeHtml(taskStatusLabel(task.status)) + ' · ' + escapeHtml(formatDeadline(task.dueAt)) + '</small>',
@@ -1450,6 +1787,33 @@
             '</article>'
             ].join("");
         }).join("");
+    }
+
+    function renderTaskSection(title, tone, rows) {
+        if (!rows.length) return "";
+        return [
+            '<details class="student-task-section" open>',
+            '<summary class="student-task-section-summary">',
+            '<span class="student-task-section-dot is-' + escapeHtml(tone) + '"></span>',
+            '<strong>' + escapeHtml(title) + '</strong>',
+            '<span>' + escapeHtml(String(rows.length)) + '</span>',
+            '</summary>',
+            '<div class="student-task-section-body">',
+            rows.map(function (task) {
+                var selected = String(task.id) === String(state.selectedTaskId);
+                return [
+                    '<button class="student-task-row' + (selected ? ' is-active' : '') + '" type="button" data-student-task-id="' + escapeHtml(task.id) + '">',
+                    '<div class="student-task-line">',
+                    '<strong>' + escapeHtml(task.title || "未命名任务") + '</strong>',
+                    '<small>' + escapeHtml(resolveAssigneeLabels(task).join("、")) + ' · ' + escapeHtml(formatDeadline(task.dueAt)) + '</small>',
+                    '</div>',
+                    '<span class="badge badge-' + escapeHtml(taskStatusTone(task.status)) + '">' + escapeHtml(taskStatusLabel(task.status)) + '</span>',
+                    '</button>'
+                ].join("");
+            }).join(""),
+            '</div>',
+            '</details>'
+        ].join("");
     }
 
     function renderActivityFeed(tasks) {
@@ -1469,7 +1833,7 @@
             var assignee = resolveAssigneeLabels(task)[0] || "--";
             return [
                 '<article class="student-activity-row">',
-                '<div class="student-activity-avatar-wrap">' + miniAvatar(assignee, taskStatusTone(task.status)) + '</div>',
+                '<div class="student-activity-avatar-wrap">' + miniAvatar(assignee, taskStatusTone(task.status), "", Array.isArray(task.assigneeIds) ? task.assigneeIds[0] : "") + '</div>',
                 '<div class="student-activity-copy">',
                 '<strong>' + escapeHtml(task.title || "未命名任务") + '</strong>',
                 '<p>负责人 ' + escapeHtml(assignee) + ' · ' + escapeHtml(task.description || stageLabel(task.status)) + '</p>',
@@ -1494,7 +1858,7 @@
             var tone = presenceTone(member.presence);
             return [
                 '<article class="student-member-item">',
-                miniAvatar(label, member.role === "leader" ? "amber" : "teal"),
+                miniAvatar(label, member.role === "leader" ? "amber" : "teal", member.avatarUrl || "", member.userId || member.id || ""),
                 '<div class="student-member-copy"><strong>' + escapeHtml(label) + '</strong><small>' + escapeHtml(role) + '</small></div>',
                 '<span class="student-member-state is-' + escapeHtml(tone) + '">' + escapeHtml(presenceLabel(member.presence)) + '</span>',
                 '</article>'
@@ -1515,6 +1879,7 @@
         if (previousValue && rows.some(function (stage) { return String(stage.id) === String(previousValue); })) {
             leaderStage.value = previousValue;
         }
+        refreshTeamCustomSelect(leaderStage);
     }
 
     function syncWorkbenchStageOptions() {
@@ -1524,12 +1889,13 @@
         var rows = (state.stages || []).slice().sort(function (a, b) {
             return Number(a.stageNo || 0) - Number(b.stageNo || 0);
         });
-        stageSelect.innerHTML = ['<option value="">全部阶段（含未绑定任务）</option>'].concat(rows.map(function (stage) {
+        stageSelect.innerHTML = ['<option value="">全部阶段</option>'].concat(rows.map(function (stage) {
             return '<option value="' + escapeHtml(stage.id) + '">' + escapeHtml((stage.stageNo ? ("阶段 " + stage.stageNo + " · ") : "") + (stage.title || "未命名阶段")) + '</option>';
         })).join("");
         if (previousValue && rows.some(function (stage) { return String(stage.id) === String(previousValue); })) {
             stageSelect.value = previousValue;
         }
+        refreshTeamCustomSelect(stageSelect);
     }
 
     function renderWorkbenchTaskList() {
@@ -1555,18 +1921,16 @@
             taskList.innerHTML = '<div class="student-inline-empty">当前筛选下没有可显示的任务。</div>';
             return;
         }
-        taskList.innerHTML = rows.map(function (task) {
-            var selected = String(task.id) === String(state.selectedTaskId);
-            return [
-                '<button class="student-task-row' + (selected ? ' is-active' : '') + '" type="button" data-student-task-id="' + escapeHtml(task.id) + '">',
-                '<div class="student-task-copy">',
-                '<strong>' + escapeHtml(task.title || "未命名任务") + '</strong>',
-                '<p>' + escapeHtml(resolveAssigneeLabels(task).join("、")) + ' · ' + escapeHtml(formatDeadline(task.dueAt)) + '</p>',
-                '</div>',
-                '<span class="badge badge-' + escapeHtml(taskStatusTone(task.status)) + '">' + escapeHtml(taskStatusLabel(task.status)) + '</span>',
-                '</button>'
-            ].join("");
-        }).join("");
+        var todoRows = rows.filter(function (task) { return task.status === "todo"; });
+        var doingRows = rows.filter(function (task) { return task.status === "in_progress"; });
+        var doneRows = rows.filter(function (task) { return task.status === "done"; });
+        var cancelledRows = rows.filter(function (task) { return task.status === "cancelled"; });
+        taskList.innerHTML = [
+            renderTaskSection("TODO", "rose", todoRows),
+            renderTaskSection("DOING", "amber", doingRows),
+            renderTaskSection("完成", "teal", doneRows),
+            renderTaskSection("已取消", "slate", cancelledRows)
+        ].filter(Boolean).join("") || '<div class="student-inline-empty">当前筛选下没有可显示的任务。</div>';
     }
 
     function renderSelectedTask() {
@@ -1574,48 +1938,126 @@
         var task = rows.find(function (row) { return String(row.id) === String(state.selectedTaskId); }) || rows[0] || null;
         var patchBtn = qs("#extTaskPatch");
         var statusBtn = qs("#extTaskStatusSave");
+        var nextBtn = qs("#studentTaskStatusNext");
+        var titleView = qs("#studentTaskTitleView");
+        var descView = qs("#studentTaskDescView");
+        var titleEditWrap = qs("#studentTaskTitleEditWrap");
+        var descEditWrap = qs("#studentTaskDescEditWrap");
+        var priorityCycleBtn = qs("#studentTaskPriorityCycleBtn");
+        var dueInput = qs("#extTaskDue");
         if (!task) {
+            state.syncingTaskEditor = true;
             text("#studentEditorScope", "未绑定阶段");
             text("#studentEditorAssignee", "待填写");
-            text("#studentEditorState", "待办");
-            var ids = ["#extTaskId", "#extTaskTitle", "#extTaskDesc", "#extTaskAssignee", "#extTaskDue"];
+            text("#studentTaskPriorityView", "中");
+            text("#studentTaskDueView", "未设置");
+            text("#studentTaskIdView", "# --");
+            if (titleView) titleView.textContent = "请选择一条任务";
+            if (descView) descView.textContent = "选择任务后查看详情描述。";
+            var priorityView = qs("#studentTaskPriorityView");
+            if (priorityView) priorityView.className = "student-task-priority-chip is-medium";
+            var ids = ["#extTaskId", "#extTaskTitle", "#extTaskDesc", "#extTaskDue"];
             ids.forEach(function (selector) {
                 var node = qs(selector);
                 if (node) node.value = "";
             });
             if (qs("#extTaskPriority")) qs("#extTaskPriority").value = "medium";
-            if (qs("#extTaskStatus")) qs("#extTaskStatus").value = "todo";
-            ["#extTaskTitle", "#extTaskDesc", "#extTaskAssignee", "#extTaskDue", "#extTaskPriority", "#extTaskStatus"].forEach(function (selector) {
+            var emptyStatusSelect = qs("#extTaskStatus");
+            if (emptyStatusSelect) {
+                var emptyCancelledOption = Array.from(emptyStatusSelect.options).find(function (option) {
+                    return option.value === "cancelled";
+                });
+                if (emptyCancelledOption) emptyCancelledOption.remove();
+                emptyStatusSelect.value = "todo";
+            }
+            ["#extTaskTitle", "#extTaskDesc", "#extTaskDue", "#extTaskPriority", "#extTaskStatus"].forEach(function (selector) {
                 var node = qs(selector);
                 if (node) node.disabled = true;
             });
-            if (patchBtn) patchBtn.disabled = true;
+            if (titleEditWrap) titleEditWrap.hidden = true;
+            if (descEditWrap) descEditWrap.hidden = true;
+            if (priorityCycleBtn) priorityCycleBtn.hidden = true;
+            if (dueInput) dueInput.hidden = true;
+            if (titleView) titleView.hidden = false;
+            if (descView) descView.hidden = false;
+            if (patchBtn) {
+                patchBtn.hidden = true;
+                patchBtn.disabled = true;
+            }
             if (statusBtn) statusBtn.disabled = true;
+            if (nextBtn) nextBtn.disabled = true;
+            state.syncingTaskEditor = false;
             return;
         }
+        state.syncingTaskEditor = true;
         state.selectedTaskId = task.id;
         var stage = (state.stages || []).find(function (row) { return String(row.id || "") === String(task.stageId || ""); }) || null;
         text("#studentEditorScope", stage ? (stage.title || "已绑定阶段") : "未绑定阶段");
         text("#studentEditorAssignee", resolveAssigneeLabels(task).join("、"));
-        text("#studentEditorState", taskStatusLabel(task.status));
+        text("#studentTaskPriorityView", taskPriorityLabel(task.priority));
+        text("#studentTaskDueView", formatTaskDueDisplay(task.dueAt));
+        text("#studentTaskIdView", "# " + (task.id || "--"));
+        var priorityView = qs("#studentTaskPriorityView");
+        if (priorityView) priorityView.className = "student-task-priority-chip " + taskPriorityTone(task.priority);
+        if (priorityCycleBtn) {
+            priorityCycleBtn.className = "student-task-priority-chip " + taskPriorityTone(task.priority);
+            priorityCycleBtn.textContent = taskPriorityLabel(task.priority);
+        }
+        if (titleView) titleView.textContent = task.title || "未命名任务";
+        if (descView) descView.textContent = task.description || "暂无详情描述。";
         if (qs("#extTaskId")) qs("#extTaskId").value = task.id || "";
         if (qs("#extTaskTitle")) qs("#extTaskTitle").value = task.title || "";
         if (qs("#extTaskDesc")) qs("#extTaskDesc").value = task.description || "";
-        if (qs("#extTaskAssignee")) qs("#extTaskAssignee").value = Array.isArray(task.assigneeIds) ? (task.assigneeIds[0] || "") : "";
         if (qs("#extTaskDue")) qs("#extTaskDue").value = task.dueAt ? String(task.dueAt).slice(0, 16) : "";
         if (qs("#extTaskPriority")) qs("#extTaskPriority").value = task.priority || "medium";
+        var statusSelect = qs("#extTaskStatus");
+        if (statusSelect) {
+            var cancelledOption = Array.from(statusSelect.options).find(function (option) {
+                return option.value === "cancelled";
+            });
+            if (task.status === "cancelled") {
+                if (!cancelledOption) {
+                    cancelledOption = document.createElement("option");
+                    cancelledOption.value = "cancelled";
+                    cancelledOption.textContent = "已取消";
+                    statusSelect.appendChild(cancelledOption);
+                }
+            } else if (cancelledOption) {
+                cancelledOption.remove();
+            }
+        }
         if (qs("#extTaskStatus")) qs("#extTaskStatus").value = task.status || "todo";
         var isLeader = state.currentGroup && state.currentGroup.myRole === "leader";
-        var canUpdateOwnStatus = task.status !== "cancelled" && Array.isArray(task.assigneeIds) && task.assigneeIds.some(function (assigneeId) {
-            return String(assigneeId) === String(currentUserId());
-        });
-        if (patchBtn) patchBtn.disabled = !isLeader;
-        if (statusBtn) statusBtn.disabled = !(canUpdateOwnStatus || isLeader);
-        ["#extTaskTitle", "#extTaskDesc", "#extTaskAssignee", "#extTaskDue", "#extTaskPriority"].forEach(function (selector) {
+        var canUpdateOwnStatus = task.status !== "cancelled" && canCurrentUserUpdateTaskStatus(task, task.status || "todo");
+        if (titleView) titleView.hidden = isLeader;
+        if (descView) descView.hidden = isLeader;
+        if (priorityView) priorityView.hidden = isLeader;
+        var canChangeStatus = canUpdateOwnStatus;
+        var canAdvanceStatus = canChangeStatus && task.status !== "done";
+        if (titleEditWrap) titleEditWrap.hidden = !isLeader;
+        if (descEditWrap) descEditWrap.hidden = !isLeader;
+        if (priorityCycleBtn) {
+            priorityCycleBtn.hidden = !isLeader;
+            priorityCycleBtn.disabled = !isLeader;
+        }
+        if (qs("#studentTaskDueView")) qs("#studentTaskDueView").hidden = isLeader;
+        if (dueInput) {
+            dueInput.hidden = !isLeader;
+            dueInput.disabled = !isLeader;
+        }
+        if (patchBtn) {
+            patchBtn.hidden = !isLeader;
+            patchBtn.disabled = !isLeader;
+        }
+        if (statusBtn) statusBtn.disabled = !canChangeStatus;
+        if (nextBtn) nextBtn.disabled = !canAdvanceStatus;
+        ["#extTaskTitle", "#extTaskDesc", "#extTaskDue", "#extTaskPriority"].forEach(function (selector) {
             var node = qs(selector);
             if (node) node.disabled = !isLeader;
         });
-        if (qs("#extTaskStatus")) qs("#extTaskStatus").disabled = !(canUpdateOwnStatus || isLeader);
+        if (qs("#extTaskStatus")) qs("#extTaskStatus").disabled = !canChangeStatus;
+        state.syncingTaskEditor = false;
+        refreshTeamCustomSelect(qs("#extTaskStatus"));
         renderWorkbenchTaskList();
     }
 
@@ -1642,12 +2084,15 @@
                 return Promise.resolve();
             }
             state.stages = mockAssignment.stages.slice();
-            state.tasks = mockAssignment.tasks.slice();
+            state.tasks = (mockAssignment.tasks || []).map(function (task) {
+                return Object.assign({}, task, { assigneeIds: taskAssigneeIds(task) });
+            });
             renderStageProgress(state.stages, state.tasks);
             renderTaskSummary(state.tasks);
             renderActivityFeed(state.tasks);
             state.members = (mockAssignment.members || []).slice();
             renderMemberList({ members: state.members });
+            renderLeaderAssigneeMenu();
             var pendingCount = (mockAssignment.joinRequests || []).filter(function (row) { return row.status === "pending"; }).length;
             if (pendingJoinBadge) pendingJoinBadge.textContent = String(pendingCount);
             renderWorkbenchState();
@@ -1671,13 +2116,16 @@
                 api().getJson("/api/v1/groups/" + encodeURIComponent(state.currentGroup.id)).catch(function () { return { data: null }; }),
                 api().getJson("/api/v1/groups/" + encodeURIComponent(state.currentGroup.id) + "/join-requests").catch(function () { return { data: [] }; }),
             ]).then(function (payloads) {
-                state.tasks = rowsOf(payloads[0]);
+                state.tasks = rowsOf(payloads[0]).map(function (task) {
+                    return Object.assign({}, task, { assigneeIds: taskAssigneeIds(task) });
+                });
                 var detail = payloads[1] && payloads[1].data || state.currentGroup;
                 renderStageProgress(state.stages, state.tasks);
                 renderTaskSummary(state.tasks);
                 renderActivityFeed(state.tasks);
                 state.members = Array.isArray(detail && detail.members) ? detail.members : [];
                 renderMemberList({ members: state.members });
+                renderLeaderAssigneeMenu();
                 var pending = rowsOf(payloads[2]).filter(function (row) { return row.status === "pending"; }).length;
                 if (pendingJoinBadge) pendingJoinBadge.textContent = String(pending);
                 renderWorkbenchState();
@@ -1690,22 +2138,17 @@
         var leader = grouped && group.myRole === "leader";
         var gate = qs("#studentWorkbenchGate");
         var editor = qs("#studentWorkbenchEditor");
-        var invite = qs("#studentWorkbenchInviteCard");
-        var discuss = qs("#studentActivityDiscussCard");
-        var leaderOps = qs("#studentLeaderOpsPanel");
         var summary = qs("#studentActivitySummaryCard");
         var members = qs("#studentActivityMembersCard");
         var viewAll = qs("#studentTaskViewAllBtn");
+        var leaderLaunch = qs("#studentLeaderCreateLauncher");
         if (gate) gate.hidden = grouped;
         if (editor) editor.hidden = !grouped;
-        if (invite) invite.hidden = !leader;
-        if (discuss) discuss.hidden = !grouped;
         if (summary) summary.hidden = !grouped;
         if (members) members.hidden = !grouped;
-        if (leaderOps) leaderOps.hidden = !leader;
         if (viewAll) viewAll.disabled = !grouped;
-        var createBox = qs(".student-leader-create-box");
-        if (createBox) createBox.hidden = !leader;
+        if (leaderLaunch) leaderLaunch.hidden = !leader;
+        if (!leader) closeLeaderTaskCreateModal();
     }
 
     function refreshJoinState() {
@@ -1853,23 +2296,16 @@
         });
         var activityReload = qs("#extTaskReload");
         if (activityReload) activityReload.addEventListener("click", refreshActivityState);
-        if (inviteButton) {
-            inviteButton.addEventListener("click", function () {
-                if (!state.currentGroup) return setResult(groupResult, "无法生成", "请先加入或创建小组。", true);
-                var code = "INV-" + String(state.currentGroup.groupNo || "00").padStart(2, "0") + "-" + String(Date.now()).slice(-4);
-                if (inviteCode) inviteCode.textContent = code;
-                setResult(groupResult, "已生成", "可将邀请口令发给待加入成员。", false);
-            });
-        }
-        if (workbenchInviteButton) {
-            workbenchInviteButton.addEventListener("click", function () {
-                if (!state.currentGroup) return setResult(qs("#studentLeaderTaskResult"), "无法生成", "请先加入或创建小组。", true);
-                var code = "INV-" + String(state.currentGroup.groupNo || "00").padStart(2, "0") + "-" + String(Date.now()).slice(-4);
-                if (workbenchInviteCode) workbenchInviteCode.textContent = code;
-                setResult(qs("#studentLeaderTaskResult"), "已生成", "邀请口令已生成，可转发给待加入成员。", false);
-            });
-        }
         document.addEventListener("click", function (event) {
+            if (!event.target.closest(".student-team-selectbox")) {
+                closeTeamCustomSelects();
+            }
+            if (!event.target.closest(".student-assignee-picker") && !event.target.closest(".student-assignee-menu")) {
+                var assigneeMenu = qs("#studentLeaderTaskAssigneeMenu");
+                var assigneeButton = qs("#studentLeaderTaskAssigneeButton");
+                if (assigneeMenu) assigneeMenu.hidden = true;
+                if (assigneeButton) assigneeButton.setAttribute("aria-expanded", "false");
+            }
             var join = event.target.closest("[data-group-join]");
             if (join) {
                 var groupId = join.getAttribute("data-group-join") || "";
@@ -1901,77 +2337,58 @@
                 });
             }
         });
-        var approveBtn = qs("#extStudentApproveJoin");
-        if (approveBtn) {
-            approveBtn.addEventListener("click", function () {
-                var requestId = qs("#extStudentRequestId") && qs("#extStudentRequestId").value.trim();
-                if (!requestId) return setResult(groupResult, "无法处理", "请填写申请编号。", true);
-                if (state.mockEnabled) {
-                    var assignment = currentMockAssignment();
-                    if (!assignment) return setResult(groupResult, "无法处理", "当前项目不存在。", true);
-                    var target = (assignment.joinRequests || []).find(function (row) { return row.id === requestId; });
-                    if (!target) return setResult(groupResult, "未找到申请", "请确认申请编号。", true);
-                    if (target.alreadyJoined) {
-                        target.status = "rejected";
-                        return setResult(groupResult, "无法通过", "该申请对应学生已经加入或创建了其他小组。", true);
+        if (requestList) {
+            requestList.addEventListener("click", function (event) {
+                var approveNode = event.target.closest("[data-request-approve]");
+                var rejectNode = event.target.closest("[data-request-reject]");
+                var requestId = approveNode && approveNode.getAttribute("data-request-approve") || rejectNode && rejectNode.getAttribute("data-request-reject") || "";
+                if (!requestId) return;
+                if (approveNode) {
+                    if (state.mockEnabled) {
+                        var assignment = currentMockAssignment();
+                        if (!assignment) return setResult(groupResult, "无法处理", "当前项目不存在。", true);
+                        var target = (assignment.joinRequests || []).find(function (row) { return row.id === requestId; });
+                        if (!target) return setResult(groupResult, "未找到申请", "请确认申请编号。", true);
+                        if (target.alreadyJoined) {
+                            target.status = "rejected";
+                            return setResult(groupResult, "无法通过", "该申请对应学生已经加入或创建了其他小组。", true);
+                        }
+                        target.status = "approved";
+                        setResult(groupResult, "已同意", "模拟申请已通过。", false);
+                        refreshJoinState();
+                        return;
                     }
-                    target.status = "approved";
-                    setResult(groupResult, "已同意", "模拟申请已通过。", false);
-                    refreshJoinState();
+                    api().postJson("/api/v1/group-join-requests/" + encodeURIComponent(requestId) + "/approve", {}).then(function (payload) {
+                        var result = payload && payload.data ? payload.data : payload;
+                        if (result && result.reason === "applicant_already_joined") {
+                            setResult(groupResult, "无法通过", "该申请对应学生已经加入或创建了其他小组。", true);
+                        } else {
+                            setResult(groupResult, "已同意", "该申请已通过。", false);
+                        }
+                        return refreshJoinState();
+                    }).catch(function (err) {
+                        setResult(groupResult, "处理失败", err && err.message || "请稍后重试。", true);
+                    });
                     return;
                 }
-                api().postJson("/api/v1/group-join-requests/" + encodeURIComponent(requestId) + "/approve", {}).then(function (payload) {
-                    var result = payload && payload.data ? payload.data : payload;
-                    if (result && result.reason === "applicant_already_joined") {
-                        setResult(groupResult, "无法通过", "该申请对应学生已经加入或创建了其他小组。", true);
-                    } else {
-                        setResult(groupResult, "已同意", "该申请已通过。", false);
+                if (rejectNode) {
+                    if (state.mockEnabled) {
+                        var assignmentReject = currentMockAssignment();
+                        if (!assignmentReject) return setResult(groupResult, "无法处理", "当前项目不存在。", true);
+                        var targetReject = (assignmentReject.joinRequests || []).find(function (row) { return row.id === requestId; });
+                        if (!targetReject) return setResult(groupResult, "未找到申请", "请确认申请编号。", true);
+                        targetReject.status = "rejected";
+                        setResult(groupResult, "已拒绝", "模拟申请已拒绝。", false);
+                        refreshJoinState();
+                        return;
                     }
-                    return refreshJoinState();
-                }).catch(function (err) {
-                    setResult(groupResult, "处理失败", err && err.message || "请稍后重试。", true);
-                });
-            });
-        }
-        var rejectBtn = qs("#extStudentRejectJoin");
-        if (rejectBtn) {
-            rejectBtn.addEventListener("click", function () {
-                var requestId = qs("#extStudentRequestId") && qs("#extStudentRequestId").value.trim();
-                if (!requestId) return setResult(groupResult, "无法处理", "请填写申请编号。", true);
-                if (state.mockEnabled) {
-                    var assignment = currentMockAssignment();
-                    if (!assignment) return setResult(groupResult, "无法处理", "当前项目不存在。", true);
-                    var target = (assignment.joinRequests || []).find(function (row) { return row.id === requestId; });
-                    if (!target) return setResult(groupResult, "未找到申请", "请确认申请编号。", true);
-                    target.status = "rejected";
-                    setResult(groupResult, "已拒绝", "模拟申请已拒绝。", false);
-                    refreshJoinState();
-                    return;
+                    api().postJson("/api/v1/group-join-requests/" + encodeURIComponent(requestId) + "/reject", {}).then(function () {
+                        setResult(groupResult, "已拒绝", "该申请已拒绝。", false);
+                        return refreshJoinState();
+                    }).catch(function (err) {
+                        setResult(groupResult, "处理失败", err && err.message || "请稍后重试。", true);
+                    });
                 }
-                api().postJson("/api/v1/group-join-requests/" + encodeURIComponent(requestId) + "/reject", {}).then(function () {
-                    setResult(groupResult, "已拒绝", "该申请已拒绝。", false);
-                    return refreshJoinState();
-                }).catch(function (err) {
-                    setResult(groupResult, "处理失败", err && err.message || "请稍后重试。", true);
-                });
-            });
-        }
-        if (qs("#studentCopyInviteBtn")) {
-            qs("#studentCopyInviteBtn").addEventListener("click", function () {
-                if (!inviteCode || !inviteCode.textContent || inviteCode.textContent === "--") return;
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(inviteCode.textContent);
-                }
-                setResult(groupResult, "已复制", "邀请口令已复制到剪贴板。", false);
-            });
-        }
-        if (qs("#studentWorkbenchCopyInviteBtn")) {
-            qs("#studentWorkbenchCopyInviteBtn").addEventListener("click", function () {
-                if (!workbenchInviteCode || !workbenchInviteCode.textContent || workbenchInviteCode.textContent === "--") return;
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(workbenchInviteCode.textContent);
-                }
-                setResult(qs("#studentLeaderTaskResult"), "已复制", "邀请口令已复制到剪贴板。", false);
             });
         }
         var leaderCreateBtn = qs("#studentLeaderCreateTaskBtn");
@@ -1981,9 +2398,11 @@
                 if (state.currentGroup.myRole !== "leader") return setResult(qs("#studentLeaderTaskResult"), "权限不足", "只有组长可以创建 MiniTask。", true);
                 var title = qs("#studentLeaderTaskTitle") && qs("#studentLeaderTaskTitle").value.trim();
                 var assignee = qs("#studentLeaderTaskAssignee") && qs("#studentLeaderTaskAssignee").value.trim();
-                if (!title || !assignee) return setResult(qs("#studentLeaderTaskResult"), "信息不完整", "请填写任务标题和负责人学号。", true);
+                var description = qs("#studentLeaderTaskDesc") && qs("#studentLeaderTaskDesc").value.trim() || null;
+                if (!title || !assignee) return setResult(qs("#studentLeaderTaskResult"), "信息不完整", "请填写任务标题并选择负责人。", true);
                 var payload = {
                     title: title,
+                    description: description,
                     assigneeIds: [assignee],
                     priority: qs("#studentLeaderTaskPriority") && qs("#studentLeaderTaskPriority").value || "medium",
                     dueAt: qs("#studentLeaderTaskDue") && qs("#studentLeaderTaskDue").value ? new Date(qs("#studentLeaderTaskDue").value).toISOString() : null,
@@ -1997,7 +2416,7 @@
                     assignment.tasks.unshift({
                         id: "t-mock-" + Date.now(),
                         title: title,
-                        description: "",
+                        description: description,
                         status: "todo",
                         assigneeIds: [assignee],
                         updatedAt: new Date().toISOString(),
@@ -2007,25 +2426,133 @@
                     });
                     state.selectedTaskId = assignment.tasks[0].id;
                     setResult(qs("#studentLeaderTaskResult"), "创建成功", "新任务已加入工作台。", false);
-                    ["#studentLeaderTaskTitle", "#studentLeaderTaskAssignee", "#studentLeaderTaskDue"].forEach(function (selector) {
+                    ["#studentLeaderTaskTitle", "#studentLeaderTaskDesc", "#studentLeaderTaskAssignee", "#studentLeaderTaskDue"].forEach(function (selector) {
                         var node = qs(selector);
                         if (node) node.value = "";
                     });
+                    updateLeaderTaskAssigneeButton();
+                    setLeaderTaskPriority("medium");
                     if (leaderStage) leaderStage.value = "";
-                    refreshActivityState();
+                    closeLeaderTaskCreateModal();
+                    commitTaskRows(assignment.tasks, state.selectedTaskId);
                     return;
                 }
-                api().postJson("/api/v1/groups/" + encodeURIComponent(state.currentGroup.id) + "/minitasks", payload).then(function () {
+                api().postJson("/api/v1/groups/" + encodeURIComponent(state.currentGroup.id) + "/minitasks", payload).then(function (response) {
                     setResult(qs("#studentLeaderTaskResult"), "创建成功", "任务已创建。", false);
-                    return refreshActivityState();
+                    ["#studentLeaderTaskTitle", "#studentLeaderTaskDesc", "#studentLeaderTaskAssignee", "#studentLeaderTaskDue"].forEach(function (selector) {
+                        var node = qs(selector);
+                        if (node) node.value = "";
+                    });
+                    updateLeaderTaskAssigneeButton();
+                    setLeaderTaskPriority("medium");
+                    if (leaderStage) leaderStage.value = "";
+                    closeLeaderTaskCreateModal();
+                    upsertTaskRow(response && response.data ? response.data : null, { prepend: true, select: true });
                 }).catch(function (err) {
                     setResult(qs("#studentLeaderTaskResult"), "创建失败", err && err.message || "请稍后重试。", true);
                 });
             });
         }
+        if (qs("#studentLeaderCreateLauncher")) {
+            qs("#studentLeaderCreateLauncher").addEventListener("click", function () {
+                if (!state.currentGroup || state.currentGroup.myRole !== "leader") return;
+                openLeaderTaskCreateModal();
+            });
+        }
+        if (qs("#studentTaskCreateClose")) qs("#studentTaskCreateClose").addEventListener("click", closeLeaderTaskCreateModal);
+        if (qs("#studentTaskCreateModal")) {
+            qs("#studentTaskCreateModal").addEventListener("click", function (event) {
+                var closeNode = event.target.closest("[data-student-task-create-close]");
+                if (closeNode) closeLeaderTaskCreateModal();
+            });
+        }
+        if (qs("#studentLeaderTaskAssigneeButton")) {
+            qs("#studentLeaderTaskAssigneeButton").addEventListener("click", function (event) {
+                event.preventDefault();
+                var menu = qs("#studentLeaderTaskAssigneeMenu");
+                var button = qs("#studentLeaderTaskAssigneeButton");
+                if (!menu || !button) return;
+                var willOpen = Boolean(menu.hidden);
+                menu.hidden = !willOpen;
+                button.setAttribute("aria-expanded", willOpen ? "true" : "false");
+                renderLeaderAssigneeMenu();
+            });
+        }
+        if (qs("#studentLeaderTaskAssigneeMenu")) {
+            qs("#studentLeaderTaskAssigneeMenu").addEventListener("click", function (event) {
+                var option = event.target.closest("[data-leader-assignee]");
+                if (!option) return;
+                var input = qs("#studentLeaderTaskAssignee");
+                var menu = qs("#studentLeaderTaskAssigneeMenu");
+                var button = qs("#studentLeaderTaskAssigneeButton");
+                if (input) input.value = option.getAttribute("data-leader-assignee") || "";
+                updateLeaderTaskAssigneeButton();
+                if (menu) menu.hidden = true;
+                if (button) button.setAttribute("aria-expanded", "false");
+            });
+        }
+        qsa("#studentLeaderTaskPriorityGroup .student-priority-choice").forEach(function (button) {
+            button.addEventListener("click", function () {
+                setLeaderTaskPriority(button.getAttribute("data-priority-value") || "medium");
+            });
+        });
         if (qs("#studentTaskSearch")) qs("#studentTaskSearch").addEventListener("input", renderWorkbenchTaskList);
         if (qs("#studentTaskStatusFilter")) qs("#studentTaskStatusFilter").addEventListener("change", renderWorkbenchTaskList);
         if (qs("#studentTaskMineOnly")) qs("#studentTaskMineOnly").addEventListener("change", renderWorkbenchTaskList);
+        if (qs("#studentTaskSummaryMoreBtn")) {
+            qs("#studentTaskSummaryMoreBtn").addEventListener("click", function () {
+                qsa("#studentTeamViewTabs .student-view-tab").forEach(function (node) {
+                    var active = node.getAttribute("data-team-view") === "workbench";
+                    node.classList.toggle("is-active", active);
+                });
+                qsa(".student-team-view").forEach(function (view) {
+                    var active = view.id === "studentTeamWorkbenchView";
+                    view.hidden = !active;
+                    view.classList.toggle("is-active", active);
+                });
+                if (qs("#studentTaskMineOnly")) qs("#studentTaskMineOnly").checked = true;
+                renderWorkbenchTaskList();
+            });
+        }
+        if (qs("#studentTaskStatusNext")) {
+            qs("#studentTaskStatusNext").addEventListener("click", function () {
+                var statusSelect = qs("#extTaskStatus");
+                if (!statusSelect || statusSelect.disabled) return;
+                statusSelect.value = nextTaskStatusValue(statusSelect.value || "todo");
+                submitTaskStatus();
+            });
+        }
+        if (qs("#extTaskStatus")) {
+            qs("#extTaskStatus").addEventListener("change", function () {
+                if (state.syncingTaskEditor || qs("#extTaskStatus").disabled) return;
+                submitTaskStatus();
+            });
+        }
+        ["#extTaskTitle", "#extTaskDesc", "#extTaskDue"].forEach(function (selector) {
+            var node = qs(selector);
+            if (!node) return;
+            var eventName = selector === "#extTaskDue" ? "change" : "blur";
+            node.addEventListener(eventName, function () {
+                if (state.syncingTaskEditor || node.disabled) return;
+                submitTaskPatch();
+            });
+        });
+        if (qs("#studentTaskPriorityCycleBtn")) {
+            qs("#studentTaskPriorityCycleBtn").addEventListener("click", function () {
+                if (state.syncingTaskEditor || qs("#studentTaskPriorityCycleBtn").disabled) return;
+                var task = (state.tasks || []).find(function (row) {
+                    return String(row.id) === String(state.selectedTaskId);
+                }) || null;
+                var priorityInput = qs("#extTaskPriority");
+                if (!task || !priorityInput) return;
+                var nextPriority = nextTaskPriorityValue(priorityInput.value || task.priority || "medium");
+                priorityInput.value = nextPriority;
+                task.priority = nextPriority;
+                qs("#studentTaskPriorityCycleBtn").className = "student-task-priority-chip " + taskPriorityTone(nextPriority);
+                qs("#studentTaskPriorityCycleBtn").textContent = taskPriorityLabel(nextPriority);
+                submitTaskPatch();
+            });
+        }
         if (qs("#extTaskStageId")) qs("#extTaskStageId").addEventListener("change", function () {
             renderWorkbenchTaskList();
             renderSelectedTask();
@@ -2040,6 +2567,9 @@
         }
     }
 
+    enhanceTeamCustomSelects();
+    setLeaderTaskPriority("medium");
+    updateLeaderTaskAssigneeButton();
     applyViewTabs();
     bindStageWheel();
     bindJoinActions();
