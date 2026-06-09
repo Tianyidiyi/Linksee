@@ -75,6 +75,14 @@ describe("token-service", () => {
     expect(delSpy).toHaveBeenCalledTimes(1);
   });
 
+  it("consumeRefreshToken should fallback cleanly when redis delete fails after lookup", async () => {
+    jest.spyOn(redis, "get").mockResolvedValue("u-del-fallback" as any);
+    const delSpy = jest.spyOn(redis, "del").mockRejectedValue(new Error("redis down"));
+
+    await expect(consumeRefreshToken("raw-token-del-fallback")).resolves.toBe("u-del-fallback");
+    expect(delSpy).toHaveBeenCalledTimes(1);
+  });
+
   it("revokeRefreshToken should delete key", async () => {
     const delSpy = jest.spyOn(redis, "del").mockResolvedValue(1 as any);
     await revokeRefreshToken("raw-token");

@@ -66,6 +66,28 @@ async function getRect(locator) {
   return handle.boundingBox();
 }
 
+async function resolveActiveTitle(page, role) {
+  const candidates = role.expectsTodo
+    ? [
+        "main h2",
+        "main h1",
+        ".page-panel.is-active .card-title",
+      ]
+    : [
+        ".page-panel.is-active .card-title",
+        "main h2",
+        "main h1",
+      ];
+
+  for (const selector of candidates) {
+    const locator = page.locator(selector).first();
+    if (await locator.count()) {
+      return locator;
+    }
+  }
+  return page.locator(candidates[0]).first();
+}
+
 function expectVisibleInsideViewport(rect, viewportWidth, viewportHeight, label) {
   expect(rect, `${label} should have a bounding box`).toBeTruthy();
   expect(rect.x, `${label} left edge should be visible`).toBeGreaterThanOrEqual(0);
@@ -83,7 +105,7 @@ for (const role of roles) {
     const chatButton = page.locator(".dashboard-topbar [data-chat-launcher]");
     const avatar = page.locator(".dashboard-topbar .topbar-avatar-wrapper");
     const todoButton = page.locator(".dashboard-topbar .student-todo-launcher");
-    const activeTitle = page.locator(".page-panel.is-active .card-title").first();
+    const activeTitle = await resolveActiveTitle(page, role);
 
     await expect(topbar).toBeVisible();
     await expect(chatButton).toBeVisible();

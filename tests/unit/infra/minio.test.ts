@@ -12,6 +12,7 @@ import {
 describe("infra/minio", () => {
   beforeEach(() => {
     jest.restoreAllMocks();
+    jest.useRealTimers();
   });
 
   it("buildBucketPublicUrl/buildPublicUrl should compose expected URL", () => {
@@ -63,5 +64,14 @@ describe("infra/minio", () => {
     expect(bucketExists).toHaveBeenCalled();
     expect(makeBucket).not.toHaveBeenCalled();
     expect(setPolicy).toHaveBeenCalledTimes(2);
+  });
+
+  it("ensureBuckets should surface timeout from bucket checks", async () => {
+    jest.useFakeTimers();
+    jest.spyOn(minioClient, "bucketExists").mockImplementation(() => new Promise(() => {}) as any);
+
+    const pending = expect(ensureBuckets()).rejects.toThrow('MinIO bucket check');
+    await jest.advanceTimersByTimeAsync(1600);
+    await pending;
   });
 });

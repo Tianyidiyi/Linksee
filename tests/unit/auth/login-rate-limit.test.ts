@@ -33,6 +33,14 @@ describe("login-rate-limit", () => {
     expect(expireSpy).toHaveBeenCalledTimes(1);
   });
 
+  it("recordLoginFailure should tolerate expire fallback after first redis hit", async () => {
+    jest.spyOn(redis, "incr").mockResolvedValue(1 as any);
+    const expireSpy = jest.spyOn(redis, "expire").mockRejectedValue(new Error("expire failed"));
+
+    await expect(recordLoginFailure("2023010099")).resolves.toBeUndefined();
+    expect(expireSpy).toHaveBeenCalledTimes(1);
+  });
+
   it("clearLoginFailures should delete lock key", async () => {
     const delSpy = jest.spyOn(redis, "del").mockResolvedValue(1 as any);
     await clearLoginFailures("2023010001");
@@ -74,5 +82,16 @@ describe("login-rate-limit", () => {
 
     nowSpy.mockReturnValue(1_000 + 16 * 60 * 1000);
     await expect(isLoginLocked("mem-user-3")).resolves.toBe(false);
+  });
+
+  it("should clear memory fallback once redis path succeeds again", async () => {
+    jest.spyOn(redis, "incr").mockRejectedValueOnce(new Error("redis down")).mockResolvedValue(2 as any);
+    jest.spyOn(redis, "get").mockRejectedValueOnce(new Error("redis down")).mockResolvedValue("0" as any);
+
+    await recordLoginFailure("mem-user-4");
+    await expect(isLoginLocked("mem-user-4")).resolves.toBe(false);
+
+    await recordLoginFailure("mem-user-4");
+    await expect(isLoginLocked("mem-user-4")).resolves.toBe(false);
   });
 });
