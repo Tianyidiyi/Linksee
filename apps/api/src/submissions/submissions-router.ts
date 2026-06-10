@@ -123,6 +123,14 @@ submissionsRouter.post(
     const group = await getGroupAccess(groupId, req.user!.id, role, res);
     if (!group) return;
 
+    const leaderMembership = await prisma.groupMember.findFirst({
+      where: { groupId, userId: req.user!.id, role: "leader" },
+      select: { id: true },
+    });
+    if (!leaderMembership) {
+      return forbidden(res, "Only group leader can submit stage work");
+    }
+
     const stage = await prisma.assignmentStage.findUnique({
       where: { id: stageId },
       select: {

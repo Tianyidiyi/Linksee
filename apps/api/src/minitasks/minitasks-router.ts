@@ -134,27 +134,67 @@ function extractAssigneeIds(task: { assigneeId: string | null; assigneeIds: Pris
   return task.assigneeId ? [task.assigneeId] : [];
 }
 
-async function postTaskMentionMessage(
+function taskStatusLabel(status: MiniTaskStatus): string {
+  if (status === MiniTaskStatus.todo) return "待办";
+  if (status === MiniTaskStatus.in_progress) return "进行中";
+  if (status === MiniTaskStatus.done) return "已完成";
+  if (status === MiniTaskStatus.cancelled) return "已取消";
+  return String(status);
+}
+
+function buildTaskChangeSummary(changedFields: string[]): string {
+  if (changedFields.length === 0) return "任务要求已更新";
+  return `已更新${changedFields.join("、")}`;
+}
+
+async function postTaskSystemMessage(input: {
   groupId: bigint,
   userId: string,
   assignmentId: bigint,
   courseId: bigint,
+  taskId: bigint,
   title: string,
-  mentions: string[],
-): Promise<void> {
-  const conversationId = await getConversationId("group", groupId);
+  mentions?: string[],
+  taskEventType: "created" | "edited" | "status_changed",
+  status?: MiniTaskStatus,
+  changedFields?: string[],
+}): Promise<void> {
+  await ensureGroupConversation(input.groupId, input.userId);
+  const conversationId = await getConversationId("group", input.groupId);
   if (!conversationId) return;
 
+  const mentions = Array.isArray(input.mentions) ? input.mentions : [];
   const mentionText = mentions.map((id) => `@${id}`).join(" ");
-  const content = `新建任务：${title}，请 ${mentionText} 处理`;
+  let content = `任务更新：${input.title}`;
+  if (input.taskEventType === "created") {
+    content = mentionText
+      ? `新任务已创建：${input.title}，请 ${mentionText} 尽快处理`
+      : `新任务已创建：${input.title}`;
+  } else if (input.taskEventType === "edited") {
+    content = mentionText
+      ? `任务要求已更新：${input.title}，${buildTaskChangeSummary(input.changedFields || [])}，请 ${mentionText} 查看最新内容`
+      : `任务要求已更新：${input.title}，${buildTaskChangeSummary(input.changedFields || [])}`;
+  } else if (input.taskEventType === "status_changed" && input.status) {
+    content = `任务进度已更新：${input.title} 当前状态为 ${taskStatusLabel(input.status)}`;
+  }
+
   const chatEvent = createEventEnvelope("group.message.created", {
-    groupId: groupId.toString(),
-    assignmentId: assignmentId.toString(),
-    courseId: courseId.toString(),
-    senderId: userId,
+    groupId: input.groupId.toString(),
+    assignmentId: input.assignmentId.toString(),
+    courseId: input.courseId.toString(),
+    senderId: input.userId,
     content,
-    messageType: "text",
-    files: null,
+    messageType: "announcement",
+    files: {
+      type: "announcement",
+      subType: "task_event",
+      taskEventType: input.taskEventType,
+      taskId: input.taskId.toString(),
+      taskTitle: input.title,
+      status: input.status ?? null,
+      assigneeIds: mentions,
+      operatorId: input.userId,
+    },
     mentions,
     replyToId: null,
   });
@@ -162,17 +202,17 @@ async function postTaskMentionMessage(
   const message = await prisma.chatMessage.create({
     data: {
       conversationId,
-      senderId: userId,
+      senderId: input.userId,
       content,
       mentions: mentions as unknown as Prisma.InputJsonValue,
-      files: Prisma.JsonNull,
+      files: chatEvent.payload.files as Prisma.InputJsonValue,
       eventId: chatEvent.id,
       traceId: chatEvent.traceId,
     },
     select: { id: true },
   });
 
-  await pushSocketEvent(`group:${groupId.toString()}`, {
+  await pushSocketEvent(`group:${input.groupId.toString()}`, {
     ...chatEvent,
     payload: { ...chatEvent.payload, messageId: message.id.toString() },
   });
@@ -247,7 +287,17 @@ minitasksRouter.post("/groups/:groupId/minitasks", requireAuth, async (req: Requ
     select: miniTaskSelect(),
   });
 
-  await postTaskMentionMessage(groupId, userId, group.assignmentId, group.courseId, title, assigneeIds);
+  await postTaskSystemMessage({
+    groupId,
+    userId,
+    assignmentId: group.assignmentId,
+    courseId: group.courseId,
+    taskId: task.id,
+    title,
+    mentions: assigneeIds,
+    taskEventType: "created",
+    status: task.status,
+  });
 
   await pushSocketEvent(
     `group:${groupId.toString()}`,
@@ -351,11 +401,13 @@ minitasksRouter.patch("/minitasks/:taskId", requireAuth, async (req: Request, re
   }
 
   const nextData: Prisma.MiniTaskUpdateInput = {};
+  const changedFields: string[] = [];
 
   if (hasTitle) {
     const title = parseOptionalString(req.body?.title);
     if (!title) return validationFailed(res, "title must be a non-empty string");
     nextData.title = title;
+    changedFields.push("标题");
   }
 
   if (hasDescription) {
@@ -363,12 +415,14 @@ minitasksRouter.patch("/minitasks/:taskId", requireAuth, async (req: Request, re
       return validationFailed(res, "description must be a string or null");
     }
     nextData.description = req.body.description ?? null;
+    changedFields.push("任务说明");
   }
 
   if (hasPriority) {
     const priority = parsePriority(req.body?.priority);
     if (!priority) return validationFailed(res, "priority must be low, medium or high");
     nextData.priority = priority;
+    changedFields.push("优先级");
   }
 
   if (hasDueAt) {
@@ -386,12 +440,29 @@ minitasksRouter.patch("/minitasks/:taskId", requireAuth, async (req: Request, re
         overdueSentAt: null,
       } as Prisma.MiniTaskUpdateInput,
     );
+    changedFields.push("截止时间");
   }
 
   const updated = await prisma.miniTask.update({
     where: { id: taskId },
     data: nextData,
     select: miniTaskSelect(),
+  });
+
+  await postTaskSystemMessage({
+    groupId: task.groupId,
+    userId,
+    assignmentId: task.group.assignmentId,
+    courseId: task.group.assignment.courseId,
+    taskId,
+    title: updated.title,
+    mentions: extractAssigneeIds({
+      assigneeId: updated.assigneeId,
+      assigneeIds: (updated as unknown as { assigneeIds: Prisma.JsonValue | null }).assigneeIds,
+    }),
+    taskEventType: "edited",
+    status: updated.status,
+    changedFields,
   });
 
   await pushSocketEvent(
@@ -458,6 +529,18 @@ minitasksRouter.patch("/minitasks/:taskId/status", requireAuth, async (req: Requ
     where: { id: taskId },
     data: { status: nextStatus },
     select: miniTaskSelect(),
+  });
+
+  await postTaskSystemMessage({
+    groupId: task.groupId,
+    userId,
+    assignmentId: task.group.assignmentId,
+    courseId: task.group.assignment.courseId,
+    taskId,
+    title: updated.title,
+    taskEventType: "status_changed",
+    status: nextStatus,
+    mentions: [],
   });
 
   await pushSocketEvent(

@@ -884,14 +884,22 @@
                     return String(row.id) === String(taskIdNode.value.trim());
                 });
                 if (!mockTask) return Promise.resolve();
-                upsertTaskRow(Object.assign({}, mockTask, taskPatchBody(), {
+                var nextMockTask = Object.assign({}, mockTask, taskPatchBody(), {
                     updatedAt: new Date().toISOString(),
-                }), { select: true });
+                });
+                upsertTaskRow(nextMockTask, { select: true });
+                prependTaskActivity(nextMockTask, "edited", {
+                    content: "任务要求已更新，请查看最新标题、说明、优先级或截止时间。",
+                });
                 setResult(taskResult, "已更新", "任务信息已保存。", false);
                 return Promise.resolve();
             }
             return api().patchJson("/api/v1/minitasks/" + encodeURIComponent(taskIdNode.value.trim()), taskPatchBody()).then(function (payload) {
-                upsertTaskRow(payload && payload.data ? payload.data : null, { select: true });
+                var nextTask = payload && payload.data ? payload.data : null;
+                upsertTaskRow(nextTask, { select: true });
+                prependTaskActivity(nextTask, "edited", {
+                    content: "任务要求已更新，请负责人留意最新要求。",
+                });
                 setResult(taskResult, "已更新", "任务信息已保存。", false);
             }).catch(function (err) {
                 setResult(taskResult, "更新失败", err.message, true);
@@ -912,15 +920,25 @@
                 return Promise.resolve();
             }
             if (state.mockEnabled) {
-                upsertTaskRow(Object.assign({}, currentTask, {
+                var nextMockStatusTask = Object.assign({}, currentTask, {
                     status: statusNode.value,
                     updatedAt: new Date().toISOString(),
-                }), { select: true });
+                });
+                upsertTaskRow(nextMockStatusTask, { select: true });
+                prependTaskActivity(nextMockStatusTask, "status_changed", {
+                    status: statusNode.value,
+                    content: "任务进度已更新为 " + taskStatusLabel(statusNode.value) + "。",
+                });
                 setResult(taskResult, "状态已更新", "任务状态已保存。", false);
                 return Promise.resolve();
             }
             return api().patchJson("/api/v1/minitasks/" + encodeURIComponent(taskIdNode.value.trim()) + "/status", { status: statusNode.value }).then(function (payload) {
-                upsertTaskRow(payload && payload.data ? payload.data : null, { select: true });
+                var nextTask = payload && payload.data ? payload.data : null;
+                upsertTaskRow(nextTask, { select: true });
+                prependTaskActivity(nextTask, "status_changed", {
+                    status: statusNode.value,
+                    content: "任务进度已更新为 " + taskStatusLabel(statusNode.value) + "。",
+                });
                 setResult(taskResult, "状态已更新", "任务状态已保存。", false);
             }).catch(function (err) {
                 renderSelectedTask();
@@ -946,7 +964,9 @@
                 loadStageOptions(submitAssignment.value, submitStage, false),
                 api().getJson("/api/v1/assignments/" + encodeURIComponent(submitAssignment.value) + "/my-group").catch(function () { return { data: null }; }),
             ]).then(function (payloads) {
-                qs("#extSubmitGroup").value = payloads[1].data && payloads[1].data.id || "";
+                var myGroup = payloads[1].data || null;
+                qs("#extSubmitGroup").value = myGroup && myGroup.id || "";
+                qs("#extSubmitGroup").dataset.myRole = myGroup && myGroup.myRole || "";
             });
         }
         if (submitCourse) {
@@ -955,6 +975,13 @@
             submitAssignment.onchange = refreshSubmitStageAndGroup;
         }
         qs("#extSubmitSend").onclick = function () {
+            var groupInput = qs("#extSubmitGroup");
+            if (!groupInput.value) {
+                return setResult(submitResult, "提交失败", "当前项目还没有可提交的小组。", true);
+            }
+            if ((groupInput.dataset.myRole || "") !== "leader") {
+                return setResult(submitResult, "提交失败", "当前阶段提交仅允许组长发起。", true);
+            }
             var form = new FormData();
             form.append("title", qs("#extSubmitTitle").value.trim());
             if (qs("#extSubmitDesc").value.trim()) form.append("description", qs("#extSubmitDesc").value.trim());
@@ -962,7 +989,7 @@
             if (qs("#extSubmitRepo").value.trim()) form.append("repositoryUrl", qs("#extSubmitRepo").value.trim());
             splitCsv(qs("#extSubmitLinks").value).forEach(function (link) { form.append("links[]", link); });
             Array.from(qs("#extSubmitFiles").files || []).forEach(function (file) { form.append("files", file); });
-            api().postForm("/api/v1/stages/" + encodeURIComponent(submitStage.value) + "/groups/" + encodeURIComponent(qs("#extSubmitGroup").value) + "/submissions", form).then(function (payload) {
+            api().postForm("/api/v1/stages/" + encodeURIComponent(submitStage.value) + "/groups/" + encodeURIComponent(groupInput.value) + "/submissions", form).then(function (payload) {
                 setResult(submitResult, "提交成功", "submissionId：" + ((payload.data && payload.data.id) || "--"), false);
             }).catch(function (err) {
                 setResult(submitResult, "提交失败", err.message, true);
@@ -1069,7 +1096,7 @@
         }
         renderStageProgress(state.stages || [], state.tasks);
         renderTaskSummary(state.tasks);
-        renderActivityFeed(state.tasks);
+        renderActivityFeed();
         renderWorkbenchState();
     }
 
@@ -1125,6 +1152,7 @@
         groupRows: [],
         search: "",
         tasks: [],
+        taskActivities: [],
         stages: [],
         members: [],
         activityFilter: "all",
@@ -1761,6 +1789,108 @@
         return "rose";
     }
 
+    function taskActivityLabel(action) {
+        if (action === "created") return "新建任务";
+        if (action === "edited") return "要求更新";
+        if (action === "status_changed") return "状态更新";
+        return "协作动态";
+    }
+
+    function taskActivityContent(activity) {
+        if (activity && activity.content) return activity.content;
+        if (!activity) return "暂无协作动态";
+        if (activity.action === "created") return "组长创建了新任务，请负责人及时查看。";
+        if (activity.action === "edited") return "任务要求已更新，请查看最新内容。";
+        if (activity.action === "status_changed") return "任务状态已更新。";
+        return "任务发生了新的协作变更。";
+    }
+
+    function taskActivityStatus(activity) {
+        return activity && activity.status ? activity.status : "todo";
+    }
+
+    function taskActivityActor(activity) {
+        if (!activity) return null;
+        return findMemberByUserId(activity.operatorId)
+            || findMemberByUserId(Array.isArray(activity.assigneeIds) ? activity.assigneeIds[0] : "")
+            || null;
+    }
+
+    function isTaskActivityMessage(message) {
+        if (!message || message.messageType !== "announcement") return false;
+        var files = message.files;
+        return Boolean(files) && typeof files === "object" && !Array.isArray(files) && files.subType === "task_event";
+    }
+
+    function normalizeTaskActivityRows(messages) {
+        var taskMap = new Map((state.tasks || []).map(function (task) {
+            return [String(task.id || ""), task];
+        }));
+        return (Array.isArray(messages) ? messages : []).filter(isTaskActivityMessage).map(function (message) {
+            var files = message.files || {};
+            var taskId = String(files.taskId || "");
+            var task = taskMap.get(taskId) || null;
+            var assigneeIds = Array.isArray(files.assigneeIds)
+                ? files.assigneeIds.map(function (id) { return String(id); })
+                : taskAssigneeIds(task);
+            return {
+                id: "activity-" + String(message.id || taskId || Date.now()),
+                taskId: taskId,
+                title: String(files.taskTitle || (task && task.title) || "未命名任务"),
+                content: String(message.content || ""),
+                action: String(files.taskEventType || "edited"),
+                status: String(files.status || (task && task.status) || "todo"),
+                assigneeIds: assigneeIds,
+                operatorId: String(files.operatorId || message.senderId || ""),
+                createdAt: message.createdAt || new Date().toISOString(),
+            };
+        }).sort(function (a, b) {
+            return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+        });
+    }
+
+    function buildFallbackTaskActivities(tasks) {
+        return (tasks || []).slice().sort(function (a, b) {
+            return new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime();
+        }).map(function (task) {
+            var action = String(task.updatedAt || "") && String(task.createdAt || "") && String(task.updatedAt) !== String(task.createdAt)
+                ? "status_changed"
+                : "created";
+            if (action === "status_changed" && task.status === "todo") {
+                action = "edited";
+            }
+            return {
+                id: "fallback-" + String(task.id),
+                taskId: String(task.id),
+                title: task.title || "未命名任务",
+                content: "",
+                action: action,
+                status: task.status || "todo",
+                assigneeIds: taskAssigneeIds(task),
+                operatorId: Array.isArray(task.assigneeIds) ? String(task.assigneeIds[0] || "") : "",
+                createdAt: task.updatedAt || task.createdAt || new Date().toISOString(),
+            };
+        });
+    }
+
+    function prependTaskActivity(task, action, options) {
+        var activity = {
+            id: "local-" + action + "-" + String(task && task.id || Date.now()) + "-" + Date.now(),
+            taskId: String(task && task.id || ""),
+            title: task && task.title || "未命名任务",
+            content: options && options.content || "",
+            action: action,
+            status: options && options.status || task && task.status || "todo",
+            assigneeIds: taskAssigneeIds(task),
+            operatorId: currentUserId(),
+            createdAt: new Date().toISOString(),
+        };
+        state.taskActivities = [activity].concat((state.taskActivities || []).filter(function (row) {
+            return String(row.id) !== String(activity.id);
+        })).slice(0, 20);
+        renderActivityFeed();
+    }
+
     function renderTaskSummary(tasks) {
         if (!taskSummary) return;
         var me = currentUserId();
@@ -1816,29 +1946,31 @@
         ].join("");
     }
 
-    function renderActivityFeed(tasks) {
+    function renderActivityFeed() {
         if (!activityFeed) return;
-        var rows = (tasks || []).slice();
-        if (state.activityFilter !== "all") {
-            rows = rows.filter(function (task) { return task.status === state.activityFilter; });
+        var rows = (state.taskActivities || []).slice();
+        if (!rows.length) {
+            rows = buildFallbackTaskActivities(state.tasks);
         }
-        rows.sort(function (a, b) {
-            return new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime();
-        });
+        if (state.activityFilter !== "all") {
+            rows = rows.filter(function (activity) { return taskActivityStatus(activity) === state.activityFilter; });
+        }
         if (!rows.length) {
             activityFeed.innerHTML = '<div class="student-inline-empty">当前筛选下暂无协作动态。</div>';
             return;
         }
-        activityFeed.innerHTML = rows.slice(0, 10).map(function (task) {
-            var assignee = resolveAssigneeLabels(task)[0] || "--";
+        activityFeed.innerHTML = rows.slice(0, 10).map(function (activity) {
+            var actor = taskActivityActor(activity);
+            var actorLabel = actor && (actor.displayName || actor.name || actor.userId || actor.id) || resolveAssigneeLabels({ assigneeIds: activity.assigneeIds || [] })[0] || "--";
             return [
                 '<article class="student-activity-row">',
-                '<div class="student-activity-avatar-wrap">' + miniAvatar(assignee, taskStatusTone(task.status), "", Array.isArray(task.assigneeIds) ? task.assigneeIds[0] : "") + '</div>',
+                '<div class="student-activity-avatar-wrap">' + miniAvatar(actorLabel, taskStatusTone(taskActivityStatus(activity)), actor && actor.avatarUrl || "", actor && (actor.userId || actor.id) || "") + '</div>',
                 '<div class="student-activity-copy">',
-                '<strong>' + escapeHtml(task.title || "未命名任务") + '</strong>',
-                '<p>负责人 ' + escapeHtml(assignee) + ' · ' + escapeHtml(task.description || stageLabel(task.status)) + '</p>',
+                '<span class="student-row-kicker">' + escapeHtml(taskActivityLabel(activity.action)) + '</span>',
+                '<strong>' + escapeHtml(activity.title || "未命名任务") + '</strong>',
+                '<p>' + escapeHtml(taskActivityContent(activity)) + '</p>',
                 '</div>',
-                '<div class="student-activity-meta"><span class="badge badge-' + escapeHtml(taskStatusTone(task.status)) + '">' + escapeHtml(taskStatusLabel(task.status)) + '</span></div>',
+                '<div class="student-activity-meta"><span class="badge badge-' + escapeHtml(taskStatusTone(taskActivityStatus(activity))) + '">' + escapeHtml(taskStatusLabel(taskActivityStatus(activity))) + '</span><small>' + escapeHtml(formatShortDate(activity.createdAt) || "刚刚") + '</small></div>',
                 '</article>'
             ].join("");
         }).join("");
@@ -2069,9 +2201,10 @@
     }
 
     function clearActivitySurfaces() {
+        state.taskActivities = [];
         renderStageProgress([], []);
         renderTaskSummary([]);
-        renderActivityFeed([]);
+        renderActivityFeed();
         renderMemberList(null);
         if (pendingJoinBadge) pendingJoinBadge.textContent = "0";
     }
@@ -2087,10 +2220,11 @@
             state.tasks = (mockAssignment.tasks || []).map(function (task) {
                 return Object.assign({}, task, { assigneeIds: taskAssigneeIds(task) });
             });
+            state.taskActivities = buildFallbackTaskActivities(state.tasks);
+            state.members = (mockAssignment.members || []).slice();
             renderStageProgress(state.stages, state.tasks);
             renderTaskSummary(state.tasks);
-            renderActivityFeed(state.tasks);
-            state.members = (mockAssignment.members || []).slice();
+            renderActivityFeed();
             renderMemberList({ members: state.members });
             renderLeaderAssigneeMenu();
             var pendingCount = (mockAssignment.joinRequests || []).filter(function (row) { return row.status === "pending"; }).length;
@@ -2115,15 +2249,17 @@
                 api().getJson("/api/v1/groups/" + encodeURIComponent(state.currentGroup.id) + "/minitasks").catch(function () { return { data: [] }; }),
                 api().getJson("/api/v1/groups/" + encodeURIComponent(state.currentGroup.id)).catch(function () { return { data: null }; }),
                 api().getJson("/api/v1/groups/" + encodeURIComponent(state.currentGroup.id) + "/join-requests").catch(function () { return { data: [] }; }),
+                api().getJson("/api/v1/groups/" + encodeURIComponent(state.currentGroup.id) + "/messages?limit=20").catch(function () { return { data: [] }; }),
             ]).then(function (payloads) {
                 state.tasks = rowsOf(payloads[0]).map(function (task) {
                     return Object.assign({}, task, { assigneeIds: taskAssigneeIds(task) });
                 });
                 var detail = payloads[1] && payloads[1].data || state.currentGroup;
+                state.taskActivities = normalizeTaskActivityRows(rowsOf(payloads[3]));
+                state.members = Array.isArray(detail && detail.members) ? detail.members : [];
                 renderStageProgress(state.stages, state.tasks);
                 renderTaskSummary(state.tasks);
-                renderActivityFeed(state.tasks);
-                state.members = Array.isArray(detail && detail.members) ? detail.members : [];
+                renderActivityFeed();
                 renderMemberList({ members: state.members });
                 renderLeaderAssigneeMenu();
                 var pending = rowsOf(payloads[2]).filter(function (row) { return row.status === "pending"; }).length;
@@ -2291,7 +2427,7 @@
                 qsa("#studentActivityFilterTabs .student-activity-filter").forEach(function (node) {
                     node.classList.toggle("is-active", node === button);
                 });
-                renderActivityFeed(state.tasks);
+                renderActivityFeed();
             });
         });
         var activityReload = qs("#extTaskReload");
@@ -2435,6 +2571,9 @@
                     if (leaderStage) leaderStage.value = "";
                     closeLeaderTaskCreateModal();
                     commitTaskRows(assignment.tasks, state.selectedTaskId);
+                    prependTaskActivity(assignment.tasks[0], "created", {
+                        content: "组长创建了新任务，并已通知负责人处理。",
+                    });
                     return;
                 }
                 api().postJson("/api/v1/groups/" + encodeURIComponent(state.currentGroup.id) + "/minitasks", payload).then(function (response) {
@@ -2447,7 +2586,11 @@
                     setLeaderTaskPriority("medium");
                     if (leaderStage) leaderStage.value = "";
                     closeLeaderTaskCreateModal();
-                    upsertTaskRow(response && response.data ? response.data : null, { prepend: true, select: true });
+                    var nextTask = response && response.data ? response.data : null;
+                    upsertTaskRow(nextTask, { prepend: true, select: true });
+                    prependTaskActivity(nextTask, "created", {
+                        content: "组长创建了新任务，并已向负责人发送任务通知。",
+                    });
                 }).catch(function (err) {
                     setResult(qs("#studentLeaderTaskResult"), "创建失败", err && err.message || "请稍后重试。", true);
                 });
