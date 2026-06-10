@@ -211,5 +211,51 @@ describe('chat-file-storage', () => {
       expect(payload[0].thumbnailKey).toBe('chat/course/1/a.png');
       expect(payload[1].expiresAt).toBe('2026-06-08T00:00:00.000Z');
     });
+
+    it('should keep non-array payloads and invalid rows stable during enrichment', () => {
+      expect(enrichChatFilesForResponse(undefined, [])).toBeNull();
+      expect(enrichChatFilesForResponse({ foo: 'bar' }, [])).toEqual({ foo: 'bar' });
+
+      const payload = enrichChatFilesForResponse(
+        [
+          'plain-value',
+          [],
+          {
+            name: 'broken-date.pdf',
+            objectKey: 'chat/course/1/broken-date.pdf',
+            size: 1,
+            mimeType: 'application/pdf',
+          },
+          {
+            name: 'no-key.pdf',
+            size: 2,
+            mimeType: 'application/pdf',
+            uploadedAt: '2026-06-01T00:00:00.000Z',
+          },
+        ],
+        [
+          {
+            objectKey: 'chat/course/1/broken-date.pdf',
+            expiresAt: 'not-a-date',
+          },
+        ],
+      ) as Array<unknown>;
+
+      expect(payload[0]).toBe('plain-value');
+      expect(payload[1]).toEqual([]);
+      expect(payload[2]).toEqual({
+        name: 'broken-date.pdf',
+        objectKey: 'chat/course/1/broken-date.pdf',
+        size: 1,
+        mimeType: 'application/pdf',
+      });
+      expect(payload[3]).toEqual({
+        name: 'no-key.pdf',
+        size: 2,
+        mimeType: 'application/pdf',
+        uploadedAt: '2026-06-01T00:00:00.000Z',
+        expiresAt: '2026-06-08T00:00:00.000Z',
+      });
+    });
   });
 });

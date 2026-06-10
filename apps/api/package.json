@@ -11,6 +11,8 @@
     "test:socket-demo": "node ./src/demo/socket-smoke.mjs",
     "start:auth": "tsx ./src/auth/server.ts",
     "seed:auth-user": "tsx ./src/auth/seed-test-user.ts",
+    "seed:student-dashboard-mock": "tsx ./src/demo/seed-student-dashboard-mock.ts",
+    "cleanup:student-dashboard-mock": "tsx ./src/demo/cleanup-student-dashboard-mock.ts",
     "cleanup:chat-files": "tsx ./src/collaboration/chat-files-cleanup.ts",
     "job:submission-deadline": "tsx ./scripts/submission-deadline-cli.ts",
     "test": "jest --config ./jest.config.js",

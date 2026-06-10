@@ -5,7 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Linksee 学生工作台</title>
-    <link rel="stylesheet" href="./styles/theme.css?v=20260603c" />
+    <link rel="stylesheet" href="./styles/theme.css?v=20260608a" />
 </head>
 
 <body class="app-shell student-shell">
@@ -106,48 +106,797 @@
         </header>
         <div class="content-container">
             <div class="page-panel" id="panel-grades">
-                <section class="card">
-                    <div class="dashboard-section-intro">
-                        <h2 class="card-title">最近成绩与反馈</h2>
-                    </div>
-                    <div class="dashboard-card-body">
-                        <div class="list dashboard-scroll-region" id="studentGradeList"></div>
-                        <div class="dashboard-empty-state" id="studentGradeEmpty" hidden>
-                            <strong>暂无成绩记录</strong>
-                            <p>当前还没有已发布到你所在小组的阶段成绩。</p>
+                <section class="card student-dashboard-page">
+                    <div class="student-hero student-hero-grades">
+                        <div class="student-hero-copy">
+                            <span class="student-hero-kicker">成绩与反馈</span>
+                            <h2 class="student-hero-title">最近成绩与反馈</h2>
+                            <p class="student-hero-subtitle">回顾阶段成果，查看教师与助教反馈，持续改进，稳步提升。</p>
                         </div>
+                        <div class="student-hero-stats student-hero-stats-wide">
+                            <article class="student-hero-stat">
+                                <span>当前课程</span>
+                                <strong id="studentGradeCourseName">--</strong>
+                                <small id="studentGradeCourseMeta">暂无课程</small>
+                            </article>
+                            <article class="student-hero-stat">
+                                <span>当前项目</span>
+                                <strong id="studentGradeAssignmentName">--</strong>
+                                <small id="studentGradeStageMeta">暂无阶段</small>
+                            </article>
+                            <article class="student-hero-stat">
+                                <span>最近一次成绩</span>
+                                <strong id="studentLatestScore">--</strong>
+                                <small id="studentLatestScoreStage">尚无已发布成绩</small>
+                            </article>
+                            <article class="student-hero-stat">
+                                <span>已发布成绩条数</span>
+                                <strong id="studentPublishedGradeCount">0</strong>
+                                <small>已同步到学生端</small>
+                            </article>
+                            <article class="student-hero-stat student-hero-stat-warn">
+                                <span>待查看阶段数</span>
+                                <strong id="studentPendingFeedbackCount">0</strong>
+                                <small>仍需复盘与改进</small>
+                            </article>
+                        </div>
+                    </div>
+                    <div class="dashboard-card-body student-panel-grid student-panel-grid-grades">
+                        <aside class="student-panel-side">
+                            <section class="student-surface student-filter-surface">
+                                <div class="student-surface-head">
+                                    <h3>课程与阶段选择</h3>
+                                </div>
+                                <label class="user-settings-field">
+                                    <span>课程</span>
+                                    <select class="dashboard-select" id="studentGradeCourseSelect"></select>
+                                </label>
+                                <label class="user-settings-field">
+                                    <span>项目</span>
+                                    <select class="dashboard-select" id="studentGradeAssignmentSelect"></select>
+                                </label>
+                                <div class="student-grade-timeline" id="studentGradeTimeline"></div>
+                                <button class="btn btn-secondary student-inline-action" id="studentGradeViewAllCourses" type="button">查看全部课程</button>
+                            </section>
+                        </aside>
+                        <main class="student-panel-main">
+                            <section class="student-surface">
+                                <div class="student-surface-head student-surface-head-row">
+                                    <div>
+                                        <h3>成绩记录列表</h3>
+                                        <p>按阶段查看已发布的成绩与评语。</p>
+                                    </div>
+                                    <label class="student-switch">
+                                        <span>仅看已发布</span>
+                                        <input id="studentGradePublishedOnly" type="checkbox" checked />
+                                        <i aria-hidden="true"></i>
+                                    </label>
+                                </div>
+                                <div class="student-grade-records" id="studentGradeList"></div>
+                                <div class="dashboard-empty-state" id="studentGradeEmpty" hidden>
+                                    <strong>暂无成绩记录</strong>
+                                    <p>当前还没有已发布到你所在小组的阶段成绩。</p>
+                                </div>
+                            </section>
+                            <section class="student-surface">
+                                <div class="student-surface-head">
+                                    <h3>成绩趋势摘要</h3>
+                                </div>
+                                <div class="student-score-trend" id="studentScoreTrend"></div>
+                            </section>
+                        </main>
+                        <aside class="student-panel-side">
+                            <section class="student-surface">
+                                <div class="student-surface-head">
+                                    <h3>教师 / 助教反馈</h3>
+                                    <p>当前聚合接口未返回完整评语详情时，这里会展示状态与改进提示。</p>
+                                </div>
+                                <div class="student-feedback-stack" id="studentFeedbackList"></div>
+                            </section>
+                        </aside>
                     </div>
                 </section>
             </div>
 
             <div class="page-panel is-active" id="panel-courses">
-                <section class="card">
-                    <div class="dashboard-section-intro">
-                        <h2 class="card-title">我的课程</h2>
-                    </div>
-                    <div class="dashboard-card-body">
-                        <div class="dashboard-subcard">
-                            <div class="dashboard-split-row">
-                                <h3 class="dashboard-subcard-title">课程列表</h3>
-                                <div class="dashboard-filter-meta">
-                                    <select class="dashboard-select" id="studentCourseScopeSelect">
-                                        <option value="">全部课程</option>
-                                    </select>
-                                    <span class="badge badge-active">已加入 <strong id="studentCourseCount">0</strong></span>
+                <section class="card student-dashboard-page">
+                    <div class="dashboard-card-body student-course-body">
+                        <main class="student-course-main">
+                            <div class="student-course-hero">
+                                <div class="student-hero-copy">
+                                    <span class="student-hero-kicker">课程总览</span>
+                                    <h2 class="student-hero-title">我的课程</h2>
+                                </div>
+                                <div class="student-course-hero-overview">
+                                    <div class="student-course-select-wrap">
+                                        <label class="student-course-select-label" for="studentCourseScopeButton">
+                                            <span class="student-inline-icon student-inline-icon-course" aria-hidden="true">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15.5A2.5 2.5 0 0 0 17.5 16H4z"></path><path d="M6.5 3A2.5 2.5 0 0 0 4 5.5V21l2.5-2 2.5 2 2.5-2 2.5 2 2.5-2 2.5 2V16"></path></svg>
+                                            </span>
+                                            <span>课程范围</span>
+                                        </label>
+                                        <div class="student-course-selectbox" id="studentCourseScopePicker">
+                                            <button class="student-course-select-button" id="studentCourseScopeButton" type="button" aria-haspopup="listbox" aria-expanded="false">
+                                                <span class="student-course-select-text" id="studentCourseScopeText">请选择课程</span>
+                                                <span class="student-course-select-chevron" aria-hidden="true">⌃</span>
+                                            </button>
+                                            <div class="student-course-select-menu" id="studentCourseScopeMenu" role="listbox" aria-labelledby="studentCourseScopeButton" hidden></div>
+                                        </div>
+                                    </div>
+                                    <div class="student-course-kpis">
+                                        <article class="student-course-kpi student-course-kpi-stack">
+                                            <div class="student-course-kpi-metric">
+                                                <span class="student-course-kpi-label"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4.5 8 2l6 2.5-6 2.5-6-2.5Z"></path><path d="M2 8.3 8 11l6-2.7"></path></svg>已加入课程数</span>
+                                                <strong id="studentCourseCount">0</strong>
+                                            </div>
+                                            <div class="student-course-kpi-metric">
+                                                <span class="student-course-kpi-label"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.2V4.5"></path><path d="M8 12.2V6.5"></path><path d="M12 12.2V8.5"></path></svg>当前阶段数</span>
+                                                <strong id="studentCurrentStageCount">0</strong>
+                                            </div>
+                                        </article>
+                                        <article class="student-course-kpi">
+                                            <span class="student-course-kpi-label"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3.5h10v9H6.5L3 15V3.5Z"></path><path d="M6 6h4"></path></svg>当前课程</span>
+                                            <strong id="studentCurrentCourseName">--</strong>
+                                            <small id="studentCurrentCourseMeta">暂无激活课程</small>
+                                        </article>
+                                        <article class="student-course-kpi">
+                                            <span class="student-course-kpi-label"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="3" width="11" height="10" rx="2"></rect><path d="M5.5 6.5h5"></path><path d="M5.5 9.5h3.5"></path></svg>当前项目</span>
+                                            <strong id="studentCurrentAssignmentName">--</strong>
+                                            <small id="studentCurrentStageTitle">暂无阶段</small>
+                                        </article>
+                                    </div>
+                                </div>
+                                <div class="student-course-broadcast">
+                                    <article class="student-course-broadcast-item">
+                                        <span class="student-inline-icon student-inline-icon-notice" aria-hidden="true">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2"></path><path d="M6 10v4"></path><path d="M10 8l7-3v14l-7-3H6a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2z"></path><path d="M10 19l1.5 3"></path></svg>
+                                        </span>
+                                        <div>
+                                            <strong>最新公告</strong>
+                                            <small><span id="studentLatestGradeCount">0</span> 条可关注</small>
+                                        </div>
+                                    </article>
+                                    <article class="student-course-broadcast-item">
+                                        <span class="student-inline-icon student-inline-icon-message" aria-hidden="true">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10h10"></path><path d="M7 14h6"></path><path d="M21 12c0 4.4-3.6 8-8 8a8.8 8.8 0 0 1-3.5-.7L3 21l1.7-6.4A8.8 8.8 0 0 1 4 11c0-4.4 3.6-8 8-8s9 4.6 9 9z"></path></svg>
+                                        </span>
+                                        <div>
+                                            <strong>最近消息</strong>
+                                            <small><span id="studentSubmissionCount">0</span> 条协作更新</small>
+                                        </div>
+                                    </article>
+                                    <article class="student-course-broadcast-item">
+                                        <span class="student-inline-icon student-inline-icon-todo" aria-hidden="true">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"></path><path d="M12 4h7l-2 4 2 4h-7"></path><path d="M12 4H5"></path></svg>
+                                        </span>
+                                        <div>
+                                            <strong>待办阶段</strong>
+                                            <small><span id="studentUnreadFeedbackCount">0</span> 个待提交</small>
+                                        </div>
+                                    </article>
                                 </div>
                             </div>
-                            <div class="list dashboard-scroll-region" id="studentCourseList"></div>
+                            <section class="student-surface student-course-board student-course-board-wide">
+                                <div class="student-course-board-topbar">
+                                    <div class="student-course-board-title-group">
+                                        <div class="student-course-board-title">课程 / 项目 / 阶段</div>
+                                    </div>
+                                    <form class="student-course-searchbar" id="studentCourseSearchForm">
+                                        <span class="student-course-search-icon" aria-hidden="true">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+                                        </span>
+                                        <input class="dashboard-input" id="studentCourseSearch" placeholder="搜索课程" />
+                                    </form>
+                                    <button class="student-course-toolbar-action" type="button" aria-label="筛选设置">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10"></path><path d="M18 6h2"></path><path d="M8 12h12"></path><path d="M4 12h1"></path><path d="M4 18h6"></path><path d="M14 18h6"></path><circle cx="15" cy="6" r="2"></circle><circle cx="6" cy="12" r="2"></circle><circle cx="12" cy="18" r="2"></circle></svg>
+                                    </button>
+                                </div>
+                                <div class="student-course-flow">
+                                    <div class="student-course-flow-column">
+                                        <div class="student-kanban-head"><span>课程</span><small>Course</small></div>
+                                        <div class="student-kanban-list" id="studentCourseList"></div>
+                                    </div>
+                                    <div class="student-course-flow-column">
+                                        <div class="student-kanban-head"><span>项目</span><small>Project</small></div>
+                                        <div class="student-kanban-list" id="studentAssignmentList"></div>
+                                    </div>
+                                    <div class="student-course-flow-column">
+                                        <div class="student-kanban-head"><span>阶段</span><small>Stage</small></div>
+                                        <div class="student-kanban-list" id="studentStageList"></div>
+                                    </div>
+                                </div>
+                            </section>
+                        </main>
+                        <aside class="student-course-side">
+                            <section class="student-surface">
+                                <div class="student-stage-detail" id="studentStageDetail"></div>
+                            </section>
+                        </aside>
+                    </div>
+                </section>
+            </div>
+            <div class="student-dialog-backdrop" id="studentMaterialDialogBackdrop" hidden>
+                <section class="student-dialog student-material-dialog" aria-modal="true" role="dialog" aria-labelledby="studentMaterialDialogTitle">
+                    <div class="student-dialog-head">
+                        <div>
+                            <h3 id="studentMaterialDialogTitle">全部材料</h3>
+                            <p id="studentMaterialDialogMeta">可选择多个文件后批量下载</p>
                         </div>
-                        <div class="dashboard-inline-grid dashboard-split-scroll-grid">
-                            <div class="dashboard-subcard">
-                                <h3 class="dashboard-subcard-title">项目阶段</h3>
-                                <div class="list dashboard-scroll-region" id="studentStageList"></div>
+                        <button class="student-dialog-close" id="studentMaterialDialogClose" type="button" aria-label="关闭材料窗口">
+                            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M5 5 15 15"></path><path d="M15 5 5 15"></path></svg>
+                        </button>
+                    </div>
+                    <div class="student-material-dialog-list" id="studentMaterialDialogList"></div>
+                    <div class="student-dialog-foot">
+                        <button class="student-dialog-text-action" id="studentMaterialDialogToggleAll" type="button">全选</button>
+                        <button class="btn btn-primary student-dialog-download" id="studentMaterialDialogDownload" type="button">下载所选</button>
+                    </div>
+                </section>
+            </div>
+            <div class="student-dialog-backdrop" id="studentNoticeDialogBackdrop" hidden>
+                <section class="student-dialog student-notice-dialog" aria-modal="true" role="dialog" aria-labelledby="studentNoticeDialogTitle">
+                    <div class="student-dialog-head">
+                        <div>
+                            <h3 id="studentNoticeDialogTitle">提示</h3>
+                            <p id="studentNoticeDialogText">当前阶段已经截止，无法继续提交。</p>
+                        </div>
+                        <button class="student-dialog-close" id="studentNoticeDialogClose" type="button" aria-label="关闭提示窗口">
+                            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M5 5 15 15"></path><path d="M15 5 5 15"></path></svg>
+                        </button>
+                    </div>
+                    <div class="student-dialog-foot">
+                        <span></span>
+                        <button class="btn btn-primary student-dialog-download" id="studentNoticeDialogConfirm" type="button">我知道了</button>
+                    </div>
+                </section>
+            </div>
+
+            <div class="page-panel" id="panel-minitask-manage">
+                <section class="student-dashboard-page student-team-page-shell">
+                    <div class="dashboard-card-body student-team-shell">
+                        <div class="student-team-topbar">
+                            <div class="student-team-tabs student-view-tabs" id="studentTeamViewTabs">
+                                <button class="student-view-tab is-active" data-team-view="join" type="button">
+                                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 4v12"></path><path d="M4 10h12"></path><circle cx="10" cy="10" r="7.2"></circle></svg>
+                                    <span>申请加入</span>
+                                </button>
+                                <button class="student-view-tab" data-team-view="activity" type="button">
+                                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 13.5c1.8-2 3.4-3 4.8-3 1.6 0 2.4 1.8 4.1 1.8 1.2 0 2-.7 3.1-2.1"></path><path d="M4 6.5c1.3 1.2 2.4 1.8 3.4 1.8 1.8 0 2.6-2.8 4.8-2.8 1 0 2 .4 3.4 1.6"></path></svg>
+                                    <span>协作动态</span>
+                                </button>
+                                <button class="student-view-tab" data-team-view="workbench" type="button">
+                                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4" width="13" height="12" rx="2.2"></rect><path d="M7 3.5v3"></path><path d="M13 3.5v3"></path><path d="M6.5 10h7"></path></svg>
+                                    <span>MiniTask工作台</span>
+                                </button>
                             </div>
-                            <div class="dashboard-subcard">
-                                <h3 class="dashboard-subcard-title">提交记录</h3>
-                                <div class="list dashboard-scroll-region" id="studentArtifactList"></div>
+                            <div class="student-team-context">
+                                <div class="student-team-context-row">
+                                    <div class="student-team-context-selectors">
+                                        <label class="user-settings-field student-team-picker">
+                                            <span>当前课程</span>
+                                            <select id="extTaskCourse" class="dashboard-select"></select>
+                                            <small id="studentTeamCourseMeta">请选择课程</small>
+                                        </label>
+                                        <label class="user-settings-field student-team-picker">
+                                            <span>当前项目</span>
+                                            <select id="extTaskAssignment" class="dashboard-select"></select>
+                                            <small id="studentTeamAssignmentMeta">请选择项目</small>
+                                        </label>
+                                        <input id="extTaskGroupId" class="dashboard-input" readonly hidden />
+                                    </div>
+                                    <div class="student-team-context-meta">
+                                    <article class="student-team-context-chip student-team-context-chip-course">
+                                        <span class="student-team-context-chip-label"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5 10 3l6 2.5-6 2.5L4 5.5Z"></path><path d="M4 9.5 10 12l6-2.5"></path><path d="M4 13.5 10 16l6-2.5"></path></svg>当前课程</span>
+                                        <strong id="studentTeamCourseName">--</strong>
+                                        <small>已选课程</small>
+                                    </article>
+                                    <article class="student-team-context-chip student-team-context-chip-assignment">
+                                        <span class="student-team-context-chip-label"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4" width="13" height="12" rx="2.2"></rect><path d="M7 8h6"></path><path d="M7 11.5h4"></path></svg>当前项目</span>
+                                        <strong id="studentTeamAssignmentName">--</strong>
+                                        <small>已选项目</small>
+                                    </article>
+                                    <article class="student-team-context-chip student-team-context-chip-group">
+                                        <span class="student-team-context-chip-label"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="8" r="2.3"></circle><circle cx="13.5" cy="11" r="2"></circle><path d="M3.8 14.5c.9-1.8 2.5-2.8 4.5-2.8s3.6 1 4.5 2.8"></path></svg>组队状态</span>
+                                        <strong id="studentTeamGroupName">--</strong>
+                                        <small id="studentTeamGroupStatus">尚未入组</small>
+                                    </article>
+                                    <article class="student-team-context-chip student-team-context-chip-role">
+                                        <div class="student-team-context-role-head">
+                                            <span class="student-team-context-chip-label"><span id="studentTeamRoleIcon" class="student-team-role-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.8 12 7.8l4.4.6-3.2 3.1.8 4.3L10 13.9l-4 1.9.8-4.3-3.2-3.1 4.4-.6 2-4Z"></path></svg></span>当前身份</span>
+                                            <button id="studentLeaderCreateLauncher" class="student-role-create-btn" type="button" hidden>
+                                                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 4v12"></path><path d="M4 10h12"></path></svg>
+                                                <span>新建任务</span>
+                                            </button>
+                                        </div>
+                                        <strong id="studentTeamRole">--</strong>
+                                        <small id="studentTeamMemberCount">成员数 0</small>
+                                    </article>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+
+                        <div class="student-team-view is-active" id="studentTeamJoinView">
+                            <div class="student-panel-grid student-panel-grid-team-apply">
+                                <main class="student-panel-main">
+                                    <section class="student-surface student-surface-market">
+                                        <div class="student-surface-head student-surface-head-row">
+                                            <div>
+                                                <h3 class="student-surface-title">
+                                                    <span class="student-surface-title-icon" aria-hidden="true">
+                                                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 4v12"></path><path d="M4 10h12"></path><circle cx="10" cy="10" r="7.2"></circle></svg>
+                                                    </span>
+                                                    <span>可加入小组</span>
+                                                </h3>
+                                            </div>
+                                            <div class="student-inline-actions-row">
+                                                <label class="student-inline-search">
+                                                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="8.5" cy="8.5" r="4.8"></circle><path d="m12.4 12.4 4 4"></path></svg>
+                                                    <input id="studentJoinSearch" class="dashboard-input" placeholder="搜索小组名称或方向" />
+                                                </label>
+                                                <button id="extStudentGroupReload" class="btn btn-secondary student-inline-action" type="button">
+                                                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 10a6 6 0 1 1-1.7-4.1"></path><path d="M16 4.7v3.9h-3.8"></path></svg>
+                                                    <span>刷新</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="student-group-market-list" id="extStudentGroupList"></div>
+                                        <div class="student-group-market-footer">
+                                            <span>没有合适的小组时，可以自己创建。</span>
+                                            <button id="studentJoinCreateToggleBtn" class="btn btn-secondary student-join-create-inline-btn" type="button">创建自己的小组</button>
+                                        </div>
+                                        <details class="student-inline-create-group student-inline-create-group-inline" id="studentInlineCreateGroup">
+                                            <summary><span>创建小组</span></summary>
+                                            <div class="student-inline-create-panel student-inline-create-panel-right">
+                                                <div class="student-inline-create-copy">
+                                                    <strong>创建小组</strong>
+                                                </div>
+                                                <label class="user-settings-field">
+                                                    <span>新小组名称</span>
+                                                    <input id="extStudentNewGroupName" class="dashboard-input" />
+                                                </label>
+                                                <div class="student-inline-create-actions">
+                                                    <button id="extStudentCreateGroup" class="btn btn-primary student-join-create-btn" type="button">
+                                                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="12" height="10" rx="2"></rect><path d="M10 8v4"></path><path d="M8 10h4"></path></svg>
+                                                        <span>创建并加入</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </details>
+                                    </section>
+                                </main>
+                                <aside class="student-panel-side">
+                                    <section class="student-surface student-surface-control">
+                                        <div class="student-surface-head">
+                                            <h3 class="student-surface-title">
+                                                <span class="student-surface-title-icon" aria-hidden="true">
+                                                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4.5h8A1.5 1.5 0 0 1 15.5 6v9A1.5 1.5 0 0 1 14 16.5H6A1.5 1.5 0 0 1 4.5 15V6A1.5 1.5 0 0 1 6 4.5Z"></path><path d="M7.5 8.2h5"></path><path d="M7.5 11.4h4.2"></path></svg>
+                                                </span>
+                                                    <span>申请与记录</span>
+                                            </h3>
+                                        </div>
+                                        <div class="student-join-side-sections">
+                                            <div class="student-group-current-card" id="studentJoinCurrentGroup" hidden></div>
+                                            <section class="student-join-side-section">
+                                                <div class="student-join-side-heading student-join-side-heading-row">
+                                                    <strong>申请记录</strong>
+                                                    <small id="studentJoinRequestMeta">待处理申请 0</small>
+                                                </div>
+                                                <div class="student-request-stack" id="studentJoinRequestList"></div>
+                                            </section>
+                                        </div>
+                                        <div class="student-team-ops-form">
+                                            <input id="extStudentTargetGroup" class="dashboard-input" hidden />
+                                            <div id="extStudentGroupResult" class="dashboard-empty-state" hidden></div>
+                                        </div>
+                                    </section>
+                                </aside>
+                            </div>
+                        </div>
+
+                        <div class="student-team-view" id="studentTeamActivityView" hidden>
+                            <div class="student-stage-progress-rail" aria-label="项目阶段进度">
+                                <div class="student-stage-progress" id="studentTeamStageProgress"></div>
+                            </div>
+                            <div class="student-panel-grid student-panel-grid-team">
+                                <main class="student-panel-main">
+                                    <section class="student-surface student-surface-feed">
+                                        <div class="student-surface-head student-surface-head-row">
+                                            <div>
+                                                <h3 class="student-surface-title">
+                                                    <span class="student-surface-title-icon" aria-hidden="true">
+                                                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13.5c1.8-2 3.4-3 4.8-3 1.6 0 2.4 1.8 4.1 1.8 1.2 0 2-.7 3.1-2.1"></path><path d="M4 6.5c1.3 1.2 2.4 1.8 3.4 1.8 1.8 0 2.6-2.8 4.8-2.8 1 0 2 .4 3.4 1.6"></path></svg>
+                                                    </span>
+                                                    <span>协作动态</span>
+                                                </h3>
+                                            </div>
+                                            <div class="student-inline-actions-row">
+                                                <div class="student-activity-filters" id="studentActivityFilterTabs">
+                                                    <button class="student-activity-filter is-active" type="button" data-activity-filter="all">全部</button>
+                                                    <button class="student-activity-filter" type="button" data-activity-filter="todo">待办</button>
+                                                    <button class="student-activity-filter" type="button" data-activity-filter="in_progress">进行中</button>
+                                                    <button class="student-activity-filter" type="button" data-activity-filter="done">已完成</button>
+                                                </div>
+                                                <button id="extTaskReload" class="student-icon-action" type="button" aria-label="刷新动态" title="刷新动态">
+                                                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 10a6 6 0 1 1-1.7-4.1"></path><path d="M16 4.7v3.9h-3.8"></path></svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="student-activity-feed" id="studentTeamActivityFeed"></div>
+                                    </section>
+                                </main>
+                                <aside class="student-panel-side">
+                                    <section class="student-surface student-surface-summary" id="studentActivitySummaryCard">
+                                        <div class="student-surface-head">
+                                            <h3 class="student-surface-title">
+                                                <span class="student-surface-title-icon" aria-hidden="true">
+                                                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5h8"></path><path d="M6 10h8"></path><path d="M6 15h5"></path><circle cx="4" cy="5" r="1"></circle><circle cx="4" cy="10" r="1"></circle><circle cx="4" cy="15" r="1"></circle></svg>
+                                                </span>
+                                                <span>我的待办摘要</span>
+                                            </h3>
+                                        </div>
+                                        <div class="student-task-summary" id="studentTaskSummary"></div>
+                                        <div class="student-summary-more">
+                                            <button class="student-summary-more-btn" id="studentTaskSummaryMoreBtn" type="button">查看更多</button>
+                                        </div>
+                                    </section>
+                                    <section class="student-surface student-surface-members" id="studentActivityMembersCard">
+                                        <div class="student-surface-head student-surface-head-row">
+                                            <div>
+                                                <h3 class="student-surface-title">
+                                                    <span class="student-surface-title-icon" aria-hidden="true">
+                                                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="8" r="2.3"></circle><circle cx="13.5" cy="11" r="2"></circle><path d="M3.8 14.5c.9-1.8 2.5-2.8 4.5-2.8s3.6 1 4.5 2.8"></path></svg>
+                                                    </span>
+                                                    <span>成员状态</span>
+                                                </h3>
+                                            </div>
+                                        </div>
+                                        <div class="student-member-list" id="studentTeamMemberList"></div>
+                                    </section>
+                                </aside>
+                            </div>
+                        </div>
+
+                        <div class="student-team-view" id="studentTeamWorkbenchView" hidden>
+                            <div class="student-panel-grid student-panel-grid-team-workbench">
+                                <aside class="student-panel-side">
+                                    <section class="student-surface student-surface-filter" id="studentWorkbenchFilterCard">
+                                        <div class="student-surface-head">
+                                            <h3 class="student-surface-title">
+                                                <span class="student-surface-title-icon" aria-hidden="true">
+                                                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 5.5h11"></path><path d="M6.5 10h7"></path><path d="M8.5 14.5h3"></path></svg>
+                                                </span>
+                                                <span>任务列表</span>
+                                            </h3>
+                                        </div>
+                                        <label class="student-inline-search student-inline-search-compact">
+                                            <input id="studentTaskSearch" class="dashboard-input" placeholder="搜索任务标题或内容" />
+                                            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="8.5" cy="8.5" r="4.8"></circle><path d="m12.4 12.4 4 4"></path></svg>
+                                        </label>
+                                        <div class="student-task-filter-row">
+                                            <label class="user-settings-field student-field-min">
+                                                <select id="extTaskStageId" class="dashboard-select">
+                                                    <option value="">全部阶段</option>
+                                                </select>
+                                            </label>
+                                            <label class="user-settings-field student-field-min">
+                                                <select id="studentTaskStatusFilter" class="dashboard-select">
+                                                    <option value="">全部状态</option>
+                                                    <option value="todo">待办</option>
+                                                    <option value="in_progress">进行中</option>
+                                                    <option value="done">已完成</option>
+                                                    <option value="cancelled">已取消</option>
+                                                </select>
+                                            </label>
+                                        </div>
+                                        <label class="student-switch">
+                                            <span>仅看我的任务</span>
+                                            <input id="studentTaskMineOnly" type="checkbox" />
+                                            <i aria-hidden="true"></i>
+                                        </label>
+                                        <div class="student-task-list" id="extTaskList"></div>
+                                    </section>
+                                </aside>
+                                <main class="student-panel-main">
+                                    <section class="student-surface student-surface-editor student-task-editor-surface" id="studentWorkbenchEditorCard">
+                                        <div class="student-surface-head student-surface-head-row">
+                                            <h3 class="student-surface-title">
+                                                <span class="student-surface-title-icon" aria-hidden="true">
+                                                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4" width="13" height="12" rx="2.2"></rect><path d="M7 8h6"></path><path d="M7 11.5h4"></path></svg>
+                                                </span>
+                                                <span>任务详情</span>
+                                            </h3>
+                                            <span class="student-task-hero-code" id="studentTaskIdView"># --</span>
+                                        </div>
+                                        <div class="student-inline-empty student-workbench-gate" id="studentWorkbenchGate" hidden>
+                                            加入小组后，才可以查看、创建和更新 MiniTask。
+                                        </div>
+                                        <div id="studentWorkbenchEditor">
+                                            <input id="extTaskId" type="hidden" />
+                                            <div class="student-task-hero">
+                                                <div class="student-task-hero-title-row">
+                                                    <h4 class="student-task-hero-title" id="studentTaskTitleView">请选择一条任务</h4>
+                                                    <label class="student-task-hero-title-edit" id="studentTaskTitleEditWrap" hidden>
+                                                        <input id="extTaskTitle" class="dashboard-input" placeholder="输入任务标题" />
+                                                    </label>
+                                                </div>
+                                                <div class="student-task-desc-view" id="studentTaskDescView">选择任务后查看详情描述。</div>
+                                                <label class="student-task-hero-desc-edit" id="studentTaskDescEditWrap" hidden>
+                                                    <textarea id="extTaskDesc" class="dashboard-textarea" placeholder="补充任务说明"></textarea>
+                                                </label>
+                                                <div class="student-task-meta-grid">
+                                                    <div class="student-task-meta-item student-task-meta-item-status">
+                                                        <span class="student-task-meta-label">状态</span>
+                                                        <div class="student-task-status-bar">
+                                                            <label class="student-task-status-pill">
+                                                                <select id="extTaskStatus" class="dashboard-select">
+                                                                    <option value="todo">待办</option>
+                                                                    <option value="in_progress">进行中</option>
+                                                                    <option value="done">已完成</option>
+                                                                </select>
+                                                            </label>
+                                                            <button id="studentTaskStatusNext" class="student-task-status-next" type="button" title="切换到下一状态">
+                                                                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 5 6 5-6 5"></path></svg>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="student-task-meta-item">
+                                                        <span class="student-task-meta-label">负责人</span>
+                                                        <strong id="studentEditorAssignee">待填写</strong>
+                                                    </div>
+                                                    <div class="student-task-meta-item">
+                                                        <span class="student-task-meta-label">所属阶段</span>
+                                                        <strong id="studentEditorScope">未绑定阶段</strong>
+                                                    </div>
+                                                    <div class="student-task-meta-item">
+                                                        <span class="student-task-meta-label">优先级</span>
+                                                        <strong id="studentTaskPriorityView">中</strong>
+                                                        <input id="extTaskPriority" type="hidden" value="medium" />
+                                                        <button id="studentTaskPriorityCycleBtn" class="student-task-priority-chip is-medium" type="button" hidden>中</button>
+                                                    </div>
+                                                    <div class="student-task-meta-item">
+                                                        <span class="student-task-meta-label">截止时间</span>
+                                                        <strong id="studentTaskDueView">未设置</strong>
+                                                        <input id="extTaskDue" class="dashboard-input student-task-due-inline" type="datetime-local" hidden />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div id="extTaskResult" class="dashboard-empty-state" hidden></div>
+                                        </div>
+                                    </section>
+                                </main>
+                            </div>
+                            <div class="student-task-create-modal" id="studentTaskCreateModal" hidden>
+                                <div class="student-task-create-backdrop" data-student-task-create-close="1"></div>
+                                <section class="student-task-create-sheet" role="dialog" aria-modal="true" aria-labelledby="studentTaskCreateTitle">
+                                    <header class="student-task-create-head">
+                                        <div>
+                                            <strong id="studentTaskCreateTitle">新建任务</strong>
+                                            <small>创建后会直接进入当前工作台。</small>
+                                        </div>
+                                        <button id="studentTaskCreateClose" class="student-task-create-close" type="button" aria-label="关闭">
+                                            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m5 5 10 10M15 5 5 15"></path></svg>
+                                        </button>
+                                    </header>
+                                    <div class="student-task-create-form">
+                                        <label class="user-settings-field">
+                                            <span>任务标题</span>
+                                            <input id="studentLeaderTaskTitle" class="dashboard-input" placeholder="输入任务标题" />
+                                        </label>
+                                        <label class="user-settings-field">
+                                            <span>详情描述</span>
+                                            <textarea id="studentLeaderTaskDesc" class="dashboard-textarea student-task-create-textarea" placeholder="补充任务的详细说明、目标或注意事项"></textarea>
+                                        </label>
+                                        <div class="student-task-create-row">
+                                            <label class="user-settings-field">
+                                                <span>负责人</span>
+                                                <input id="studentLeaderTaskAssignee" type="hidden" />
+                                                <button id="studentLeaderTaskAssigneeButton" class="student-assignee-picker" type="button" aria-expanded="false">
+                                                    <span id="studentLeaderTaskAssigneeText">选择成员</span>
+                                                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7.5 10 12.5 15 7.5"></path></svg>
+                                                </button>
+                                                <div id="studentLeaderTaskAssigneeMenu" class="student-assignee-menu" hidden></div>
+                                            </label>
+                                            <label class="user-settings-field">
+                                                <span>阶段</span>
+                                                <select id="studentLeaderTaskStage" class="dashboard-select">
+                                                    <option value="">不绑定阶段</option>
+                                                </select>
+                                            </label>
+                                        </div>
+                                        <div class="student-task-create-row student-task-create-row-tight">
+                                            <div class="user-settings-field">
+                                                <span>优先级</span>
+                                                <input id="studentLeaderTaskPriority" type="hidden" value="medium" />
+                                                <div class="student-priority-choice-group" id="studentLeaderTaskPriorityGroup">
+                                                    <button class="student-priority-choice is-low" type="button" data-priority-value="low">低</button>
+                                                    <button class="student-priority-choice is-active is-medium" type="button" data-priority-value="medium">中</button>
+                                                    <button class="student-priority-choice is-high" type="button" data-priority-value="high">高</button>
+                                                </div>
+                                            </div>
+                                            <label class="user-settings-field">
+                                                <span>截止时间</span>
+                                                <input id="studentLeaderTaskDue" class="dashboard-input" type="datetime-local" />
+                                            </label>
+                                        </div>
+                                        <div class="student-task-create-actions">
+                                            <div id="studentLeaderTaskResult" class="dashboard-empty-state" hidden></div>
+                                            <button class="btn btn-primary student-join-create-btn" id="studentLeaderCreateTaskBtn" type="button">
+                                                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 4v12"></path><path d="M4 10h12"></path></svg>
+                                                <span>创建任务</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </section>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <div class="page-panel" id="panel-file-submit">
+                <section class="card student-dashboard-page">
+                    <div class="student-hero student-hero-submit">
+                        <div class="student-hero-copy">
+                            <span class="student-hero-kicker">阶段提交中心</span>
+                            <h2 class="student-hero-title">阶段提交中心</h2>
+                            <p class="student-hero-subtitle">按阶段要求提交成果，支持文件与链接提交，记录版本，查看评审结果。</p>
+                        </div>
+                        <div class="student-hero-stats student-hero-stats-wide">
+                            <article class="student-hero-stat">
+                                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6.5 12 3l8 3.5L12 10 4 6.5Z" stroke-linejoin="round"/><path d="M6 8.5V15l6 3 6-3V8.5" stroke-linejoin="round"/></svg>当前课程</span>
+                                <strong id="studentSubmitCourseName">--</strong>
+                                <small id="studentSubmitCourseMeta">请选择课程</small>
+                            </article>
+                            <article class="student-hero-stat">
+                                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="5" width="16" height="14" rx="3"/><path d="M8 9h8M8 13h5" stroke-linecap="round"/></svg>当前项目</span>
+                                <strong id="studentSubmitAssignmentName">--</strong>
+                                <small id="studentSubmitAssignmentMeta">请选择项目</small>
+                            </article>
+                            <article class="student-hero-stat">
+                                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="7" cy="8" r="2"/><circle cx="17" cy="8" r="2"/><circle cx="12" cy="16" r="2"/><path d="M8.8 9.4 10.8 13M15.2 9.4 13.2 13" stroke-linecap="round"/></svg>当前阶段</span>
+                                <strong id="studentSubmitStageName">--</strong>
+                                <small id="studentSubmitStageMeta">请选择阶段</small>
+                            </article>
+                            <article class="student-hero-stat">
+                                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>截止时间</span>
+                                <strong id="studentSubmitDueAt">--</strong>
+                                <small id="studentSubmitDueMeta">暂无截止信息</small>
+                            </article>
+                            <article class="student-hero-stat student-hero-stat-warn">
+                                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 12.5 10 15l7-7" stroke-linecap="round" stroke-linejoin="round"/><rect x="4" y="4" width="16" height="16" rx="4"/></svg>提交状态</span>
+                                <strong id="studentSubmitStatus">待提交</strong>
+                                <small id="studentSubmitStatusMeta">等待本阶段提交</small>
+                            </article>
+                        </div>
+                    </div>
+                    <div class="dashboard-card-body student-panel-grid student-panel-grid-submit">
+                        <aside class="student-panel-side">
+                            <section class="student-surface student-surface-control student-submit-surface-context">
+                                <div class="student-surface-head">
+                                    <h3 class="student-surface-title">
+                                        <span class="student-surface-title-icon" aria-hidden="true">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M6 10h12M8 14h8M10 18h4" stroke-linecap="round"/></svg>
+                                        </span>
+                                        选择课程 / 项目 / 阶段
+                                    </h3>
+                                </div>
+                                <label class="user-settings-field">
+                                    <span>课程</span>
+                                    <select id="extSubmitCourse" class="dashboard-select"></select>
+                                </label>
+                                <label class="user-settings-field">
+                                    <span>项目</span>
+                                    <select id="extSubmitAssignment" class="dashboard-select"></select>
+                                </label>
+                                <label class="user-settings-field">
+                                    <span>阶段</span>
+                                    <select id="extSubmitStage" class="dashboard-select"></select>
+                                </label>
+                                <label class="user-settings-field" hidden>
+                                    <span>小组 ID</span>
+                                    <input id="extSubmitGroup" class="dashboard-input" readonly />
+                                </label>
+                                <div class="student-submit-stage-list" id="studentSubmitStageList"></div>
+                            </section>
+                        </aside>
+                        <main class="student-panel-main">
+                            <section class="student-surface student-surface-editor student-submit-surface-workbench">
+                                <div class="student-surface-head">
+                                    <h3 class="student-surface-title">
+                                        <span class="student-surface-title-icon" aria-hidden="true">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 7h10v10H7z" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 11h6M9 14h4" stroke-linecap="round"/></svg>
+                                        </span>
+                                        提交工作台
+                                    </h3>
+                                </div>
+                                <div class="student-submit-workspace-intro">
+                                    <div class="student-submit-workspace-badge">
+                                        <span class="student-submit-workspace-dot"></span>
+                                        当前工作区会跟随所选阶段同步刷新
+                                    </div>
+                                </div>
+                                <div class="dashboard-inline-grid student-submit-inline-grid">
+                                    <label class="user-settings-field">
+                                        <span>标题</span>
+                                        <input id="extSubmitTitle" class="dashboard-input" />
+                                    </label>
+                                    <label class="user-settings-field">
+                                        <span>Git 仓库</span>
+                                        <input id="extSubmitRepo" class="dashboard-input" placeholder="https://..." />
+                                    </label>
+                                </div>
+                                <label class="user-settings-field">
+                                    <span>文件上传</span>
+                                    <div class="student-upload-dropzone">
+                                        <input id="extSubmitFiles" class="dashboard-input" type="file" multiple />
+                                        <div class="student-upload-copy">
+                                            <div class="student-upload-mark" aria-hidden="true">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 16V7M8.5 10.5 12 7l3.5 3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 18.5h14" stroke-linecap="round"/></svg>
+                                            </div>
+                                            <strong>拖拽文件到此处，或点击上传</strong>
+                                            <p>支持 `pdf`、`docx`、`zip`、`rar`、`mp4` 等常见格式</p>
+                                        </div>
+                                    </div>
+                                </label>
+                                <div class="student-file-queue" id="studentSubmitFileQueue"></div>
+                                <label class="user-settings-field">
+                                    <span>其他链接</span>
+                                    <textarea id="extSubmitLinks" class="dashboard-textarea" placeholder="每行一个链接"></textarea>
+                                </label>
+                                <label class="user-settings-field">
+                                    <span>说明</span>
+                                    <textarea id="extSubmitDesc" class="dashboard-textarea"></textarea>
+                                </label>
+                                <label class="user-settings-field">
+                                    <span>贡献说明</span>
+                                    <textarea id="extSubmitContribution" class="dashboard-textarea"></textarea>
+                                </label>
+                                <div class="dashboard-panel-actions student-inline-actions-row student-submit-actions">
+                                    <button class="btn btn-secondary" id="studentSubmitDraftBtn" type="button">保存草稿</button>
+                                    <button id="extSubmitSend" class="btn btn-primary" type="button">提交本阶段</button>
+                                </div>
+                                <div id="extSubmitResult" class="dashboard-empty-state" hidden></div>
+                            </section>
+                        </main>
+                        <aside class="student-panel-side">
+                            <section class="student-surface student-surface-feed student-submit-surface-requirements">
+                                <div class="student-surface-head">
+                                    <h3 class="student-surface-title">
+                                        <span class="student-surface-title-icon" aria-hidden="true">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 6h10M7 10h10M7 14h6" stroke-linecap="round"/><rect x="4" y="4" width="16" height="16" rx="4"/></svg>
+                                        </span>
+                                        阶段要求
+                                    </h3>
+                                </div>
+                                <div class="student-requirement-list" id="studentSubmitRequirementList"></div>
+                            </section>
+                            <section class="student-surface student-surface-summary student-submit-surface-materials">
+                                <div class="student-surface-head">
+                                    <h3 class="student-surface-title">
+                                        <span class="student-surface-title-icon" aria-hidden="true">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 4h6l4 4v12H8z" stroke-linejoin="round"/><path d="M14 4v4h4M10 13h6M10 16h5" stroke-linecap="round"/></svg>
+                                        </span>
+                                        教师提供材料
+                                    </h3>
+                                </div>
+                                <div class="student-material-list" id="studentSubmitMaterialList"></div>
+                            </section>
+                            <section class="student-surface student-surface-tools student-submit-surface-history">
+                                <div class="student-surface-head student-surface-head-row">
+                                    <div>
+                                        <h3 class="student-surface-title">
+                                            <span class="student-surface-title-icon" aria-hidden="true">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 12a6 6 0 1 0 2-4.472" stroke-linecap="round"/><path d="M4 5v4h4M12 8v4l2.5 2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                            </span>
+                                            已提交记录
+                                        </h3>
+                                    </div>
+                                    <button class="btn btn-secondary student-inline-action" id="studentSubmitHistoryReload" type="button">刷新</button>
+                                </div>
+                                <div class="student-submit-history" id="studentSubmitHistoryList"></div>
+                            </section>
+                        </aside>
                     </div>
                 </section>
             </div>
@@ -156,11 +905,11 @@
 
     <script src="./scripts/api-client.js?v=20260602b"></script>
     <script src="./scripts/page-utils.js?v=20260602b"></script>
-    <script src="./scripts/dashboard-extensions.js?v=20260602b"></script>
+    <script src="./scripts/dashboard-extensions.js?v=20260608b"></script>
     <script src="./scripts/dashboard-shell.js?v=20260603w"></script>
     <script src="./scripts/user-settings.js?v=20260602b"></script>
     <script src="./scripts/leaf-pile.js?v=20260602b"></script>
-    <script src="./scripts/student-dashboard.js?v=20260602b"></script>
+    <script src="./scripts/student-dashboard.js?v=20260608b"></script>
     <script>
         if (!linkseePage.requireAuth()) { throw new Error("auth required"); }
         initDashboardShell({
