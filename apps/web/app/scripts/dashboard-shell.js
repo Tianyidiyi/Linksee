@@ -16,13 +16,11 @@
             "panel-courses",
             "panel-course-staff",
             "panel-user-maintenance",
-            "panel-assignments",
         ],
         teacher: [
-            "panel-assignment-manage",
-            "panel-stage-manage",
+            "panel-course-design",
             "panel-group-manage",
-            "panel-assistant-manage",
+            "panel-teacher-settings",
             "panel-review-workbench",
         ],
         assistant: [
@@ -594,7 +592,11 @@
         }
 
         if (window.linkseeDashboardExtensions && typeof window.linkseeDashboardExtensions.install === "function") {
-            window.linkseeDashboardExtensions.install(options || {});
+            try {
+                window.linkseeDashboardExtensions.install(options || {});
+            } catch (err) {
+                console.error("Failed to install dashboard extensions.", err);
+            }
         }
         removeDashboardDescriptions();
         ensureDashboardSubcardNotes();

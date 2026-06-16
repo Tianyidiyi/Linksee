@@ -12,6 +12,13 @@ function forbidden(res: Response, message = "Insufficient permissions"): void {
   res.status(403).json({ ok: false, code: "FORBIDDEN", message });
 }
 
+function buildTaskEventJsonFilter(): Prisma.JsonFilter {
+  return {
+    path: "$.subType",
+    equals: "task_event",
+  };
+}
+
 // ──────────────────────────────────────────────────────────────
 // GET /api/v1/conversations
 // ──────────────────────────────────────────────────────────────
@@ -38,9 +45,30 @@ conversationsRouter.get("/conversations", requireAuth, async (req: Request, res:
 
   const conversationIds = conversations.map((conversation) => conversation.id);
 
-  const [lastMessages, readStates, courses, groups] = await Promise.all([
+  const [lastMessages, taskMessages, readStates, courses, groups] = await Promise.all([
     prisma.chatMessage.findMany({
       where: { conversationId: { in: conversationIds }, deletedAt: null },
+      orderBy: [{ createdAt: Prisma.SortOrder.desc }, { id: Prisma.SortOrder.desc }],
+      distinct: ["conversationId"],
+      select: {
+        id: true,
+        conversationId: true,
+        senderId: true,
+        content: true,
+        files: true,
+        mentions: true,
+        replyToId: true,
+        createdAt: true,
+        editedAt: true,
+        deletedAt: true,
+      },
+    }),
+    prisma.chatMessage.findMany({
+      where: {
+        conversationId: { in: conversationIds },
+        deletedAt: null,
+        files: buildTaskEventJsonFilter(),
+      },
       orderBy: [{ createdAt: Prisma.SortOrder.desc }, { id: Prisma.SortOrder.desc }],
       distinct: ["conversationId"],
       select: {
@@ -60,7 +88,7 @@ conversationsRouter.get("/conversations", requireAuth, async (req: Request, res:
       where: { conversationId: { in: conversationIds }, userId: req.user!.id },
       select: { conversationId: true, lastMessageId: true, lastReadAt: true },
     }),
-    prisma.course.findMany({ where: { id: { in: scopes.courseIds } }, select: { id: true, name: true } }),
+    prisma.course.findMany({ where: { id: { in: scopes.courseIds }, status: { not: "draft" } }, select: { id: true, name: true } }),
     prisma.group.findMany({
       where: { id: { in: scopes.groupIds } },
       select: { id: true, groupNo: true, name: true, assignmentId: true, assignment: { select: { courseId: true } } },
@@ -70,6 +98,11 @@ conversationsRouter.get("/conversations", requireAuth, async (req: Request, res:
   const lastMessageMap = new Map<bigint, typeof lastMessages[number]>();
   for (const message of lastMessages) {
     lastMessageMap.set(message.conversationId, message);
+  }
+
+  const taskMessageMap = new Map<bigint, typeof taskMessages[number]>();
+  for (const message of taskMessages) {
+    taskMessageMap.set(message.conversationId, message);
   }
 
   const readMap = new Map<bigint, { lastMessageId: bigint | null; lastReadAt: Date | null }>();
@@ -88,33 +121,57 @@ conversationsRouter.get("/conversations", requireAuth, async (req: Request, res:
     groupMap.set(group.id, { label, assignmentId: group.assignmentId, courseId: group.assignment.courseId });
   }
 
-  const unreadCounts = await Promise.all(
-    conversations.map(async (conversation) => {
-      const read = readMap.get(conversation.id);
-      const lastMessageId = read?.lastMessageId ?? null;
-      const where: Prisma.ChatMessageWhereInput = {
-        conversationId: conversation.id,
-        deletedAt: null,
-        ...(lastMessageId ? { id: { gt: lastMessageId } } : {}),
-      };
-      const count = await prisma.chatMessage.count({ where });
-      return [conversation.id, count] as const;
-    }),
-  );
+  const [unreadCounts, unreadTaskCounts] = await Promise.all([
+    Promise.all(
+      conversations.map(async (conversation) => {
+        const read = readMap.get(conversation.id);
+        const lastMessageId = read?.lastMessageId ?? null;
+        const where: Prisma.ChatMessageWhereInput = {
+          conversationId: conversation.id,
+          deletedAt: null,
+          ...(lastMessageId ? { id: { gt: lastMessageId } } : {}),
+        };
+        const count = await prisma.chatMessage.count({ where });
+        return [conversation.id, count] as const;
+      }),
+    ),
+    Promise.all(
+      conversations.map(async (conversation) => {
+        const read = readMap.get(conversation.id);
+        const lastMessageId = read?.lastMessageId ?? null;
+        const where: Prisma.ChatMessageWhereInput = {
+          conversationId: conversation.id,
+          deletedAt: null,
+          files: buildTaskEventJsonFilter(),
+          ...(lastMessageId ? { id: { gt: lastMessageId } } : {}),
+        };
+        const count = await prisma.chatMessage.count({ where });
+        return [conversation.id, count] as const;
+      }),
+    ),
+  ]);
 
   const unreadMap = new Map<bigint, number>(unreadCounts);
+  const unreadTaskMap = new Map<bigint, number>(unreadTaskCounts);
 
-  const data = conversations.map((conversation) => {
+  const data = conversations.flatMap((conversation) => {
     const lastMessage = lastMessageMap.get(conversation.id);
+    const lastTaskMessage = taskMessageMap.get(conversation.id);
     const lastRead = readMap.get(conversation.id);
     const unreadCount = unreadMap.get(conversation.id) ?? 0;
+    const unreadTaskCount = unreadTaskMap.get(conversation.id) ?? 0;
+    const hasTaskNotification = Boolean(lastTaskMessage);
 
     if (conversation.scopeType === "course") {
-      return {
+      const courseTitle = courseMap.get(conversation.scopeId);
+      if (!courseTitle) {
+        return [];
+      }
+      return [{
         id: conversation.id.toString(),
         scopeType: "course",
         scopeId: conversation.scopeId.toString(),
-        title: courseMap.get(conversation.scopeId) ?? "Course",
+        title: courseTitle,
         roomKey: conversation.roomKey,
         lastMessage: lastMessage
           ? {
@@ -122,13 +179,21 @@ conversationsRouter.get("/conversations", requireAuth, async (req: Request, res:
               messageType: resolveMessageType(lastMessage.files, lastMessage.content),
             }
           : null,
+        lastTaskMessage: lastTaskMessage
+          ? {
+              ...lastTaskMessage,
+              messageType: resolveMessageType(lastTaskMessage.files, lastTaskMessage.content),
+            }
+          : null,
         unreadCount,
+        unreadTaskCount,
+        hasTaskNotification,
         lastReadAt: lastRead?.lastReadAt?.toISOString() ?? null,
-      };
+      }];
     }
 
     const groupInfo = groupMap.get(conversation.scopeId);
-    return {
+    return [{
       id: conversation.id.toString(),
       scopeType: "group",
       scopeId: conversation.scopeId.toString(),
@@ -142,9 +207,17 @@ conversationsRouter.get("/conversations", requireAuth, async (req: Request, res:
             messageType: resolveMessageType(lastMessage.files, lastMessage.content),
           }
         : null,
+      lastTaskMessage: lastTaskMessage
+        ? {
+            ...lastTaskMessage,
+            messageType: resolveMessageType(lastTaskMessage.files, lastTaskMessage.content),
+          }
+        : null,
       unreadCount,
+      unreadTaskCount,
+      hasTaskNotification,
       lastReadAt: lastRead?.lastReadAt?.toISOString() ?? null,
-    };
+    }];
   });
 
   res.json({ ok: true, data: serializeBigInt(data) });

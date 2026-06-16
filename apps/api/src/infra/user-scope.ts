@@ -13,13 +13,16 @@ export async function resolveUserScopes(userId: string, role: Role): Promise<Use
   }
 
   if (role === Role.teacher) {
-    const courses = await prisma.courseTeacher.findMany({ where: { userId }, select: { courseId: true } });
+    const courses = await prisma.courseTeacher.findMany({
+      where: { userId, course: { status: { not: "draft" } } },
+      select: { courseId: true },
+    });
     return { courseIds: courses.map((row) => row.courseId), groupIds: [] };
   }
 
   if (role === Role.assistant) {
     const courses = await prisma.assistantBinding.findMany({
-      where: { assistantUserId: userId },
+      where: { assistantUserId: userId, course: { status: { not: "draft" } } },
       select: { courseId: true },
     });
     return { courseIds: courses.map((row) => row.courseId), groupIds: [] };
@@ -27,7 +30,7 @@ export async function resolveUserScopes(userId: string, role: Role): Promise<Use
 
   const [courses, groups] = await Promise.all([
     prisma.courseMember.findMany({
-      where: { userId, status: "active" },
+      where: { userId, status: "active", course: { status: { not: "draft" } } },
       select: { courseId: true },
     }),
     prisma.groupMember.findMany({ where: { userId }, select: { groupId: true } }),

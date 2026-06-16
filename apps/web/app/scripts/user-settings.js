@@ -25,6 +25,8 @@
         newPasswordDraft: "",
         confirmPasswordDraft: "",
         dateTimeDraft: null,
+        teacherAssistants: [],
+        teacherAssistantsLoading: false,
     };
 
     function escapeHtml(value) {
@@ -273,6 +275,83 @@
             .catch(function () {});
     }
 
+    function loadTeacherAssistants() {
+        var meData = getMePayload() || {};
+        var role = meData.role || localStorage.getItem("auth_role") || "";
+        if (role !== "teacher" || !window.linkseeApi) {
+            state.teacherAssistants = [];
+            state.teacherAssistantsLoading = false;
+            return Promise.resolve([]);
+        }
+        state.teacherAssistantsLoading = true;
+        if (state.open) render();
+        return window.linkseeApi.getJson("/api/v1/users/assistants/mine")
+            .then(function (payload) {
+                state.teacherAssistants = Array.isArray(payload && payload.data) ? payload.data : [];
+                state.teacherAssistantsLoading = false;
+                if (state.open) render();
+                return state.teacherAssistants;
+            })
+            .catch(function () {
+                state.teacherAssistants = [];
+                state.teacherAssistantsLoading = false;
+                if (state.open) render();
+                return [];
+            });
+    }
+
+    function renderTeacherAssistantSection(role) {
+        if (role !== "teacher" || state.forceMode) {
+            return "";
+        }
+        var loadingHtml = state.teacherAssistantsLoading
+            ? '<div class="user-settings-assistant-empty">正在加载子账号...</div>'
+            : "";
+        var listHtml = !state.teacherAssistantsLoading && state.teacherAssistants.length
+            ? state.teacherAssistants.map(function (row) {
+                var activeLabel = row.isActive ? "启用中" : "已停用";
+                return [
+                    '<article class="user-settings-assistant-item" data-assistant-id="' + escapeHtml(row.assistantUserId || row.id) + '">',
+                    '<div class="user-settings-assistant-item-head">',
+                    '<div><strong>' + escapeHtml(row.realName || "未命名助教") + '</strong><span class="user-settings-assistant-meta">账号 ' + escapeHtml(row.id || row.assistantUserId || "--") + ' · 已绑课程 ' + escapeHtml(String(row.boundCourseCount || 0)) + ' 门</span></div>',
+                    '<span class="user-settings-assistant-state' + (row.isActive ? " is-active" : " is-inactive") + '">' + escapeHtml(activeLabel) + '</span>',
+                    '</div>',
+                    '<div class="user-settings-assistant-row">',
+                    '<label class="user-settings-field"><span>姓名</span><input data-assistant-edit-name="' + escapeHtml(row.id || row.assistantUserId || "") + '" value="' + escapeHtml(row.realName || "") + '" placeholder="输入助教姓名" /></label>',
+                    '<div class="user-settings-assistant-actions">',
+                    '<button class="btn btn-secondary" type="button" data-action="save-assistant" data-assistant-id="' + escapeHtml(row.id || row.assistantUserId || "") + '">保存</button>',
+                    '<button class="btn btn-secondary" type="button" data-action="reset-assistant-password" data-assistant-id="' + escapeHtml(row.id || row.assistantUserId || "") + '">重置密码</button>',
+                    '<button class="btn btn-ghost" type="button" data-action="toggle-assistant-active" data-assistant-id="' + escapeHtml(row.id || row.assistantUserId || "") + '" data-next-active="' + escapeHtml(row.isActive ? "false" : "true") + '">' + escapeHtml(row.isActive ? "停用" : "启用") + '</button>',
+                    '</div>',
+                    '</div>',
+                    '</article>',
+                ].join("");
+            }).join("")
+            : "";
+        var emptyHtml = !state.teacherAssistantsLoading && !state.teacherAssistants.length
+            ? '<div class="user-settings-assistant-empty">当前还没有创建子账号。</div>'
+            : "";
+        return [
+            '<section class="settings-section user-settings-assistant-section">',
+            '<div class="settings-section-head"><h3>助教 / 子账号管理</h3><p>仅教师可见，可创建并管理自己名下的助教账号。</p></div>',
+            '<div class="user-settings-assistant-grid">',
+            '<div class="user-settings-assistant-create">',
+            '<label class="user-settings-field"><span>账号</span><input data-field="assistantId" maxlength="10" placeholder="留空自动生成 10 位账号" /></label>',
+            '<label class="user-settings-field"><span>姓名</span><input data-field="assistantName" placeholder="输入助教姓名" /></label>',
+            '<label class="user-settings-field"><span>初始密码</span><input data-field="assistantPassword" type="password" autocomplete="new-password" placeholder="留空自动生成" /></label>',
+            '<div class="dashboard-soft-note">默认建议：账号留空自动生成；如学院有统一编号规则，也可由教师手动指定 10 位账号。</div>',
+            '<button class="btn btn-primary" type="button" data-action="create-assistant">新建子账号</button>',
+            '</div>',
+            '<div class="user-settings-assistant-list">',
+            loadingHtml,
+            listHtml,
+            emptyHtml,
+            '</div>',
+            '</div>',
+            '</section>',
+        ].join("");
+    }
+
     function render() {
         if (!state.dialog) return;
         var profile = getProfile();
@@ -335,6 +414,7 @@
             "</div>",
             "</div>",
             "</section>",
+            renderTeacherAssistantSection(role),
             '<section class="settings-section user-settings-theme">',
             '<div class="settings-section-head"><h3>主题颜色</h3><p>选择你偏好的界面风格</p></div>',
             '<div class="settings-theme-strip">',
@@ -496,6 +576,18 @@
                         state.confirmPasswordDraft
                     );
                 }
+                if (action === "create-assistant") {
+                    createAssistant();
+                }
+                if (action === "save-assistant") {
+                    saveAssistant(btn.getAttribute("data-assistant-id"));
+                }
+                if (action === "reset-assistant-password") {
+                    resetAssistantPassword(btn.getAttribute("data-assistant-id"));
+                }
+                if (action === "toggle-assistant-active") {
+                    toggleAssistantActive(btn.getAttribute("data-assistant-id"), btn.getAttribute("data-next-active") === "true");
+                }
             });
         });
     }
@@ -538,6 +630,7 @@
         build();
         ensureTheme();
         syncFromServer();
+        loadTeacherAssistants();
         state.message = "";
         state.messageType = "";
         state.saving = false;
@@ -722,6 +815,137 @@
             } else {
                 state.message = (err && err.message) || "密码修改失败";
             }
+            state.messageType = "error";
+            render();
+        });
+    }
+
+    function createAssistant() {
+        if (!window.linkseeApi || !state.dialog) {
+            return;
+        }
+        var idInput = state.dialog.querySelector('[data-field="assistantId"]');
+        var nameInput = state.dialog.querySelector('[data-field="assistantName"]');
+        var passwordInput = state.dialog.querySelector('[data-field="assistantPassword"]');
+        var id = idInput ? idInput.value.trim() : "";
+        var realName = nameInput ? nameInput.value.trim() : "";
+        var defaultPassword = passwordInput ? passwordInput.value.trim() : "";
+        if (!realName) {
+            state.message = "请填写助教姓名";
+            state.messageType = "error";
+            render();
+            return;
+        }
+        if (id && !/^\d{10}$/.test(id)) {
+            state.message = "账号需为 10 位数字，或留空自动生成";
+            state.messageType = "error";
+            render();
+            return;
+        }
+        if (defaultPassword && !isStrongPassword(defaultPassword)) {
+            state.message = passwordHint();
+            state.messageType = "error";
+            render();
+            return;
+        }
+        state.saving = true;
+        var payload = {
+            realName: realName,
+        };
+        if (id) payload.id = id;
+        if (defaultPassword) payload.defaultPassword = defaultPassword;
+        window.linkseeApi.postJson("/api/v1/users/assistants", payload)
+            .then(function (response) {
+                var data = response && response.data ? response.data : {};
+                state.saving = false;
+                state.messageType = "success";
+                state.message = "子账号已创建，账号：" + String(data.id || "--") + "，初始密码：" + String(data.temporaryPassword || "--");
+                if (idInput) idInput.value = "";
+                if (nameInput) nameInput.value = "";
+                if (passwordInput) passwordInput.value = "";
+                return loadTeacherAssistants();
+            })
+            .then(function () {
+                render();
+            })
+            .catch(function (err) {
+                state.saving = false;
+                state.message = (err && err.message) || "子账号创建失败";
+                state.messageType = "error";
+                render();
+            });
+    }
+
+    function saveAssistant(assistantId) {
+        if (!window.linkseeApi || !assistantId || !state.dialog) {
+            return;
+        }
+        var nameInput = state.dialog.querySelector('[data-assistant-edit-name="' + assistantId + '"]');
+        var realName = nameInput ? nameInput.value.trim() : "";
+        if (!realName) {
+            state.message = "助教姓名不能为空";
+            state.messageType = "error";
+            render();
+            return;
+        }
+        state.saving = true;
+        window.linkseeApi.patchJson("/api/v1/users/assistants/" + encodeURIComponent(assistantId), {
+            realName: realName,
+        }).then(function () {
+            state.saving = false;
+            state.message = "子账号信息已保存";
+            state.messageType = "success";
+            return loadTeacherAssistants();
+        }).then(function () {
+            render();
+        }).catch(function (err) {
+            state.saving = false;
+            state.message = (err && err.message) || "保存失败";
+            state.messageType = "error";
+            render();
+        });
+    }
+
+    function resetAssistantPassword(assistantId) {
+        if (!window.linkseeApi || !assistantId) {
+            return;
+        }
+        state.saving = true;
+        window.linkseeApi.postJson("/api/v1/auth/admin/reset-password", {
+            targetUserId: assistantId,
+        }).then(function (response) {
+            var data = response && response.data ? response.data : {};
+            state.saving = false;
+            state.message = "密码已重置，临时密码：" + String(data.temporaryPassword || "--");
+            state.messageType = "success";
+            return loadTeacherAssistants();
+        }).then(function () {
+            render();
+        }).catch(function (err) {
+            state.saving = false;
+            state.message = (err && err.message) || "密码重置失败";
+            state.messageType = "error";
+            render();
+        });
+    }
+
+    function toggleAssistantActive(assistantId, nextActive) {
+        if (!window.linkseeApi || !assistantId) {
+            return;
+        }
+        state.saving = true;
+        window.linkseeApi.patchJson("/api/v1/users/assistants/" + encodeURIComponent(assistantId), {
+            isActive: nextActive,
+        }).then(function () {
+            state.saving = false;
+            state.message = nextActive ? "子账号已启用" : "子账号已停用，并已解除课程绑定";
+            state.messageType = "success";
+            return loadTeacherAssistants();
+        }).then(function () {
+            render();
+        }).catch(function (err) {
+            state.saving = false;
+            state.message = (err && err.message) || "操作失败";
             state.messageType = "error";
             render();
         });

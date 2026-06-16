@@ -1,4 +1,4 @@
-import { CourseMemberStatus, Role } from "@prisma/client";
+import { CourseMemberStatus, CourseStatus, Role } from "@prisma/client";
 import type { Response } from "express";
 import { prisma } from "../infra/prisma.js";
 
@@ -36,7 +36,7 @@ export async function ensureCourseReadable(
 ): Promise<{ id: bigint } | null> {
   const course = await prisma.course.findUnique({
     where: { id: courseId },
-    select: { id: true },
+    select: { id: true, status: true },
   });
   if (!course) {
     courseNotFound(res);
@@ -45,6 +45,11 @@ export async function ensureCourseReadable(
 
   if (role === Role.academic) {
     return course;
+  }
+
+  if (course.status === CourseStatus.draft) {
+    courseForbidden(res, "Course is still in draft and not available yet");
+    return null;
   }
 
   if (role === Role.teacher || role === Role.assistant) {
@@ -86,7 +91,7 @@ export async function ensureCourseManageable(
 ): Promise<{ id: bigint } | null> {
   const course = await prisma.course.findUnique({
     where: { id: courseId },
-    select: { id: true },
+    select: { id: true, status: true },
   });
   if (!course) {
     courseNotFound(res);

@@ -111,7 +111,6 @@
                         <div class="student-hero-copy">
                             <span class="student-hero-kicker">成绩与反馈</span>
                             <h2 class="student-hero-title">最近成绩与反馈</h2>
-                            <p class="student-hero-subtitle">回顾阶段成果，查看教师与助教反馈，持续改进，稳步提升。</p>
                         </div>
                         <div class="student-hero-stats student-hero-stats-wide">
                             <article class="student-hero-stat">
@@ -143,9 +142,9 @@
                     </div>
                     <div class="dashboard-card-body student-panel-grid student-panel-grid-grades">
                         <aside class="student-panel-side">
-                            <section class="student-surface student-filter-surface">
+                            <section class="student-surface student-filter-surface student-grade-surface student-grade-surface-rail">
                                 <div class="student-surface-head">
-                                    <h3>课程与阶段选择</h3>
+                                    <h3>课程与阶段轨道</h3>
                                 </div>
                                 <label class="user-settings-field">
                                     <span>课程</span>
@@ -160,11 +159,10 @@
                             </section>
                         </aside>
                         <main class="student-panel-main">
-                            <section class="student-surface">
+                            <section class="student-surface student-grade-surface student-grade-surface-records">
                                 <div class="student-surface-head student-surface-head-row">
                                     <div>
                                         <h3>成绩记录列表</h3>
-                                        <p>按阶段查看已发布的成绩与评语。</p>
                                     </div>
                                     <label class="student-switch">
                                         <span>仅看已发布</span>
@@ -178,7 +176,7 @@
                                     <p>当前还没有已发布到你所在小组的阶段成绩。</p>
                                 </div>
                             </section>
-                            <section class="student-surface">
+                            <section class="student-surface student-grade-surface student-grade-surface-trend">
                                 <div class="student-surface-head">
                                     <h3>成绩趋势摘要</h3>
                                 </div>
@@ -186,10 +184,9 @@
                             </section>
                         </main>
                         <aside class="student-panel-side">
-                            <section class="student-surface">
+                            <section class="student-surface student-grade-surface student-grade-surface-feedback">
                                 <div class="student-surface-head">
                                     <h3>教师 / 助教反馈</h3>
-                                    <p>当前聚合接口未返回完整评语详情时，这里会展示状态与改进提示。</p>
                                 </div>
                                 <div class="student-feedback-stack" id="studentFeedbackList"></div>
                             </section>
@@ -516,6 +513,10 @@
                                                     <button class="student-activity-filter" type="button" data-activity-filter="todo">待办</button>
                                                     <button class="student-activity-filter" type="button" data-activity-filter="in_progress">进行中</button>
                                                     <button class="student-activity-filter" type="button" data-activity-filter="done">已完成</button>
+                                                    <button class="student-activity-filter" type="button" data-activity-filter="file">文件</button>
+                                                    <button class="student-activity-filter" type="button" data-activity-filter="submission">提交</button>
+                                                    <button class="student-activity-filter" type="button" data-activity-filter="mine">我相关</button>
+                                                    <button class="student-activity-filter" type="button" data-activity-filter="leader">组长操作</button>
                                                 </div>
                                                 <button id="extTaskReload" class="student-icon-action" type="button" aria-label="刷新动态" title="刷新动态">
                                                     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 10a6 6 0 1 1-1.7-4.1"></path><path d="M16 4.7v3.9h-3.8"></path></svg>
@@ -740,7 +741,6 @@
                         <div class="student-hero-copy">
                             <span class="student-hero-kicker">阶段提交中心</span>
                             <h2 class="student-hero-title">阶段提交中心</h2>
-                            <p class="student-hero-subtitle">按阶段要求提交成果，支持文件与链接提交，记录版本，查看评审结果。</p>
                         </div>
                         <div class="student-hero-stats student-hero-stats-wide">
                             <article class="student-hero-stat">
@@ -781,23 +781,43 @@
                                         选择课程 / 项目 / 阶段
                                     </h3>
                                 </div>
-                                <label class="user-settings-field">
-                                    <span>课程</span>
-                                    <select id="extSubmitCourse" class="dashboard-select"></select>
-                                </label>
-                                <label class="user-settings-field">
-                                    <span>项目</span>
-                                    <select id="extSubmitAssignment" class="dashboard-select"></select>
-                                </label>
-                                <label class="user-settings-field">
-                                    <span>阶段</span>
-                                    <select id="extSubmitStage" class="dashboard-select"></select>
-                                </label>
+                                <section class="student-submit-tree-section" id="studentSubmitCourseField">
+                                    <button class="student-submit-tree-toggle" type="button" data-submit-tree-toggle="course" aria-expanded="false">
+                                        <span class="student-submit-tree-label">课程</span>
+                                        <span class="student-submit-tree-meta" id="studentSubmitCourseValue">展开查看全部课程</span>
+                                        <span class="student-submit-tree-chevron" aria-hidden="true">
+                                            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m3.5 6 4.5 4 4.5-4"></path></svg>
+                                        </span>
+                                    </button>
+                                    <select id="extSubmitCourse" class="dashboard-select student-submit-native-select" tabindex="-1" aria-hidden="true"></select>
+                                    <div class="student-submit-tree-options" id="studentSubmitCourseOptions" hidden></div>
+                                    <section class="student-submit-tree-section student-submit-tree-section-child" id="studentSubmitAssignmentField" hidden>
+                                        <button class="student-submit-tree-toggle" type="button" data-submit-tree-toggle="assignment" aria-expanded="false">
+                                            <span class="student-submit-tree-label">项目</span>
+                                            <span class="student-submit-tree-meta" id="studentSubmitAssignmentValue">展开查看全部项目</span>
+                                            <span class="student-submit-tree-chevron" aria-hidden="true">
+                                                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m3.5 6 4.5 4 4.5-4"></path></svg>
+                                            </span>
+                                        </button>
+                                        <select id="extSubmitAssignment" class="dashboard-select student-submit-native-select" tabindex="-1" aria-hidden="true"></select>
+                                        <div class="student-submit-tree-options" id="studentSubmitAssignmentOptions" hidden></div>
+                                        <section class="student-submit-tree-section student-submit-tree-section-child" id="studentSubmitStageField" hidden>
+                                            <button class="student-submit-tree-toggle" type="button" data-submit-tree-toggle="stage" aria-expanded="false">
+                                                <span class="student-submit-tree-label">阶段</span>
+                                                <span class="student-submit-tree-meta" id="studentSubmitStageValue">展开查看全部阶段</span>
+                                                <span class="student-submit-tree-chevron" aria-hidden="true">
+                                                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m3.5 6 4.5 4 4.5-4"></path></svg>
+                                                </span>
+                                            </button>
+                                            <select id="extSubmitStage" class="dashboard-select student-submit-native-select" tabindex="-1" aria-hidden="true"></select>
+                                            <div class="student-submit-tree-options" id="studentSubmitStageOptions" hidden></div>
+                                        </section>
+                                    </section>
+                                </section>
                                 <label class="user-settings-field" hidden>
                                     <span>小组 ID</span>
                                     <input id="extSubmitGroup" class="dashboard-input" readonly />
                                 </label>
-                                <div class="student-submit-stage-list" id="studentSubmitStageList"></div>
                             </section>
                         </aside>
                         <main class="student-panel-main">
@@ -809,12 +829,6 @@
                                         </span>
                                         提交工作台
                                     </h3>
-                                </div>
-                                <div class="student-submit-workspace-intro">
-                                    <div class="student-submit-workspace-badge">
-                                        <span class="student-submit-workspace-dot"></span>
-                                        当前工作区会跟随所选阶段同步刷新
-                                    </div>
                                 </div>
                                 <div class="dashboard-inline-grid student-submit-inline-grid">
                                     <label class="user-settings-field">
@@ -887,12 +901,17 @@
                                     <div>
                                         <h3 class="student-surface-title">
                                             <span class="student-surface-title-icon" aria-hidden="true">
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 12a6 6 0 1 0 2-4.472" stroke-linecap="round"/><path d="M4 5v4h4M12 8v4l2.5 2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 12a6 6 0 1 0 2-4.472" stroke-linecap="round"/><path d="M4 5v4h4M12 8v4l2.5 2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                                             </span>
                                             已提交记录
                                         </h3>
                                     </div>
-                                    <button class="btn btn-secondary student-inline-action" id="studentSubmitHistoryReload" type="button">刷新</button>
+                                    <button class="student-icon-action" id="studentSubmitHistoryReload" type="button" aria-label="刷新提交记录">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M20 12a8 8 0 1 1-2.34-5.66"></path>
+                                            <path d="M20 4v6h-6"></path>
+                                        </svg>
+                                    </button>
                                 </div>
                                 <div class="student-submit-history" id="studentSubmitHistoryList"></div>
                             </section>

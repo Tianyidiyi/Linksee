@@ -5,7 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Linksee 教务工作台</title>
-    <link rel="stylesheet" href="./styles/theme.css?v=20260603c" />
+    <link rel="stylesheet" href="./styles/theme.css?v=20260611b" />
 </head>
 
 <body class="app-shell academic-shell">
@@ -22,17 +22,11 @@
                 </span>
                 <span class="nav-item-label">课程</span>
             </button>
-            <button class="nav-item" data-target="panel-assignments" type="button" title="监控">
+            <button class="nav-item" data-target="panel-user-maintenance" type="button" title="用户管理">
                 <span class="nav-item-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><path d="M7 14l4-4 3 3 4-6"></path></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.6-3 8.8-7 10-4-1.2-7-5.4-7-10V6l7-3z"></path><path d="M9 11.5c.2-1.8 1.3-3 3-3s2.8 1.2 3 3"></path><circle cx="12" cy="8.25" r="1.25"></circle></svg>
                 </span>
-                <span class="nav-item-label">监控</span>
-            </button>
-            <button class="nav-item" data-target="panel-course-staff" type="button" title="教师">
-                <span class="nav-item-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="3"></circle><path d="M2 20c0-3.2 2.6-5.8 5.8-5.8h2.4c3.2 0 5.8 2.6 5.8 5.8"></path><path d="M17 11h5"></path><path d="M19.5 8.5v5"></path></svg>
-                </span>
-                <span class="nav-item-label">教师</span>
+                <span class="nav-item-label">用户管理</span>
             </button>
         </nav>
         <div class="sidebar-actions">
@@ -85,9 +79,19 @@
                     </div>
                     <div class="dashboard-card-body">
                         <div class="dashboard-merged-section academic-course-manage-section">
-                            <div class="academic-toolbar">
-                                <input type="text" id="academicCourseSearch" placeholder="搜索课程名称或 ID..." />
-                                <select id="academicCourseStatusFilter">
+                            <div class="academic-toolbar academic-course-filter-grid">
+                                <input type="text" id="academicCourseSearch" class="dashboard-input" placeholder="搜索课程名称或 ID..." />
+                                <input type="text" id="academicCourseTeacherFilter" class="dashboard-input" placeholder="筛选教师姓名..." />
+                                <select id="academicCourseYearFilter" class="dashboard-select">
+                                    <option value="">全部学年</option>
+                                </select>
+                                <select id="academicCourseSemesterFilter" class="dashboard-select">
+                                    <option value="">全部学期</option>
+                                    <option value="1">第 1 学期</option>
+                                    <option value="2">第 2 学期</option>
+                                    <option value="3">第 3 学期</option>
+                                </select>
+                                <select id="academicCourseStatusFilter" class="dashboard-select">
                                     <option>全部状态</option>
                                     <option>进行中</option>
                                     <option>草稿</option>
@@ -104,166 +108,505 @@
                                 <div class="data-grid-header muted academic-table-header">
                                     <span>课程 ID</span>
                                     <span>课程名称</span>
-                                    <span>负责人</span>
+                                    <span>教师</span>
+                                    <span>学年 / 学期</span>
                                     <span>状态</span>
-                                    <span>操作</span>
+                                    <span></span>
                                 </div>
+                            </div>
+                            <div class="academic-course-pagination" id="academicCoursePagination" hidden>
+                                <button id="academicCoursePrevPageBtn" class="academic-inline-text-btn" type="button">上一页</button>
+                                <div class="academic-course-pagination-pages" id="academicCoursePageButtons"></div>
+                                <button id="academicCourseNextPageBtn" class="academic-inline-text-btn" type="button">下一页</button>
                             </div>
                             <div class="dashboard-empty-state" id="academicCourseEmpty" hidden>
                                 <strong>暂无课程</strong>
                                 <p>当前筛选条件下没有课程记录。</p>
                             </div>
                         </div>
-                    </div>
-                </section>
-            </div>
 
-            <div class="page-panel" id="panel-assignments">
-                <section class="card">
-                    <div class="dashboard-section-intro">
-                        <h2 class="card-title">全校项目监控</h2>
-                    </div>
-                    <div class="dashboard-filter-bar">
-                        <div class="dashboard-filter-meta" id="academicMonitorMeta">
-                            <span>正在加载项目监控...</span>
-                        </div>
-                        <span class="dashboard-soft-note" id="academicMonitorNote">基于课程 pipeline-health 实时统计</span>
-                    </div>
-                    <div class="config-stack" id="academicMonitorList"></div>
-                    <div class="dashboard-empty-state" id="academicMonitorEmpty" hidden>
-                        <strong>暂无监控项</strong>
-                        <p>当前课程下没有阶段流水线数据。</p>
-                    </div>
-                </section>
-            </div>
-
-            <div class="page-panel" id="panel-course-editor">
-                <section class="card">
-                    <div class="dashboard-section-intro">
-                        <h2 class="card-title">课程编辑</h2>
-                    </div>
-                    <div class="dashboard-card-body">
-                        <div class="dashboard-inline-grid">
-                            <div class="dashboard-subcard">
-                                <h3 class="dashboard-subcard-title">选择课程</h3>
-                                <select id="academicEditCourseSelect" class="dashboard-select"></select>
-                                <span class="dashboard-subcard-note" id="academicEditCourseHint"></span>
-                            </div>
-                            <div class="dashboard-subcard">
-                                <h3 class="dashboard-subcard-title">当前状态</h3>
-                                <div class="dashboard-filter-bar">
-                                    <div class="dashboard-filter-meta" id="academicEditCourseMeta">
+                        <div class="dashboard-merged-section academic-course-editor-section">
+                            <div class="dashboard-inline-grid academic-course-overview-grid">
+                                <div class="dashboard-subcard academic-course-selection-panel">
+                                    <h3 class="dashboard-subcard-title">选择课程</h3>
+                                    <select id="academicEditCourseSelect" class="dashboard-select"></select>
+                                    <span class="dashboard-subcard-note" id="academicEditCourseHint"></span>
+                                </div>
+                                <div class="dashboard-subcard academic-course-top-status-panel">
+                                    <div class="dashboard-filter-meta academic-course-selection-meta" id="academicEditCourseMeta">
                                         <span>等待选择课程</span>
                                     </div>
                                 </div>
                             </div>
+
+                            <div class="dashboard-inline-grid academic-course-lower-grid">
+                                <div class="dashboard-subcard academic-course-info-card">
+                                    <h3 class="dashboard-subcard-title">课程信息</h3>
+                                    <div class="single-window-form">
+                                        <div class="academic-form-row academic-form-row-dual">
+                                            <label class="academic-form-field" for="academicEditCourseNo">
+                                                <span class="academic-form-label">课程编号</span>
+                                                <input id="academicEditCourseNo" class="dashboard-input" placeholder="系统生成的课程编号" disabled />
+                                            </label>
+                                            <label class="academic-form-field" for="academicEditCourseName">
+                                                <span class="academic-form-label">课程名称</span>
+                                                <input id="academicEditCourseName" class="dashboard-input" placeholder="请输入课程名称" />
+                                            </label>
+                                        </div>
+                                        <label class="academic-form-field" for="academicEditCourseDescription">
+                                            <span class="academic-form-label">课程简介</span>
+                                            <textarea id="academicEditCourseDescription" class="dashboard-textarea" placeholder="简要说明课程目标、内容或适用对象"></textarea>
+                                        </label>
+                                        <select id="academicEditCourseStatus" class="dashboard-select">
+                                            <option value="draft">草稿</option>
+                                            <option value="active">进行中</option>
+                                            <option value="archived">已存档</option>
+                                        </select>
+                                        <div class="dashboard-panel-actions">
+                                            <button id="academicEditSubmitBtn" class="btn btn-primary" type="button">保存课程修改</button>
+                                            <button id="academicEditResetBtn" class="academic-icon-action" type="button" title="恢复当前值" aria-label="恢复当前值">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M3 12a9 9 0 1 0 3-6.708"></path>
+                                                    <path d="M3 4v5h5"></path>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <div class="dashboard-empty-state" id="academicEditResult" hidden></div>
+                                    </div>
+                                </div>
+
+                                <div class="dashboard-subcard academic-course-relation-card">
+                                    <div class="academic-course-relation-top">
+                                        <div class="academic-course-relation-heading">
+                                            <h3 class="dashboard-subcard-title">课程成员</h3>
+                                        </div>
+                                        <div class="academic-course-relation-top-actions">
+                                            <div class="academic-course-relation-summary">
+                                                <span class="academic-summary-chip" id="academicCourseTeacherCount">教师 0</span>
+                                                <span class="academic-summary-chip" id="academicCourseStudentCount">学生 0</span>
+                                            </div>
+                                            <button id="academicOpenMemberPickerBtn" class="btn btn-primary academic-member-edit-btn" type="button">修改成员</button>
+                                        </div>
+                                    </div>
+                                    <div class="academic-course-member-sections">
+                                        <section class="academic-member-table-panel">
+                                            <div class="academic-relation-column">
+                                                <div class="academic-course-query-head">
+                                                    <h4>教师与助教</h4>
+                                                </div>
+                                                <div class="list" id="academicCourseRelationTeachers"></div>
+                                            </div>
+                                        </section>
+                                        <section class="academic-member-table-panel academic-relation-column academic-relation-column-students">
+                                            <div class="academic-course-query-head">
+                                                <h4>学生</h4>
+                                                <button id="academicCourseStudentDetailBtn" class="academic-course-student-detail-btn" type="button">学生详情</button>
+                                            </div>
+                                            <div class="list" id="academicCourseRelationMembers"></div>
+                                        </section>
+                                    </div>
+                                    <div class="dashboard-empty-state academic-inline-result" id="academicCourseRelationResult" hidden></div>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="dashboard-subcard">
-                            <h3 class="dashboard-subcard-title">编辑表单</h3>
-                            <div class="single-window-form">
-                                <input id="academicEditCourseNo" class="dashboard-input" placeholder="课程编号" disabled />
-                                <input id="academicEditCourseName" class="dashboard-input" placeholder="课程名称" />
-                                <textarea id="academicEditCourseDescription" class="dashboard-textarea" placeholder="课程简介"></textarea>
-                                <select id="academicEditCourseStatus" class="dashboard-select">
-                                    <option value="draft">草稿</option>
-                                    <option value="active">进行中</option>
-                                    <option value="archived">已存档</option>
+                        <div class="academic-member-picker" id="academicMemberPicker" hidden>
+                            <div class="academic-member-picker-backdrop" data-member-picker-close></div>
+                            <section class="academic-member-picker-dialog" aria-modal="true" role="dialog" aria-label="添加课程成员">
+                                <div class="academic-member-picker-shell">
+                                    <aside class="academic-member-picker-sidebar">
+                                        <button class="academic-member-nav is-active" id="academicMemberTabStudent" type="button" data-member-tab="student">学生</button>
+                                        <button class="academic-member-nav" id="academicMemberTabTeacher" type="button" data-member-tab="teacher">教师</button>
+                                    </aside>
+                                    <div class="academic-member-picker-main">
+                                        <div class="academic-member-picker-topbar">
+                                            <div class="academic-member-picker-title">
+                                                <strong id="academicMemberPickerTitle">添加学生</strong>
+                                                <span id="academicMemberPickerMeta">默认显示全校学生</span>
+                                            </div>
+                                            <div class="academic-member-picker-actions">
+                                                <input id="academicRosterImportInput" type="file" accept=".xlsx,.xls,.csv" hidden />
+                                                <button id="academicRosterImportBtn" class="btn btn-secondary" type="button">导入选课名单</button>
+                                                <button id="academicMemberPickerApplyBtn" class="btn btn-primary" type="button">加入课程</button>
+                                                <button id="academicMemberPickerCloseBtn" class="academic-icon-action" type="button" aria-label="关闭" title="关闭">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path d="M18 6 6 18"></path>
+                                                        <path d="m6 6 12 12"></path>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div class="academic-member-toolbar" id="academicMemberStudentFilters">
+                                            <input id="academicMemberStudentName" class="dashboard-input" placeholder="姓名" />
+                                            <input id="academicMemberStudentStuNo" class="dashboard-input" placeholder="一卡通号 / 用户名" />
+                                            <select id="academicMemberStudentGrade" class="dashboard-select">
+                                                <option value="">全部年级</option>
+                                            </select>
+                                            <select id="academicMemberStudentMajor" class="dashboard-select">
+                                                <option value="">全部专业</option>
+                                            </select>
+                                            <select id="academicMemberStudentAdminClass" class="dashboard-select" disabled>
+                                                <option value="">请先选择年级和专业</option>
+                                            </select>
+                                            <label class="academic-member-inline-check"><input id="academicMemberStudentAddedOnly" type="checkbox" />仅看已加入</label>
+                                            <div class="academic-member-toolbar-actions">
+                                                <button id="academicMemberStudentSearchBtn" class="academic-inline-text-btn" type="button">筛选</button>
+                                                <button id="academicMemberStudentResetBtn" class="academic-inline-text-btn" type="button">清空</button>
+                                            </div>
+                                        </div>
+
+                                        <div class="academic-member-toolbar" id="academicMemberTeacherFilters" hidden>
+                                            <input id="academicMemberTeacherName" class="dashboard-input" placeholder="姓名" />
+                                            <input id="academicMemberTeacherNo" class="dashboard-input" placeholder="工号" />
+                                            <input id="academicMemberTeacherCollege" class="dashboard-input" placeholder="学院" />
+                                            <select id="academicMemberTeacherRole" class="dashboard-select">
+                                                <option value="lead">作为主讲教师加入</option>
+                                                <option value="co">作为协同教师加入</option>
+                                            </select>
+                                            <label class="academic-member-inline-check"><input id="academicMemberTeacherAddedOnly" type="checkbox" />仅看已加入</label>
+                                            <div class="academic-member-toolbar-actions">
+                                                <button id="academicMemberTeacherSearchBtn" class="academic-inline-text-btn" type="button">筛选</button>
+                                                <button id="academicMemberTeacherResetBtn" class="academic-inline-text-btn" type="button">清空</button>
+                                            </div>
+                                        </div>
+
+                                        <div class="academic-member-batchbar">
+                                            <label class="academic-member-inline-check"><input id="academicMemberSelectAll" type="checkbox" />全选本页</label>
+                                            <span id="academicMemberSelectionMeta">已选 0 项</span>
+                                        </div>
+
+                                        <div class="academic-member-table" id="academicMemberPickerTable"></div>
+
+                                        <div class="academic-member-pagination">
+                                            <button id="academicMemberPrevPageBtn" class="academic-inline-text-btn" type="button">上一页</button>
+                                            <div class="academic-member-pagination-pages" id="academicMemberPageButtons"></div>
+                                            <button id="academicMemberNextPageBtn" class="academic-inline-text-btn" type="button">下一页</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+
+                        <div class="academic-member-detail" id="academicStudentDetail" hidden>
+                            <div class="academic-member-detail-backdrop" data-student-detail-close></div>
+                            <section class="academic-member-detail-dialog" aria-modal="true" role="dialog" aria-label="学生详情">
+                                <div class="academic-member-detail-topbar">
+                                    <div class="academic-member-detail-title">
+                                        <strong>学生详情</strong>
+                                        <span>可在这里查看并修改当前学生信息。</span>
+                                    </div>
+                                    <button id="academicStudentDetailCloseBtn" class="academic-icon-action" type="button" aria-label="关闭" title="关闭">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M18 6 6 18"></path>
+                                            <path d="m6 6 12 12"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div class="academic-member-detail-grid">
+                                    <label class="academic-form-field" for="academicStudentDetailName">
+                                        <span class="academic-form-label">学生姓名</span>
+                                        <input id="academicStudentDetailName" class="dashboard-input" placeholder="请输入学生姓名" />
+                                    </label>
+                                    <label class="academic-form-field" for="academicStudentDetailStuNo">
+                                        <span class="academic-form-label">一卡通号（用户名）</span>
+                                        <input id="academicStudentDetailStuNo" class="dashboard-input" placeholder="一卡通号（用户名）" disabled />
+                                    </label>
+                                    <label class="academic-form-field" for="academicStudentDetailGrade">
+                                        <span class="academic-form-label">年级</span>
+                                        <select id="academicStudentDetailGrade" class="dashboard-select">
+                                            <option value="">请选择年级</option>
+                                        </select>
+                                    </label>
+                                    <label class="academic-form-field" for="academicStudentDetailMajor">
+                                        <span class="academic-form-label">专业</span>
+                                        <select id="academicStudentDetailMajor" class="dashboard-select">
+                                            <option value="">请选择专业</option>
+                                        </select>
+                                    </label>
+                                    <label class="academic-form-field" for="academicStudentDetailAdminClass">
+                                        <span class="academic-form-label">行政班</span>
+                                        <select id="academicStudentDetailAdminClass" class="dashboard-select" disabled>
+                                            <option value="">请先选择年级和专业</option>
+                                        </select>
+                                    </label>
+                                </div>
+                                <div class="dashboard-panel-actions academic-member-detail-actions">
+                                    <button id="academicStudentDetailSaveBtn" class="btn btn-primary" type="button">保存修改</button>
+                                    <button id="academicStudentDetailRemoveBtn" class="btn btn-secondary" type="button">移出课程</button>
+                                </div>
+                            </section>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <div class="page-panel" id="panel-user-maintenance">
+                <section class="card">
+                    <div class="dashboard-section-intro">
+                        <h2 class="card-title">用户管理</h2>
+                    </div>
+                    <div class="dashboard-card-body">
+                        <div class="dashboard-filter-bar academic-user-summary-bar">
+                            <div class="dashboard-filter-meta" id="academicUserSummaryMeta">
+                                <span>正在加载用户目录...</span>
+                            </div>
+                            <div class="academic-user-summary-actions">
+                                <div class="academic-user-icon-menu">
+                                    <button id="academicUserImportBtn" class="academic-user-icon-link" type="button" aria-expanded="false">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M12 16V4"></path>
+                                            <path d="m7 9 5-5 5 5"></path>
+                                            <path d="M4 20h16"></path>
+                                        </svg>
+                                        <span>导入</span>
+                                    </button>
+                                    <div id="academicUserImportMenu" class="academic-user-float-menu" hidden>
+                                        <button id="academicUserImportStudentBtn" class="academic-user-float-item" type="button">导入学生</button>
+                                        <button id="academicUserImportTeacherBtn" class="academic-user-float-item" type="button">导入教师</button>
+                                    </div>
+                                </div>
+                                <div class="academic-user-icon-menu">
+                                    <button id="academicUserExportBtn" class="academic-user-icon-link" type="button" aria-expanded="false">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M12 4v12"></path>
+                                            <path d="m7 11 5 5 5-5"></path>
+                                            <path d="M4 20h16"></path>
+                                        </svg>
+                                        <span>导出</span>
+                                    </button>
+                                    <div id="academicUserExportMenu" class="academic-user-float-menu" hidden>
+                                        <button class="academic-user-float-item" type="button" data-user-export-format="xlsx">导出为 .xlsx</button>
+                                        <button class="academic-user-float-item" type="button" data-user-export-format="xls">导出为 .xls</button>
+                                        <button class="academic-user-float-item" type="button" data-user-export-format="csv">导出为 .csv</button>
+                                    </div>
+                                </div>
+                                <button id="academicUserCreateBtn" class="academic-user-icon-link" type="button">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 5v14"></path>
+                                        <path d="M5 12h14"></path>
+                                    </svg>
+                                    <span>新建用户</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="dashboard-merged-section academic-user-directory-shell">
+                            <div class="academic-user-directory-headbar">
+                                <div class="academic-user-directory-tabs">
+                                    <button id="academicUserTabStudent" class="academic-user-tab is-active" type="button">学生</button>
+                                    <button id="academicUserTabTeacher" class="academic-user-tab" type="button">教师</button>
+                                    <button id="academicUserTabAssistant" class="academic-user-tab" type="button">教师子账号</button>
+                                </div>
+                                <div class="academic-user-directory-actions">
+                                    <button id="academicUserDefaultPasswordBtn" class="academic-user-text-btn" type="button">默认密码设置</button>
+                                    <button id="academicUserResetBtn" class="academic-user-soft-btn" type="button" disabled>重置密码</button>
+                                </div>
+                            </div>
+
+                            <div class="academic-user-toolbar academic-user-toolbar-student" id="academicUserStudentFilters">
+                                <input id="academicUserStudentKeyword" class="dashboard-input" placeholder="搜索一卡通号 / 姓名" />
+                                <select id="academicUserStudentGrade" class="dashboard-select">
+                                    <option value="">全部年级</option>
                                 </select>
-                                <div class="dashboard-panel-actions">
-                                    <button id="academicEditSubmitBtn" class="btn btn-primary" type="button">保存课程修改</button>
-                                    <button id="academicEditResetBtn" class="btn btn-secondary" type="button">恢复当前值</button>
+                                <select id="academicUserStudentMajor" class="dashboard-select">
+                                    <option value="">全部专业</option>
+                                </select>
+                                <select id="academicUserStudentAdminClass" class="dashboard-select" disabled>
+                                    <option value="">请先选择年级和专业</option>
+                                </select>
+                                <select id="academicUserStudentCohort" class="dashboard-select">
+                                    <option value="">全部届次</option>
+                                </select>
+                                <div class="academic-user-toolbar-actions">
+                                    <button id="academicUserStudentSearchBtn" class="academic-inline-text-btn" type="button">筛选</button>
+                                    <button id="academicUserStudentResetBtn" class="academic-inline-text-btn" type="button">清空</button>
                                 </div>
-                                <div class="dashboard-empty-state" id="academicEditResult" hidden></div>
                             </div>
-                        </div>
-                    </div>
-                </section>
-            </div>
 
-            <div class="page-panel" id="panel-course-staff">
-                <section class="card">
-                    <div class="dashboard-section-intro">
-                        <h2 class="card-title">教师配置</h2>
-                    </div>
-                    <div class="dashboard-card-body">
-                        <div class="dashboard-inline-grid">
-                            <div class="dashboard-subcard">
-                                <h3 class="dashboard-subcard-title">选择课程</h3>
-                                <select id="academicStaffCourseSelect" class="dashboard-select"></select>
-                                <span class="dashboard-subcard-note" id="academicStaffCourseHint"></span>
+                            <div class="academic-user-toolbar academic-user-toolbar-teacher" id="academicUserTeacherFilters" hidden>
+                                <input id="academicUserTeacherKeyword" class="dashboard-input" placeholder="搜索工号 / 姓名" />
+                                <input id="academicUserTeacherCollege" class="dashboard-input" placeholder="学院" />
+                                <input id="academicUserTeacherTitle" class="dashboard-input" placeholder="职称" />
+                                <div class="academic-user-toolbar-actions">
+                                    <button id="academicUserTeacherSearchBtn" class="academic-inline-text-btn" type="button">筛选</button>
+                                    <button id="academicUserTeacherResetBtn" class="academic-inline-text-btn" type="button">清空</button>
+                                </div>
                             </div>
-                            <div class="dashboard-subcard">
-                                <h3 class="dashboard-subcard-title">新增教师绑定</h3>
-                                <div class="single-window-form">
-                                    <input id="academicStaffTeacherId" class="dashboard-input" placeholder="教师用户 ID，例如 2023000001" />
-                                    <select id="academicStaffTeacherRole" class="dashboard-select">
-                                        <option value="lead">主讲教师</option>
-                                        <option value="co">协同教师</option>
+
+                            <div class="academic-user-toolbar academic-user-toolbar-assistant" id="academicUserAssistantFilters" hidden>
+                                <input id="academicUserAssistantKeyword" class="dashboard-input" placeholder="搜索助教账号 / 姓名" />
+                                <input id="academicUserAssistantOwner" class="dashboard-input" placeholder="所属教师姓名" />
+                                <div class="academic-user-toolbar-actions">
+                                    <button id="academicUserAssistantSearchBtn" class="academic-inline-text-btn" type="button">筛选</button>
+                                    <button id="academicUserAssistantResetBtn" class="academic-inline-text-btn" type="button">清空</button>
+                                </div>
+                            </div>
+
+                            <div class="academic-user-directory-table-shell">
+                                <div class="academic-user-directory-table" id="academicUserDirectoryTable"></div>
+                            </div>
+
+                            <div class="academic-user-directory-footer">
+                                <div class="academic-user-directory-total" id="academicUserDirectoryMeta">
+                                    <span>正在加载列表...</span>
+                                </div>
+                                <div class="academic-user-directory-pagination" id="academicUserDirectoryPagination" hidden>
+                                    <select id="academicUserPageSize" class="dashboard-select academic-user-page-size">
+                                        <option value="5">5 条/页</option>
+                                        <option value="10" selected>10 条/页</option>
+                                        <option value="20">20 条/页</option>
                                     </select>
-                                    <button id="academicStaffAddTeacherBtn" class="btn btn-primary" type="button">添加教师到课程</button>
+                                    <button id="academicUserPrevPageBtn" class="academic-inline-text-btn" type="button">上一页</button>
+                                    <div class="academic-user-directory-pagination-pages" id="academicUserPageButtons"></div>
+                                    <button id="academicUserNextPageBtn" class="academic-inline-text-btn" type="button">下一页</button>
+                                    <div class="academic-user-page-jump">
+                                        <span>前往</span>
+                                        <input id="academicUserPageJumpInput" class="dashboard-input" inputmode="numeric" />
+                                        <button id="academicUserPageJumpBtn" class="academic-inline-text-btn" type="button">跳转</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-
-                        <div class="dashboard-inline-grid dashboard-split-scroll-grid">
-                            <div class="dashboard-subcard">
-                                <h3 class="dashboard-subcard-title">当前教师</h3>
-                                <div class="list dashboard-scroll-region" id="academicStaffTeacherList"></div>
-                            </div>
-                            <div class="dashboard-subcard">
-                                <h3 class="dashboard-subcard-title">当前助教</h3>
-                                <div class="list dashboard-scroll-region" id="academicStaffAssistantList"></div>
-                            </div>
-                        </div>
-
-                        <div class="dashboard-empty-state" id="academicStaffResult" hidden></div>
-                    </div>
-                </section>
-            </div>
-
-            <div class="page-panel" id="panel-account-batch">
-                <section class="card">
-                    <div class="dashboard-section-intro">
-                        <h2 class="card-title">账号开通</h2>
-                    </div>
-                    <div class="dashboard-card-body">
-                        <div class="dashboard-subcard">
-                            <h3 class="dashboard-subcard-title">默认密码</h3>
-                            <input id="academicBatchDefaultPassword" class="dashboard-input" placeholder="可选：留空则自动生成临时密码" />
-                        </div>
-                        <div class="dashboard-inline-grid dashboard-split-scroll-grid">
-                            <div class="dashboard-subcard">
-                                <h3 class="dashboard-subcard-title">批量创建学生</h3>
-                                <textarea id="academicBatchStudents" class="dashboard-textarea" placeholder="2023010001,张三,2023010001,2023,2023,软件工程,软工2301"></textarea>
-                                <div class="dashboard-panel-actions">
-                                    <button id="academicBatchStudentSubmitBtn" class="btn btn-primary" type="button">创建学生账号</button>
-                                    <button id="academicBatchStudentClearBtn" class="btn btn-secondary" type="button">清空学生数据</button>
-                                </div>
-                            </div>
-                            <div class="dashboard-subcard">
-                                <h3 class="dashboard-subcard-title">批量创建教师</h3>
-                                <textarea id="academicBatchTeachers" class="dashboard-textarea" placeholder="2023000001,李老师,2023000001,教授,计算机学院,软件工程教育"></textarea>
-                                <div class="dashboard-panel-actions">
-                                    <button id="academicBatchTeacherSubmitBtn" class="btn btn-primary" type="button">创建教师账号</button>
-                                    <button id="academicBatchTeacherClearBtn" class="btn btn-secondary" type="button">清空教师数据</button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="dashboard-empty-state" id="academicBatchResult" hidden></div>
                     </div>
                 </section>
             </div>
         </div>
     </div>
 
+    <input id="academicUserImportInput" type="file" accept=".xlsx,.xls,.csv" hidden />
+
+    <div class="academic-user-dialog" id="academicUserDialog" hidden>
+        <div class="academic-user-dialog-backdrop" data-user-dialog-close></div>
+        <section class="academic-user-dialog-panel" aria-modal="true" role="dialog" aria-label="用户详情与编辑">
+            <div class="academic-user-dialog-topbar">
+                <div class="academic-user-dialog-title">
+                    <strong id="academicUserDialogTitle">用户详情</strong>
+                    <span id="academicUserDialogMeta">请先选择用户</span>
+                </div>
+                <button id="academicUserDialogCloseBtn" class="academic-icon-action" type="button" aria-label="关闭" title="关闭">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 6 6 18"></path>
+                        <path d="m6 6 12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="academic-user-dialog-body" id="academicUserDialogBody"></div>
+            <div class="academic-user-dialog-actions">
+                <button id="academicUserDialogDeleteBtn" class="academic-user-danger-btn" type="button" hidden>删除用户</button>
+                <div class="academic-user-dialog-actions-right">
+                    <button id="academicUserDialogCancelBtn" class="btn btn-secondary" type="button" hidden>取消</button>
+                    <button id="academicUserDialogSaveBtn" class="btn btn-primary" type="button">编辑</button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="academic-user-dialog" id="academicUserBatchDialog" hidden>
+        <div class="academic-user-dialog-backdrop" data-user-batch-close></div>
+        <section class="academic-user-dialog-panel academic-user-batch-panel" aria-modal="true" role="dialog" aria-label="导入用户">
+            <div class="academic-user-dialog-topbar">
+                <div class="academic-user-dialog-title">
+                    <strong id="academicUserBatchDialogTitle">导入学生</strong>
+                    <span id="academicUserBatchDialogMeta">支持 Excel 常见表格格式</span>
+                </div>
+                <button id="academicUserBatchDialogCloseBtn" class="academic-icon-action" type="button" aria-label="关闭" title="关闭">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 6 6 18"></path>
+                        <path d="m6 6 12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="academic-user-dialog-body">
+                <div class="academic-user-import-panel">
+                    <div class="academic-user-import-hint" id="academicUserBatchFormatHint">学生表头：一卡通号、姓名、年级、届次、专业、行政班</div>
+                    <div class="academic-user-import-filebox">
+                        <div class="academic-user-import-filemeta">
+                            <strong id="academicUserImportFileName">尚未选择文件</strong>
+                            <span>支持 `.xlsx`、`.xls`、`.csv`，默认读取第一个工作表</span>
+                        </div>
+                        <button id="academicUserImportChooseBtn" class="academic-user-soft-btn" type="button">选择文件</button>
+                    </div>
+                </div>
+            </div>
+            <div class="academic-user-dialog-actions">
+                <button id="academicUserBatchDialogCancelBtn" class="btn btn-secondary" type="button">取消</button>
+                <button id="academicUserBatchDialogSubmitBtn" class="btn btn-primary" type="button">确认导入</button>
+            </div>
+        </section>
+    </div>
+
+    <div class="academic-user-dialog" id="academicUserCreateDialog" hidden>
+        <div class="academic-user-dialog-backdrop" data-user-create-close></div>
+        <section class="academic-user-dialog-panel academic-user-create-panel" aria-modal="true" role="dialog" aria-label="新建用户">
+            <div class="academic-user-dialog-topbar">
+                <div class="academic-user-dialog-title">
+                    <strong id="academicUserCreateDialogTitle">新建用户</strong>
+                    <span id="academicUserCreateDialogMeta">根据当前页签创建对应角色账号</span>
+                </div>
+                <button id="academicUserCreateDialogCloseBtn" class="academic-icon-action" type="button" aria-label="关闭" title="关闭">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 6 6 18"></path>
+                        <path d="m6 6 12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="academic-user-dialog-body" id="academicUserCreateDialogBody"></div>
+            <div class="academic-user-dialog-actions">
+                <button id="academicUserCreateDialogCancelBtn" class="btn btn-secondary" type="button">取消</button>
+                <button id="academicUserCreateDialogSubmitBtn" class="btn btn-primary" type="button">确认创建</button>
+            </div>
+        </section>
+    </div>
+
+    <div class="academic-user-dialog" id="academicUserPasswordDialog" hidden>
+        <div class="academic-user-dialog-backdrop" data-user-password-close></div>
+        <section class="academic-user-password-panel" aria-modal="true" role="dialog" aria-label="默认密码设置">
+            <div class="academic-user-dialog-topbar">
+                <div class="academic-user-dialog-title">
+                    <strong>默认密码设置</strong>
+                    <span>留空时批量重置与批量导入将由后端自动生成密码</span>
+                </div>
+                <button id="academicUserPasswordDialogCloseBtn" class="academic-icon-action" type="button" aria-label="关闭" title="关闭">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 6 6 18"></path>
+                        <path d="m6 6 12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="academic-user-dialog-body">
+                <label class="academic-user-dialog-field academic-user-dialog-field-wide">
+                    <span>默认密码</span>
+                    <input id="academicUserDefaultPasswordInput" class="dashboard-input" placeholder="留空则自动生成" />
+                </label>
+            </div>
+            <div class="academic-user-dialog-actions">
+                <button id="academicUserPasswordDialogClearBtn" class="btn btn-secondary" type="button">清空</button>
+                <button id="academicUserPasswordDialogSaveBtn" class="btn btn-primary" type="button">保存确定</button>
+            </div>
+        </section>
+    </div>
+
+    <div class="academic-user-dialog" id="academicUserConfirmDialog" hidden>
+        <div class="academic-user-dialog-backdrop" data-user-confirm-close></div>
+        <section class="academic-user-password-panel academic-user-confirm-panel" aria-modal="true" role="dialog" aria-label="确认操作">
+            <div class="academic-user-dialog-title">
+                <strong id="academicUserConfirmTitle">确认操作</strong>
+                <span id="academicUserConfirmMessage">请确认是否继续。</span>
+            </div>
+            <div class="academic-user-dialog-actions">
+                <button id="academicUserConfirmCancelBtn" class="btn btn-secondary" type="button">取消</button>
+                <button id="academicUserConfirmSubmitBtn" class="btn btn-primary" type="button">确认</button>
+            </div>
+        </section>
+    </div>
+
     <script src="./scripts/api-client.js?v=20260602b"></script>
     <script src="./scripts/page-utils.js?v=20260602b"></script>
-    <script src="./scripts/dashboard-extensions.js?v=20260602b"></script>
-    <script src="./scripts/dashboard-shell.js?v=20260603w"></script>
+    <script src="./scripts/dashboard-extensions.js?v=20260616b"></script>
+    <script src="./scripts/dashboard-shell.js?v=20260611a"></script>
     <script src="./scripts/user-settings.js?v=20260602b"></script>
     <script src="./scripts/leaf-pile.js?v=20260602b"></script>
-    <script src="./scripts/academic-dashboard.js?v=20260602b"></script>
+    <script src="./scripts/academic-dashboard.js?v=20260616c"></script>
     <script>
         if (!linkseePage.requireAuth()) { throw new Error("auth required"); }
         initDashboardShell({

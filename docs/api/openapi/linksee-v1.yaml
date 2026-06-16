@@ -101,6 +101,7 @@ paths:
       tags:
         - Courses
       summary: 创建课程
+      description: 创建课程后，后端会自动创建对应的课程群聊会话，并写入一条系统初始化消息。
       operationId: createCourse
       security:
         - bearerAuth: []
@@ -233,6 +234,455 @@ paths:
                         format: date-time
         "400":
           $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /courses/{courseId}/teachers:
+    get:
+      tags:
+        - Courses
+      summary: 获取课程教师列表
+      operationId: listCourseTeachers
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+      responses:
+        "200":
+          description: 课程教师列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        role:
+                          type: string
+                          enum: [lead, co]
+                        assignedAt:
+                          type: string
+                          format: date-time
+                        user:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            profile:
+                              type: object
+                              nullable: true
+                              properties:
+                                realName:
+                                  type: string
+                                avatarUrl:
+                                  type: string
+                                  nullable: true
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      tags:
+        - Courses
+      summary: 为课程添加教师
+      operationId: addCourseTeacher
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId]
+              properties:
+                userId:
+                  type: string
+                role:
+                  type: string
+                  enum: [lead, co]
+                  default: lead
+      responses:
+        "201":
+          description: 添加成功
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /courses/{courseId}/teachers/{userId}:
+    patch:
+      tags:
+        - Courses
+      summary: 调整课程教师角色
+      operationId: updateCourseTeacherRole
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role:
+                  type: string
+                  enum: [lead, co]
+      responses:
+        "200":
+          description: 调整成功
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    delete:
+      tags:
+        - Courses
+      summary: 将教师移出课程
+      operationId: removeCourseTeacher
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 移出成功
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /courses/{courseId}/assistants:
+    get:
+      tags:
+        - Courses
+      summary: 获取课程助教列表
+      operationId: listCourseAssistants
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+      responses:
+        "200":
+          description: 课程助教列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        assistantUserId:
+                          type: string
+                        teacherUserId:
+                          type: string
+                        createdAt:
+                          type: string
+                          format: date-time
+                        assistant:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            profile:
+                              type: object
+                              nullable: true
+                              properties:
+                                realName:
+                                  type: string
+                                avatarUrl:
+                                  type: string
+                                  nullable: true
+                                accountNo:
+                                  type: string
+                                  nullable: true
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      tags:
+        - Courses
+      summary: 课程老师绑定自己的助教到课程
+      operationId: addCourseAssistant
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [assistantUserId]
+              properties:
+                assistantUserId:
+                  type: string
+                  description: 10 位助教用户 ID
+      responses:
+        "201":
+          description: 绑定成功
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /courses/{courseId}/assistants/{assistantUserId}:
+    delete:
+      tags:
+        - Courses
+      summary: 将助教移出课程
+      operationId: removeCourseAssistant
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+        - name: assistantUserId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 移出成功
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /courses/{courseId}/members:
+    get:
+      tags:
+        - Courses
+      summary: 获取课程学生列表
+      operationId: listCourseMembers
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [active, withdrawn]
+            default: active
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        "200":
+          description: 课程学生列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        status:
+                          type: string
+                          enum: [active, withdrawn]
+                        joinedAt:
+                          type: string
+                          format: date-time
+                        user:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            profile:
+                              type: object
+                              nullable: true
+                              properties:
+                                realName:
+                                  type: string
+                                accountNo:
+                                  type: string
+                                  nullable: true
+                                avatarUrl:
+                                  type: string
+                                  nullable: true
+                            studentProfile:
+                              type: object
+                              nullable: true
+                              properties:
+                                stuNo:
+                                  type: string
+                                grade:
+                                  type: integer
+                                adminClass:
+                                  type: string
+                  paging:
+                    $ref: "#/components/schemas/Paging"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      tags:
+        - Courses
+      summary: 为课程添加单个学生
+      operationId: addCourseMember
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId]
+              properties:
+                userId:
+                  type: string
+      responses:
+        "201":
+          description: 添加成功
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /courses/{courseId}/members/batch:
+    post:
+      tags:
+        - Courses
+      summary: 为课程批量添加学生
+      operationId: batchAddCourseMembers
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userIds]
+              properties:
+                userIds:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "201":
+          description: 批量添加成功
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /courses/{courseId}/members/{userId}:
+    delete:
+      tags:
+        - Courses
+      summary: 将学生移出课程
+      operationId: removeCourseMember
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 移出成功
         "401":
           $ref: "#/components/responses/Unauthenticated"
         "403":
@@ -1658,6 +2108,190 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "409":
           description: 用户ID或唯一字段冲突
+
+  /users/directory:
+    get:
+      tags:
+        - Users
+      summary: 教务查询全校学生或教师目录
+      operationId: listUserDirectoryByAcademic
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: role
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [student, teacher]
+          description: 不传时返回学生和教师，前端当前主要按单角色查询
+        - name: realName
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 按姓名模糊查询
+        - name: stuNo
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 学生学号模糊查询，仅 role=student 时生效
+        - name: grade
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: 学生年级精确查询，仅 role=student 时生效
+        - name: major
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 学生专业模糊查询，仅 role=student 时生效
+        - name: adminClass
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 学生行政班模糊查询，仅 role=student 时生效
+        - name: teacherNo
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 教师工号模糊查询，仅 role=teacher 时生效
+        - name: college
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 教师学院模糊查询，仅 role=teacher 时生效
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        "200":
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, role, isActive]
+                      properties:
+                        id:
+                          type: string
+                        role:
+                          type: string
+                          enum: [student, teacher]
+                        isActive:
+                          type: boolean
+                        profile:
+                          type: object
+                          nullable: true
+                          properties:
+                            realName:
+                              type: string
+                            accountNo:
+                              type: string
+                              nullable: true
+                            avatarUrl:
+                              type: string
+                              nullable: true
+                            email:
+                              type: string
+                              nullable: true
+                        studentProfile:
+                          type: object
+                          nullable: true
+                          properties:
+                            stuNo:
+                              type: string
+                            grade:
+                              type: integer
+                            cohort:
+                              type: integer
+                            major:
+                              type: string
+                            adminClass:
+                              type: string
+                        teacherProfile:
+                          type: object
+                          nullable: true
+                          properties:
+                            teacherNo:
+                              type: string
+                            title:
+                              type: string
+                              nullable: true
+                            college:
+                              type: string
+                              nullable: true
+                            researchDirection:
+                              type: string
+                              nullable: true
+                            description:
+                              type: string
+                              nullable: true
+                  paging:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+                      total:
+                        type: integer
+                      hasMore:
+                        type: boolean
+              example:
+                ok: true
+                data:
+                  - id: "2023010001"
+                    role: student
+                    isActive: true
+                    profile:
+                      realName: 张三
+                      accountNo: "2023010001"
+                      avatarUrl: null
+                      email: null
+                    studentProfile:
+                      stuNo: "2023010001"
+                      grade: 2023
+                      cohort: 2027
+                      major: 软件工程
+                      adminClass: 软工2301
+                    teacherProfile: null
+                paging:
+                  page: 1
+                  limit: 20
+                  total: 1
+                  hasMore: false
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
   /users/batch/students:
     post:

@@ -1,4 +1,4 @@
-import { Prisma, Role } from "@prisma/client";
+import { CourseStatus, Prisma, Role } from "@prisma/client";
 import { Router, type Request, type Response } from "express";
 import { requireAuth } from "../infra/jwt-middleware.js";
 import { prisma } from "../infra/prisma.js";
@@ -69,6 +69,46 @@ function forbidden(res: Response, message = "Insufficient permissions"): void {
   res.status(403).json({ ok: false, code: "FORBIDDEN", message });
 }
 
+function conflict(res: Response, message: string): void {
+  res.status(409).json({ ok: false, code: "CONFLICT", message });
+}
+
+async function getCourseStatus(courseId: bigint): Promise<CourseStatus | null> {
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    select: { status: true },
+  });
+  return course?.status ?? null;
+}
+
+async function ensureCourseChatReadableState(courseId: bigint, res: Response): Promise<CourseStatus | null> {
+  const status = await getCourseStatus(courseId);
+  if (!status) {
+    return null;
+  }
+  if (status === CourseStatus.draft) {
+    conflict(res, "Course chat is unavailable before activation");
+    return null;
+  }
+  return status;
+}
+
+async function ensureCourseChatWritableState(courseId: bigint, res: Response): Promise<boolean> {
+  const status = await getCourseStatus(courseId);
+  if (!status) {
+    return false;
+  }
+  if (status === CourseStatus.draft) {
+    conflict(res, "Course chat is unavailable before activation");
+    return false;
+  }
+  if (status === CourseStatus.archived) {
+    conflict(res, "Archived course is read-only");
+    return false;
+  }
+  return true;
+}
+
 function parseOptionalMessageId(rawValue: unknown, res: Response, fieldName: string): bigint | null {
   if (rawValue === undefined || rawValue === null || rawValue === "") return null;
   if (typeof rawValue !== "string" || !/^[0-9]+$/.test(rawValue)) {
@@ -132,6 +172,7 @@ courseChatRouter.get("/courses/:courseId/messages", requireAuth, async (req: Req
   if (courseId === null) return;
 
   if (!(await ensureCourseReadable(courseId, req.user!.id, req.user!.role as Role, res))) return;
+  if (!(await ensureCourseChatReadableState(courseId, res))) return;
 
   const conversationId = await getConversationId("course", courseId);
   if (!conversationId) {
@@ -203,6 +244,7 @@ courseChatRouter.post("/courses/:courseId/messages", requireAuth, async (req: Re
   if (courseId === null) return;
 
   if (!(await ensureCourseReadable(courseId, req.user!.id, req.user!.role as Role, res))) return;
+  if (!(await ensureCourseChatWritableState(courseId, res))) return;
 
   const messageType = typeof req.body?.type === "string" ? req.body.type : "text";
   if (messageType !== "text" && messageType !== "file") {
@@ -355,6 +397,7 @@ courseChatRouter.post("/courses/:courseId/announcements", requireAuth, async (re
     return forbidden(res, "Only course staff can post announcements");
   }
   if (!(await ensureCourseReadable(courseId, req.user!.id, req.user!.role as Role, res))) return;
+  if (!(await ensureCourseChatWritableState(courseId, res))) return;
 
   const content = typeof req.body?.content === "string" ? req.body.content.trim() : "";
   if (!content) {
@@ -415,6 +458,7 @@ courseChatRouter.get("/courses/:courseId/messages/search", requireAuth, async (r
   if (courseId === null) return;
 
   if (!(await ensureCourseReadable(courseId, req.user!.id, req.user!.role as Role, res))) return;
+  if (!(await ensureCourseChatReadableState(courseId, res))) return;
 
   const query = typeof req.query.q === "string" ? req.query.q.trim() : "";
   if (!query) {
@@ -453,6 +497,7 @@ courseChatRouter.patch("/courses/:courseId/messages/:messageId", requireAuth, as
   if (messageId === null) return;
 
   if (!(await ensureCourseReadable(courseId, req.user!.id, req.user!.role as Role, res))) return;
+  if (!(await ensureCourseChatWritableState(courseId, res))) return;
 
   const conversationId = await getConversationId("course", courseId);
   if (!conversationId) {
@@ -521,6 +566,7 @@ courseChatRouter.delete("/courses/:courseId/messages/:messageId", requireAuth, a
   if (messageId === null) return;
 
   if (!(await ensureCourseReadable(courseId, req.user!.id, req.user!.role as Role, res))) return;
+  if (!(await ensureCourseChatWritableState(courseId, res))) return;
 
   const conversationId = await getConversationId("course", courseId);
   if (!conversationId) {

@@ -1,5 +1,7 @@
 import { Router, type Request, type Response } from "express";
-import { CourseMemberStatus, Role } from "@prisma/client";
+import multer from "multer";
+import * as XLSX from "xlsx";
+import { CourseMemberStatus, CourseStatus, Role } from "@prisma/client";
 import { prisma } from "../infra/prisma.js";
 import { requireAuth } from "../infra/jwt-middleware.js";
 import { ensureCourseExists, ensureCourseReadable } from "./course-access.js";
@@ -9,6 +11,10 @@ import { fail, ok } from "../infra/http-response.js";
 import { parseIdempotencyKey, parseLimitOffset } from "../infra/request-utils.js";
 
 export const courseMembersRouter = Router();
+const rosterUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
 
 function serializeBigInt<T>(obj: T): T {
   return JSON.parse(JSON.stringify(obj, (_k, v) => (typeof v === "bigint" ? v.toString() : v)));
@@ -55,6 +61,54 @@ function parseCourseMemberStatus(value: unknown): CourseMemberStatus | null {
   return value;
 }
 
+function normalizeCell(value: unknown): string {
+  return String(value ?? "").trim();
+}
+
+function normalizeName(value: string): string {
+  return value.replace(/\s+/g, "").trim();
+}
+
+function parseRosterRowsFromBuffer(buffer: Buffer): Array<{ realName: string; accountNo: string }> {
+  const workbook = XLSX.read(buffer, { type: "buffer" });
+  const sheetName = workbook.SheetNames[0];
+  if (!sheetName) return [];
+  const sheet = workbook.Sheets[sheetName];
+  const rows = XLSX.utils.sheet_to_json<Array<unknown>>(sheet, { header: 1, raw: false, defval: "" });
+  if (!rows.length) return [];
+
+  const header = (rows[0] ?? []).map((cell) => normalizeCell(cell));
+  const nameIndex = header.findIndex((text) => ["姓名", "学生姓名", "name", "realName"].includes(text));
+  const accountIndex = header.findIndex((text) => ["一卡通号", "卡号", "用户名", "账号", "ID", "id", "accountNo"].includes(text));
+  const hasHeader = nameIndex >= 0 || accountIndex >= 0;
+  const start = hasHeader ? 1 : 0;
+  const resolvedNameIndex = nameIndex >= 0 ? nameIndex : 0;
+  const resolvedAccountIndex = accountIndex >= 0 ? accountIndex : 1;
+
+  return rows.slice(start).map((row) => {
+    const cells = Array.isArray(row) ? row : [];
+    return {
+      realName: normalizeCell(cells[resolvedNameIndex]),
+      accountNo: normalizeCell(cells[resolvedAccountIndex]),
+    };
+  }).filter((row) => row.realName || row.accountNo);
+}
+
+async function ensureCourseStatusAllowsStudentMutation(courseId: bigint, res: Response): Promise<boolean> {
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    select: { status: true },
+  });
+  if (!course) {
+    return notFound(res), false;
+  }
+  if (course.status === CourseStatus.archived) {
+    fail(res, 409, "CONFLICT", "Archived course cannot change student members");
+    return false;
+  }
+  return true;
+}
+
 // ──────────────────────────────────────────────────────────────
 // GET /api/v1/courses/:id/members
 // ──────────────────────────────────────────────────────────────
@@ -83,7 +137,7 @@ courseMembersRouter.get("/:id/members", requireAuth, async (req: Request, res: R
           select: {
             id: true,
             profile: { select: { realName: true, accountNo: true, avatarUrl: true } },
-            studentProfile: { select: { stuNo: true, grade: true, adminClass: true } },
+            studentProfile: { select: { stuNo: true, grade: true, major: true, adminClass: true } },
           },
         },
       },
@@ -101,6 +155,109 @@ courseMembersRouter.get("/:id/members", requireAuth, async (req: Request, res: R
   });
 });
 
+courseMembersRouter.post("/:id/members/import-roster", requireAuth, rosterUpload.single("file"), async (req: Request, res: Response) => {
+  if (req.user!.role !== Role.academic) return forbidden(res);
+
+  const courseId = parseCourseId(req.params.id, res);
+  if (courseId === null) return;
+  if (!(await ensureCourseExists(courseId, res))) return notFound(res);
+  if (!(await ensureCourseStatusAllowsStudentMutation(courseId, res))) return;
+  if (!req.file?.buffer?.length) {
+    return validationFailed(res, "Please upload an Excel or CSV roster file");
+  }
+
+  const importedRows = parseRosterRowsFromBuffer(req.file.buffer).slice(0, 500);
+  if (!importedRows.length) {
+    return validationFailed(res, "No valid rows found. Excel should contain 姓名 and 一卡通号 two columns");
+  }
+
+  const accountNos = Array.from(new Set(importedRows.map((row) => row.accountNo).filter(Boolean)));
+  const users = await prisma.user.findMany({
+    where: {
+      role: Role.student,
+      OR: [
+        { id: { in: accountNos } },
+        { profile: { is: { accountNo: { in: accountNos } } } },
+      ],
+    },
+    select: {
+      id: true,
+      profile: { select: { realName: true, accountNo: true, avatarUrl: true } },
+      studentProfile: { select: { stuNo: true, grade: true, major: true, adminClass: true } },
+    },
+  });
+
+  const userByAccount = new Map<string, (typeof users)[number]>();
+  users.forEach((user) => {
+    userByAccount.set(String(user.id), user);
+    if (user.profile?.accountNo) {
+      userByAccount.set(String(user.profile.accountNo), user);
+    }
+  });
+
+  const activeMembers = await prisma.courseMember.findMany({
+    where: { courseId, status: CourseMemberStatus.active, userId: { in: users.map((user) => user.id) } },
+    select: { userId: true },
+  });
+  const activeMemberIds = new Set(activeMembers.map((row) => row.userId));
+
+  const previewRows: Array<Record<string, unknown>> = [];
+  let matchedCount = 0;
+  let selectedCount = 0;
+  let alreadyJoinedCount = 0;
+  let notFoundCount = 0;
+  let nameMismatchCount = 0;
+
+  importedRows.forEach((row) => {
+    const matched = userByAccount.get(row.accountNo);
+    if (!matched) {
+      notFoundCount += 1;
+      return;
+    }
+
+    const inputName = normalizeName(row.realName);
+    const dbName = normalizeName(String(matched.profile?.realName ?? ""));
+    const joined = activeMemberIds.has(matched.id);
+    let importStatus = joined ? "already_joined" : "ready";
+
+    if (inputName && dbName && inputName !== dbName) {
+      importStatus = "name_mismatch";
+      nameMismatchCount += 1;
+    } else if (joined) {
+      alreadyJoinedCount += 1;
+    } else {
+      selectedCount += 1;
+    }
+
+    matchedCount += 1;
+    previewRows.push({
+      id: matched.id,
+      role: "student",
+      profile: {
+        realName: matched.profile?.realName ?? "",
+        accountNo: matched.profile?.accountNo ?? matched.id,
+        avatarUrl: matched.profile?.avatarUrl ?? null,
+      },
+      studentProfile: matched.studentProfile ?? null,
+      importStatus,
+      importSourceName: row.realName,
+      importSourceAccountNo: row.accountNo,
+    });
+  });
+
+  ok(res, serializeBigInt({
+    rows: previewRows,
+    summary: {
+      totalRows: importedRows.length,
+      matchedCount,
+      selectedCount,
+      alreadyJoinedCount,
+      notFoundCount,
+      nameMismatchCount,
+    },
+  }), 201);
+});
+
 // ──────────────────────────────────────────────────────────────
 // POST /api/v1/courses/:id/members/batch
 // ──────────────────────────────────────────────────────────────
@@ -111,6 +268,7 @@ courseMembersRouter.post("/:id/members/batch", requireAuth, async (req: Request,
   const courseId = parseCourseId(req.params.id, res);
   if (courseId === null) return;
   if (!(await ensureCourseExists(courseId, res))) return notFound(res);
+  if (!(await ensureCourseStatusAllowsStudentMutation(courseId, res))) return;
   const idempotencyKey = parseIdempotencyKey(req);
 
   const { userIds } = req.body ?? {};
@@ -172,6 +330,7 @@ courseMembersRouter.post("/:id/members", requireAuth, async (req: Request, res: 
   const courseId = parseCourseId(req.params.id, res);
   if (courseId === null) return;
   if (!(await ensureCourseExists(courseId, res))) return;
+  if (!(await ensureCourseStatusAllowsStudentMutation(courseId, res))) return;
   const idempotencyKey = parseIdempotencyKey(req);
 
   const { userId } = req.body ?? {};
@@ -227,6 +386,7 @@ courseMembersRouter.delete("/:id/members/:userId", requireAuth, async (req: Requ
   const userId = parseRequiredParam(req.params.userId, "userId", res);
   if (userId === null) return;
   if (!(await ensureCourseExists(courseId, res))) return;
+  if (!(await ensureCourseStatusAllowsStudentMutation(courseId, res))) return;
 
   const member = await prisma.courseMember.findUnique({
     where: { courseId_userId: { courseId, userId } },

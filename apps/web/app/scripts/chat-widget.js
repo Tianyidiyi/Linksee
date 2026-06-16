@@ -219,20 +219,21 @@
     }
     function getConversationPreview(c) {
         var preview = "暂无消息";
-        if (c && c.lastMessage) {
-            if (c.lastMessage.messageType === "file") {
-                preview = buildFileSummary(c.lastMessage.files) || "文件消息";
-            } else if (c.lastMessage.messageType === "announcement") {
-                preview = "【通知】" + String(c.lastMessage.content || "");
+        var source = c && state.listTab === "task" && c.lastTaskMessage ? c.lastTaskMessage : (c && c.lastMessage ? c.lastMessage : null);
+        if (source) {
+            if (source.messageType === "file") {
+                preview = buildFileSummary(source.files) || "文件消息";
+            } else if (source.messageType === "announcement") {
+                preview = "【通知】" + String(source.content || "");
             } else {
-                preview = c.lastMessage.content || "暂无消息";
+                preview = source.content || "暂无消息";
             }
         }
         return preview;
     }
     function getConversationKind(c) {
         if (!c) return "other";
-        if (c.lastMessage && c.lastMessage.messageType === "announcement") return "task";
+        if ((Number(c.unreadTaskCount) || 0) > 0 || c.hasTaskNotification || c.lastTaskMessage) return "task";
         if (c.scopeType === "group") return "group";
         return "other";
     }
@@ -1223,12 +1224,14 @@
             return;
         }
         stream.innerHTML = list.map(function (c) {
+            var previewSource = state.listTab === "task" && c.lastTaskMessage ? c.lastTaskMessage : c.lastMessage;
             var preview = getConversationPreview(c);
             var unread = Number(c.unreadCount) || 0;
             var active = state.selected && String(state.selected.id) === String(c.id);
-            var lastTime = formatConversationTime(c.lastMessage && c.lastMessage.createdAt);
+            var lastTime = formatConversationTime(previewSource && previewSource.createdAt);
+            var avatarSource = state.participantsMap.get(String(previewSource && previewSource.senderId || "")) || state.me;
             return "<div class='chat-conversation-item" + (active ? " is-active" : "") + "' data-chat-open='" + c.id + "'>" +
-                "<div class='chat-avatar'><img src='" + userAvatar(state.participantsMap.get(String(c.lastMessage && c.lastMessage.senderId || "")) || state.me) + "' alt=''></div>" +
+                "<div class='chat-avatar'><img src='" + userAvatar(avatarSource) + "' alt=''></div>" +
                 "<div class='chat-conversation-item-main'>" +
                 "<div class='line1'>" +
                 "<strong>" + escapeHtml(c.title || c.roomKey || ("会话 " + c.id)) + "</strong>" +
@@ -1476,6 +1479,27 @@
         renderMessages();
         syncSelectedConversationRead().catch(function () {});
         scheduleReadSync();
+    }
+
+    async function openConversationByScope(scopeType, scopeId) {
+        if (!scopeType || !scopeId) return;
+        if (!state.conversations.length) {
+            await syncConversationList(false);
+        }
+        var target = state.conversations.find(function (conversation) {
+            return String(conversation.scopeType || "") === String(scopeType) && String(conversation.scopeId || "") === String(scopeId);
+        }) || null;
+        if (!target) {
+            await syncConversationList(true);
+            target = state.conversations.find(function (conversation) {
+                return String(conversation.scopeType || "") === String(scopeType) && String(conversation.scopeId || "") === String(scopeId);
+            }) || null;
+        }
+        if (!target) return;
+        setChatOpen(true);
+        state.mode = "list";
+        await openConversationById(target.id);
+        renderMessages();
     }
 
     function backToList() {
@@ -2342,6 +2366,9 @@
     window.linkseeChatWidget = {
         open: function () {
             setChatOpen(true);
+        },
+        openConversationByScope: function (scopeType, scopeId) {
+            return openConversationByScope(scopeType, scopeId);
         },
         close: function () {
             setChatOpen(false);

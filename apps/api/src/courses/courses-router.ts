@@ -3,6 +3,8 @@ import { Role, CourseStatus, CourseTeacherRole, CourseMemberStatus } from "@pris
 import { prisma } from "../infra/prisma.js";
 import { requireAuth } from "../infra/jwt-middleware.js";
 import { fail, ok } from "../infra/http-response.js";
+import { createEventEnvelope } from "../events/event-builder.js";
+import { pushSocketEvent } from "../events/realtime-publisher.js";
 import {
   ensureCourseExists as ensureCourseExistsShared,
   ensureCourseReadable as ensureCourseReadableShared,
@@ -104,6 +106,109 @@ async function ensureCourseConversation(courseId: bigint): Promise<void> {
       createdBy: null,
     },
   });
+}
+
+async function ensureCourseConversationActivated(
+  courseId: bigint,
+  courseName: string,
+  operatorId: string,
+): Promise<{ roomKey: string; outboundEvent: ReturnType<typeof createEventEnvelope> } | null> {
+  const existingConversation = await prisma.chatConversation.findUnique({
+    where: { scopeType_scopeId: { scopeType: "course", scopeId: courseId } },
+    select: { id: true },
+  });
+  if (existingConversation) {
+    return null;
+  }
+
+  const created = await prisma.$transaction(async (tx) => {
+    const conversation = await tx.chatConversation.create({
+      data: {
+        scopeType: "course",
+        scopeId: courseId,
+        roomKey: `course:${courseId.toString()}`,
+        createdBy: null,
+      },
+      select: { id: true, roomKey: true },
+    });
+    return {
+      roomKey: conversation.roomKey,
+      outboundEvent: createEventEnvelope("course.conversation.activated", {
+        courseId: courseId.toString(),
+        senderId: operatorId,
+        content: `课程《${courseName}》群聊已启用`,
+        messageType: "announcement",
+      }),
+    };
+  });
+
+  return created;
+}
+
+async function createCourseLifecycleAnnouncement(input: {
+  courseId: bigint;
+  operatorId: string;
+  content: string;
+}): Promise<{ roomKey: string; outboundEvent: ReturnType<typeof createEventEnvelope> }> {
+  await ensureCourseConversation(input.courseId);
+
+  const conversation = await prisma.chatConversation.findUnique({
+    where: { scopeType_scopeId: { scopeType: "course", scopeId: input.courseId } },
+    select: { id: true, roomKey: true },
+  });
+  if (!conversation) {
+    throw new Error("Course conversation not found");
+  }
+
+  const files = { type: "announcement", subType: "course_status" };
+  const event = createEventEnvelope("course.message.created", {
+    courseId: input.courseId.toString(),
+    senderId: input.operatorId,
+    content: input.content,
+    messageType: "announcement",
+    files,
+    mentions: [],
+    replyToId: null,
+  });
+
+  const message = await prisma.chatMessage.create({
+    data: {
+      conversationId: conversation.id,
+      senderId: input.operatorId,
+      content: input.content,
+      files,
+      eventId: event.id,
+      traceId: event.traceId,
+    },
+    select: { id: true },
+  });
+
+  return {
+    roomKey: conversation.roomKey,
+    outboundEvent: {
+      ...event,
+      payload: {
+        ...event.payload,
+        messageId: message.id.toString(),
+      },
+    },
+  };
+}
+
+async function ensureCourseStatusAllowsStaffMutation(courseId: bigint, res: Response): Promise<boolean> {
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    select: { status: true },
+  });
+  if (!course) {
+    notFound(res);
+    return false;
+  }
+  if (course.status === CourseStatus.archived) {
+    fail(res, 409, "CONFLICT", "Archived course cannot change teachers or assistants");
+    return false;
+  }
+  return true;
 }
 
 async function ensureCourseActivationReady(courseId: bigint, res: Response): Promise<boolean> {
@@ -237,6 +342,18 @@ coursesRouter.get("/", requireAuth, async (req: Request, res: Response) => {
         status: true,
         description: true,
         createdAt: true,
+        teachers: {
+          select: {
+            role: true,
+            user: {
+              select: {
+                id: true,
+                profile: { select: { realName: true } },
+              },
+            },
+          },
+          orderBy: [{ role: "asc" }, { assignedAt: "asc" }],
+        },
       },
     }),
     prisma.course.count({ where }),
@@ -284,7 +401,7 @@ coursesRouter.post("/", requireAuth, async (req: Request, res: Response) => {
     }
   }
 
-  const course = await prisma.course.create({
+  const createdCourse = await prisma.course.create({
     data: {
       courseNo,
       name,
@@ -297,7 +414,7 @@ coursesRouter.post("/", requireAuth, async (req: Request, res: Response) => {
     select: { id: true, courseNo: true, name: true, academicYear: true, semester: true, status: true, createdAt: true },
   });
 
-  ok(res, serializeBigInt(course), 201);
+  ok(res, serializeBigInt(createdCourse), 201);
 });
 
 // ──────────────────────────────────────────────────────────────
@@ -351,6 +468,9 @@ coursesRouter.patch("/:id", requireAuth, async (req: Request, res: Response) => 
     return validationFailed(res, "status must be draft, active or archived");
   }
 
+  let activationEvent: { roomKey: string; outboundEvent: ReturnType<typeof createEventEnvelope> } | null = null;
+  let lifecycleAnnouncement: { roomKey: string; outboundEvent: ReturnType<typeof createEventEnvelope> } | null = null;
+
   if (status !== undefined) {
     const nextStatus = status as CourseStatus;
     if (!canTransitionCourseStatus(existing.status, nextStatus)) {
@@ -374,8 +494,26 @@ coursesRouter.patch("/:id", requireAuth, async (req: Request, res: Response) => 
   if (status !== undefined) {
     const nextStatus = status as CourseStatus;
     if (existing.status !== CourseStatus.active && nextStatus === CourseStatus.active) {
-      await ensureCourseConversation(courseId);
+      activationEvent = await ensureCourseConversationActivated(courseId, String(updated.name || existing.name), req.user!.id);
+      lifecycleAnnouncement = await createCourseLifecycleAnnouncement({
+        courseId,
+        operatorId: req.user!.id,
+        content: `系统通知：课程《${String(updated.name || existing.name)}》已开始`,
+      });
+    } else if (existing.status !== CourseStatus.archived && nextStatus === CourseStatus.archived) {
+      lifecycleAnnouncement = await createCourseLifecycleAnnouncement({
+        courseId,
+        operatorId: req.user!.id,
+        content: `系统通知：课程《${String(updated.name || existing.name)}》已结束`,
+      });
     }
+  }
+
+  if (activationEvent) {
+    await pushSocketEvent(activationEvent.roomKey, activationEvent.outboundEvent);
+  }
+  if (lifecycleAnnouncement) {
+    await pushSocketEvent(lifecycleAnnouncement.roomKey, lifecycleAnnouncement.outboundEvent);
   }
 
   ok(res, serializeBigInt(updated));
@@ -399,7 +537,13 @@ coursesRouter.get("/:id/teachers", requireAuth, async (req: Request, res: Respon
     select: {
       role: true,
       assignedAt: true,
-      user: { select: { id: true, profile: { select: { realName: true, avatarUrl: true } } } },
+      user: {
+        select: {
+          id: true,
+          profile: { select: { realName: true, avatarUrl: true } },
+          teacherProfile: { select: { college: true } },
+        },
+      },
     },
   });
 
@@ -416,6 +560,7 @@ coursesRouter.post("/:id/teachers", requireAuth, async (req: Request, res: Respo
   const courseId = parseCourseId(req.params.id, res);
   if (courseId === null) return;
   if (!(await ensureCourseExists(courseId, res))) return;
+  if (!(await ensureCourseStatusAllowsStaffMutation(courseId, res))) return;
 
   const { userId, role: teacherRole } = req.body ?? {};
   if (typeof userId !== "string" || userId.length === 0) {
@@ -455,6 +600,7 @@ coursesRouter.delete("/:id/teachers/:userId", requireAuth, async (req: Request, 
   const userId = parseRequiredParam(req.params.userId, "userId", res);
   if (userId === null) return;
   if (!(await ensureCourseExists(courseId, res))) return;
+  if (!(await ensureCourseStatusAllowsStaffMutation(courseId, res))) return;
 
   const record = await prisma.courseTeacher.findUnique({
     where: { courseId_userId: { courseId, userId } },
@@ -463,8 +609,14 @@ coursesRouter.delete("/:id/teachers/:userId", requireAuth, async (req: Request, 
     return fail(res, 404, "NOT_FOUND", "Teacher not in this course");
   }
 
-  await prisma.courseTeacher.delete({ where: { courseId_userId: { courseId, userId } } });
-  ok(res, { success: true });
+  const deleted = await prisma.$transaction(async (tx) => {
+    const removedAssistants = await tx.assistantBinding.deleteMany({
+      where: { courseId, teacherUserId: userId },
+    });
+    await tx.courseTeacher.delete({ where: { courseId_userId: { courseId, userId } } });
+    return { removedAssistants: removedAssistants.count };
+  });
+  ok(res, { success: true, removedAssistants: deleted.removedAssistants });
 });
 
 // ──────────────────────────────────────────────────────────────
@@ -515,6 +667,7 @@ coursesRouter.get("/:id/assistants", requireAuth, async (req: Request, res: Resp
 coursesRouter.post("/:id/assistants", requireAuth, async (req: Request, res: Response) => {
   const courseId = parseCourseId(req.params.id, res);
   if (courseId === null) return;
+  if (!(await ensureCourseStatusAllowsStaffMutation(courseId, res))) return;
 
   if (req.user!.role !== Role.teacher) {
     return fail(res, 403, "FORBIDDEN", "Only course teachers can bind assistants");
@@ -623,6 +776,7 @@ coursesRouter.post("/:id/assistants", requireAuth, async (req: Request, res: Res
 coursesRouter.delete("/:id/assistants/:assistantUserId", requireAuth, async (req: Request, res: Response) => {
   const courseId = parseCourseId(req.params.id, res);
   if (courseId === null) return;
+  if (!(await ensureCourseStatusAllowsStaffMutation(courseId, res))) return;
 
   if (req.user!.role !== Role.teacher) {
     return fail(res, 403, "FORBIDDEN", "Only course teachers can unbind assistants");
@@ -664,6 +818,7 @@ coursesRouter.patch("/:id/teachers/:userId", requireAuth, async (req: Request, r
   const userId = parseRequiredParam(req.params.userId, "userId", res);
   if (userId === null) return;
   if (!(await ensureCourseExists(courseId, res))) return;
+  if (!(await ensureCourseStatusAllowsStaffMutation(courseId, res))) return;
 
   const record = await prisma.courseTeacher.findUnique({
     where: { courseId_userId: { courseId, userId } },

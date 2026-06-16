@@ -11,8 +11,92 @@ import { pushSocketEvent } from "../events/realtime-publisher.js";
 import { parseSubmissionFileUpload, uploadSubmissionFile, removeSubmissionFileObject } from "./submission-file-storage.js";
 import { canCreateSubmissionAttempt } from "./submission-status.js";
 import { getIdempotentResponse, saveIdempotentResponse } from "../infra/idempotency-store.js";
+import { ensureGroupConversation, getConversationId } from "../collaboration/chat-helpers.js";
 
 export const submissionsRouter = Router();
+
+function buildSubmissionFileSummary(fileNames: string[], links: string[], repositoryUrl: string | null | undefined): string {
+  const parts: string[] = [];
+  if (fileNames.length > 0) {
+    const head = fileNames.slice(0, 3).join("、");
+    parts.push(fileNames.length > 3 ? `文件：${head} 等 ${fileNames.length} 个` : `文件：${head}`);
+  }
+  if (links.length > 0) {
+    parts.push(`链接 ${links.length} 个`);
+  }
+  if (repositoryUrl) {
+    parts.push("仓库链接已附上");
+  }
+  return parts.join("；");
+}
+
+async function postSubmissionSystemMessage(input: {
+  groupId: bigint;
+  userId: string;
+  assignmentId: bigint;
+  courseId: bigint;
+  stageId: bigint;
+  stageNo: number;
+  stageTitle: string;
+  submissionId: bigint;
+  submissionTitle: string;
+  attemptNo: number;
+  fileNames: string[];
+  links: string[];
+  repositoryUrl?: string | null;
+}): Promise<void> {
+  await ensureGroupConversation(input.groupId, input.userId);
+  const conversationId = await getConversationId("group", input.groupId);
+  if (!conversationId) return;
+
+  const detailText = buildSubmissionFileSummary(input.fileNames, input.links, input.repositoryUrl);
+  const content = detailText
+    ? `阶段提交已更新：第 ${input.stageNo} 阶段 ${input.stageTitle}，提交《${input.submissionTitle}》；${detailText}`
+    : `阶段提交已更新：第 ${input.stageNo} 阶段 ${input.stageTitle}，提交《${input.submissionTitle}》`;
+
+  const chatEvent = createEventEnvelope("group.message.created", {
+    groupId: input.groupId.toString(),
+    assignmentId: input.assignmentId.toString(),
+    courseId: input.courseId.toString(),
+    senderId: input.userId,
+    content,
+    messageType: "announcement",
+    files: {
+      type: "announcement",
+      subType: "submission_event",
+      submissionId: input.submissionId.toString(),
+      stageId: input.stageId.toString(),
+      stageNo: input.stageNo,
+      stageTitle: input.stageTitle,
+      submissionTitle: input.submissionTitle,
+      attemptNo: input.attemptNo,
+      fileNames: input.fileNames,
+      linkCount: input.links.length,
+      repositoryUrl: input.repositoryUrl ?? null,
+      operatorId: input.userId,
+    },
+    mentions: [],
+    replyToId: null,
+  });
+
+  const message = await prisma.chatMessage.create({
+    data: {
+      conversationId,
+      senderId: input.userId,
+      content,
+      mentions: [] as unknown as Prisma.InputJsonValue,
+      files: chatEvent.payload.files as Prisma.InputJsonValue,
+      eventId: chatEvent.id,
+      traceId: chatEvent.traceId,
+    },
+    select: { id: true },
+  });
+
+  await pushSocketEvent(`group:${input.groupId.toString()}`, {
+    ...chatEvent,
+    payload: { ...chatEvent.payload, messageId: message.id.toString() },
+  });
+}
 
 function parseOptionalText(
   value: unknown,
@@ -136,6 +220,8 @@ submissionsRouter.post(
       select: {
         id: true,
         assignmentId: true,
+        stageNo: true,
+        title: true,
         status: true,
         dueAt: true,
         assignment: { select: { status: true, courseId: true } },
@@ -312,6 +398,21 @@ submissionsRouter.post(
         submittedBy: submission.submittedBy,
       });
       await pushSocketEvent(`course:${stage.assignment.courseId.toString()}`, submissionEvent);
+      await postSubmissionSystemMessage({
+        groupId,
+        userId: req.user!.id,
+        assignmentId: stage.assignmentId,
+        courseId: stage.assignment.courseId,
+        stageId,
+        stageNo: stage.stageNo,
+        stageTitle: stage.title,
+        submissionId: submission.id,
+        submissionTitle: title,
+        attemptNo,
+        fileNames: uploadedFiles.map((file) => file.name).filter(Boolean),
+        links: links || [],
+        repositoryUrl: repositoryUrl ?? null,
+      });
 
       const responseData = serializeBigInt({
         ...submission,

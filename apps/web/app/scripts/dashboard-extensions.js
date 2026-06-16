@@ -34,14 +34,69 @@
         return localStorage.getItem("auth_role") || "";
     }
 
+    function getStoredUserId() {
+        return localStorage.getItem("auth_user_id") || localStorage.getItem("user_id") || "";
+    }
+
     function optionRows(rows, labeler) {
         return rows.map(function (row) {
             return '<option value="' + escapeHtml(row.id) + '">' + escapeHtml(labeler(row)) + '</option>';
         }).join("");
     }
 
+    function ensureSelectValue(select, rows, includeEmpty) {
+        if (!select) return;
+        var current = String(select.value || "");
+        var ids = rows.map(function (row) { return String(row.id); });
+        if (current && ids.indexOf(current) >= 0) return;
+        if (rows[0]) {
+            select.value = String(rows[0].id);
+            return;
+        }
+        if (includeEmpty) {
+            select.value = "";
+        }
+    }
+
     function normalizeRows(payload) {
         return Array.isArray(payload && payload.data) ? payload.data : [];
+    }
+
+    function studentDashboardState() {
+        return window.linkseeStudentDashboardState && typeof window.linkseeStudentDashboardState === "object"
+            ? window.linkseeStudentDashboardState
+            : null;
+    }
+
+    function dashboardAssignmentRows(courseId) {
+        var state = studentDashboardState();
+        var rows = state && Array.isArray(state.todoRows) ? state.todoRows : [];
+        var map = new Map();
+        rows.forEach(function (row) {
+            if (!row || !row.course || !row.assignment) return;
+            if (courseId && String(row.course.id) !== String(courseId)) return;
+            if (!map.has(String(row.assignment.id))) {
+                map.set(String(row.assignment.id), row.assignment);
+            }
+        });
+        return Array.from(map.values());
+    }
+
+    function dashboardStageRows(assignmentId) {
+        var state = studentDashboardState();
+        var rows = state && Array.isArray(state.todoRows) ? state.todoRows : [];
+        return rows
+            .filter(function (row) {
+                return row && row.assignment && row.stage && (!assignmentId || String(row.assignment.id) === String(assignmentId));
+            })
+            .map(function (row) { return row.stage; });
+    }
+
+    function preferredDashboardCourseId() {
+        var state = studentDashboardState();
+        var rows = state && Array.isArray(state.todoRows) ? state.todoRows : [];
+        var first = rows.find(function (row) { return row && row.course && row.assignment; }) || null;
+        return first && first.course ? String(first.course.id) : "";
     }
 
     function requestDelete(path, body) {
@@ -52,7 +107,59 @@
         });
     }
 
+    function ensureToastHost() {
+        var host = document.getElementById("linkseeToastHost");
+        if (host) return host;
+        host = document.createElement("div");
+        host.id = "linkseeToastHost";
+        host.className = "linksee-toast-host";
+        document.body.appendChild(host);
+        return host;
+    }
+
+    function showToast(title, message, isError) {
+        var host = ensureToastHost();
+        var toast = document.createElement("div");
+        var timerId = 0;
+        toast.className = "linksee-toast" + (isError ? " is-error" : " is-success");
+        toast.innerHTML = '<strong>' + escapeHtml(title) + '</strong><p>' + escapeHtml(message || "") + '</p>';
+        host.appendChild(toast);
+
+        window.requestAnimationFrame(function () {
+            toast.classList.add("is-visible");
+        });
+
+        function dismissToast() {
+            if (timerId) {
+                window.clearTimeout(timerId);
+                timerId = 0;
+            }
+            toast.classList.remove("is-visible");
+            toast.classList.add("is-leaving");
+            window.setTimeout(function () {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 260);
+        }
+
+        timerId = window.setTimeout(dismissToast, 3200);
+        toast.addEventListener("click", dismissToast);
+        return toast;
+    }
+
+    window.linkseeDashboardToast = showToast;
+
     function setResult(node, title, message, isError) {
+        if (document.body.classList.contains("academic-shell")) {
+            if (node) {
+                node.hidden = true;
+                node.innerHTML = "";
+                node.classList.remove("is-error");
+            }
+            showToast(title, message, isError);
+            return;
+        }
         if (!node) return;
         node.hidden = false;
         node.classList.toggle("is-error", Boolean(isError));
@@ -66,14 +173,18 @@
         node.classList.remove("is-error");
     }
 
-    function addNavItem(targetId, label) {
+    function addNavItem(targetId, label, iconSvg) {
         var nav = qs(".side-nav");
         if (!nav || qs('[data-target="' + targetId + '"]', nav)) return;
         var button = document.createElement("button");
         button.className = "nav-item";
         button.type = "button";
         button.setAttribute("data-target", targetId);
-        button.textContent = label;
+        button.title = label;
+        button.innerHTML = [
+            iconSvg ? '<span class="nav-item-icon" aria-hidden="true">' + iconSvg + '</span>' : "",
+            '<span class="nav-item-label">' + escapeHtml(label) + '</span>',
+        ].join("");
         nav.appendChild(button);
     }
 
@@ -148,21 +259,19 @@
             '<div class="academic-toolbar academic-toolbar-create-course">',
             '<input id="extCourseNo" class="dashboard-input" placeholder="课程编号，例如 SE-2026-01" />',
             '<input id="extCourseName" class="dashboard-input" placeholder="课程名称" />',
-            '<input id="extCourseYear" class="dashboard-input" type="number" min="2000" value="2026" placeholder="学年" />',
-            '<input id="extCourseSemester" class="dashboard-input" type="number" min="1" max="3" value="1" placeholder="学期" />',
+            '<select id="extCourseYear" class="dashboard-select"><option value="2025">2025 学年</option><option value="2026" selected>2026 学年</option><option value="2027">2027 学年</option><option value="2028">2028 学年</option></select>',
+            '<select id="extCourseSemester" class="dashboard-select"><option value="1" selected>第 1 学期</option><option value="2">第 2 学期</option><option value="3">夏学期</option></select>',
             '<button id="extCourseCreateBtn" class="btn btn-primary" type="button">创建课程</button>',
             '</div>',
             '<textarea id="extCourseDescription" class="dashboard-textarea academic-create-description" placeholder="课程简介"></textarea>',
-            '<div class="dashboard-filter-bar academic-create-meta">',
-            '<span class="dashboard-soft-note">创建后会自动出现在上方课程列表中。</span>',
-            '</div>',
             '<div id="extCourseCreateResult" class="dashboard-empty-state" hidden></div>',
         ].join("")));
 
-        addNavItem("panel-user-maintenance", "用户维护");
-        addPanel("panel-user-maintenance", card("用户维护", "单个学生/教师开户与资料维护，对应 /api/v1/users。", [
-            '<div class="dashboard-inline-grid dashboard-split-scroll-grid">',
-            '<div class="dashboard-subcard">',
+        addNavItem("panel-user-maintenance", "用户管理", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.6-3 8.8-7 10-4-1.2-7-5.4-7-10V6l7-3z"></path><path d="M9 11.5c.2-1.8 1.3-3 3-3s2.8 1.2 3 3"></path><circle cx="12" cy="8.25" r="1.25"></circle></svg>');
+        addPanel("panel-user-maintenance", card("用户管理", "单个学生/教师开户与资料维护，对应 /api/v1/users。", [
+            '<div class="academic-user-shell">',
+            '<div class="dashboard-inline-grid academic-user-primary-grid">',
+            '<div class="dashboard-subcard academic-user-subcard academic-user-create">',
             '<h3 class="dashboard-subcard-title">创建账号</h3>',
             field("用户 ID", '<input id="extUserId" class="dashboard-input" maxlength="10" />'),
             field("角色", '<select id="extUserRole" class="dashboard-select"><option value="student">学生</option><option value="teacher">教师</option></select>'),
@@ -172,7 +281,7 @@
             field("教师字段", '<textarea id="extTeacherFields" class="dashboard-textarea" placeholder="teacherNo,title,college,researchDirection"></textarea>'),
             '<button id="extUserCreateBtn" class="btn btn-primary academic-btn-block" type="button">创建账号</button>',
             '</div>',
-            '<div class="dashboard-subcard">',
+            '<div class="dashboard-subcard academic-user-subcard academic-user-edit">',
             '<h3 class="dashboard-subcard-title">更新账号</h3>',
             field("目标用户 ID", '<input id="extEditUserId" class="dashboard-input" maxlength="10" />'),
             field("姓名", '<input id="extEditRealName" class="dashboard-input" />'),
@@ -182,36 +291,16 @@
             '</div>',
             '</div>',
             '<div id="extUserResult" class="dashboard-empty-state" hidden></div>',
-        ].join("")));
-
-        addNavItem("panel-password-reset", "密码重置");
-        addPanel("panel-password-reset", card("密码重置", "重置单个账号或按条件批量重置，重置后目标用户需强制改密。", [
-            '<div class="dashboard-inline-grid dashboard-split-scroll-grid">',
-            '<div class="dashboard-subcard">',
-            '<h3 class="dashboard-subcard-title">单个重置</h3>',
-            field("用户 ID", '<input id="extResetUserId" class="dashboard-input" maxlength="10" />'),
-            field("新密码", '<input id="extResetPassword" class="dashboard-input" placeholder="留空自动生成" />'),
-            '<button id="extResetBtn" class="btn btn-primary academic-btn-block" type="button">重置密码</button>',
             '</div>',
-            '<div class="dashboard-subcard">',
-            '<h3 class="dashboard-subcard-title">批量重置</h3>',
-            field("用户 ID 列表", '<textarea id="extBatchResetIds" class="dashboard-textarea" placeholder="每行或逗号分隔一个 10 位 ID"></textarea>'),
-            field("统一新密码", '<input id="extBatchResetPassword" class="dashboard-input" placeholder="留空自动生成" />'),
-            '<button id="extBatchResetBtn" class="btn btn-secondary academic-btn-block" type="button">批量重置</button>',
-            '</div>',
-            '</div>',
-            '<div id="extResetResult" class="dashboard-empty-state" hidden></div>',
         ].join("")));
 
         mergePanelInto("panel-courses", "panel-course-create", "", {
             beforeSelector: ".academic-course-manage-section",
             className: "academic-course-create-section",
         });
-        mergePanelInto("panel-courses", "panel-course-editor", "", {
-            className: "academic-course-editor-section",
+        mergePanelInto("panel-user-maintenance", "panel-account-batch", "批量账号开通", {
+            className: "academic-user-batch-section",
         });
-        mergePanelInto("panel-user-maintenance", "panel-account-batch", "批量账号开通");
-        mergePanelInto("panel-user-maintenance", "panel-password-reset", "密码重置");
         bindAcademicTools();
     }
 
@@ -231,6 +320,12 @@
                 description: qs("#extCourseDescription").value.trim() || null,
             }).then(function (payload) {
                 setResult(courseResult, "创建成功", "课程 ID：" + ((payload.data && payload.data.id) || "--"), false);
+                window.dispatchEvent(new CustomEvent("linksee:academic-refresh-request", {
+                    detail: {
+                        reason: "course-created",
+                        courseId: payload.data && payload.data.id ? String(payload.data.id) : "",
+                    },
+                }));
             }).catch(function (err) {
                 setResult(courseResult, "创建失败", err.message, true);
             });
@@ -285,40 +380,35 @@
             });
         };
 
-        var resetResult = qs("#extResetResult");
-        qs("#extResetBtn").onclick = function () {
-            var body = { targetUserId: qs("#extResetUserId").value.trim() };
-            var password = qs("#extResetPassword").value.trim();
-            if (password) body.newPassword = password;
-            api().postJson("/api/v1/auth/admin/reset-password", body).then(function (payload) {
-                var data = payload.data || {};
-                setResult(resetResult, "重置成功", "临时密码：" + (data.temporaryPassword || "已按输入设置"), false);
-            }).catch(function (err) {
-                setResult(resetResult, "重置失败", err.message, true);
-            });
-        };
-        qs("#extBatchResetBtn").onclick = function () {
-            var body = { userIds: splitCsv(qs("#extBatchResetIds").value) };
-            var password = qs("#extBatchResetPassword").value.trim();
-            if (password) body.newPassword = password;
-            api().postJson("/api/v1/auth/admin/batch-reset-password", body).then(function (payload) {
-                var data = payload.data || {};
-                setResult(resetResult, "批量重置成功", "影响人数：" + (data.affectedCount || 0) + "，默认密码：" + (data.defaultPassword || "已按输入设置"), false);
-            }).catch(function (err) {
-                setResult(resetResult, "批量重置失败", err.message, true);
-            });
-        };
     }
 
     function loadCourseOptions(select, next) {
-        return api().getJson("/api/v1/courses").then(function (payload) {
-            var rows = normalizeRows(payload);
+        function applyRows(rows) {
             select.innerHTML = optionRows(rows, function (course) {
                 return (course.name || course.courseNo || course.id) + " · " + (course.status || "--");
             });
-            if (rows[0] && !select.value) select.value = rows[0].id;
+            ensureSelectValue(select, rows, false);
+            var preferredId = preferredDashboardCourseId();
+            if (preferredId && Array.from(select.options || []).some(function (option) { return String(option.value) === preferredId; })) {
+                select.value = preferredId;
+            }
             if (next) return next(rows);
             return rows;
+        }
+        return api().getJson("/api/v1/courses").then(function (payload) {
+            var rows = normalizeRows(payload);
+            if (!rows.length) {
+                var state = studentDashboardState();
+                rows = state && Array.isArray(state.courses) ? state.courses : [];
+            }
+            return applyRows(rows);
+        }).catch(function (err) {
+            var state = studentDashboardState();
+            var rows = state && Array.isArray(state.courses) ? state.courses : [];
+            if (rows.length) {
+                return applyRows(rows);
+            }
+            throw err;
         });
     }
 
@@ -327,13 +417,25 @@
             select.innerHTML = includeEmpty ? '<option value="">请选择课程</option>' : "";
             return Promise.resolve([]);
         }
-        return api().getJson("/api/v1/courses/" + encodeURIComponent(courseId) + "/assignments").then(function (payload) {
-            var rows = normalizeRows(payload);
+        function applyRows(rows) {
             select.innerHTML = (includeEmpty ? '<option value="">请选择项目</option>' : "") + optionRows(rows, function (assignment) {
                 return (assignment.title || assignment.id) + " · " + (assignment.status || "--");
             });
-            if (rows[0] && !select.value && !includeEmpty) select.value = rows[0].id;
+            ensureSelectValue(select, rows, includeEmpty);
             return rows;
+        }
+        return api().getJson("/api/v1/courses/" + encodeURIComponent(courseId) + "/assignments").then(function (payload) {
+            var rows = normalizeRows(payload);
+            if (!rows.length) {
+                rows = dashboardAssignmentRows(courseId);
+            }
+            return applyRows(rows);
+        }).catch(function (err) {
+            var rows = dashboardAssignmentRows(courseId);
+            if (rows.length) {
+                return applyRows(rows);
+            }
+            throw err;
         });
     }
 
@@ -342,18 +444,35 @@
             select.innerHTML = includeEmpty ? '<option value="">请选择项目</option>' : "";
             return Promise.resolve([]);
         }
+        function applyRows(rows) {
+            select.innerHTML = (includeEmpty ? '<option value="">请选择阶段</option>' : "") + rows.map(function (stage) {
+                var label = (stage.title || ("阶段 " + stage.stageNo)) + " · " + (stage.status || "--");
+                return '<option value="' + escapeHtml(stage.id) + '" data-stage-no="' + escapeHtml(stage.stageNo) + '" data-stage-title="' + escapeHtml(stage.title || ("阶段 " + stage.stageNo)) + '">' + escapeHtml(label) + '</option>';
+            }).join("");
+            ensureSelectValue(select, rows, includeEmpty);
+            return rows;
+        }
         return api().getJson("/api/v1/assignments/" + encodeURIComponent(assignmentId) + "/stages").then(function (payload) {
             var rows = normalizeRows(payload);
-            select.innerHTML = (includeEmpty ? '<option value="">请选择阶段</option>' : "") + optionRows(rows, function (stage) {
-                return (stage.title || ("阶段 " + stage.stageNo)) + " · " + (stage.status || "--");
-            });
-            return rows;
+            if (!rows.length) {
+                rows = dashboardStageRows(assignmentId);
+            }
+            return applyRows(rows);
+        }).catch(function (err) {
+            var rows = dashboardStageRows(assignmentId);
+            if (rows.length) {
+                return applyRows(rows);
+            }
+            throw err;
         });
     }
 
     function bindTeacherPanels() {
-        addNavItem("panel-assignment-manage", "作业管理");
-        addPanel("panel-assignment-manage", card("作业管理", "创建、编辑、发布课程项目，并上传项目说明材料。", [
+        addNavItem("panel-course-design", "项目与阶段");
+        addPanel("panel-course-design", card("项目与阶段", "教师侧统一维护项目、阶段与过程材料；助教继续聚焦批阅与协同。", [
+            '<div class="dashboard-window-stack">',
+            '<div class="dashboard-merged-section teacher-course-design-section">',
+            '<h3 class="dashboard-subcard-title">项目管理</h3>',
             '<div class="dashboard-inline-grid dashboard-split-scroll-grid">',
             '<div class="dashboard-subcard">',
             '<h3 class="dashboard-subcard-title">项目列表</h3>',
@@ -375,18 +494,19 @@
             '</div>',
             '</div>',
             '<div id="extAssignResult" class="dashboard-empty-state" hidden></div>',
-        ].join("")));
-
-        addNavItem("panel-stage-manage", "阶段管理");
-        addPanel("panel-stage-manage", card("阶段管理", "维护阶段要求、截止时间、权重和材料。", [
+            '</div>',
+            '<div class="dashboard-merged-section teacher-course-design-section">',
+            '<h3 class="dashboard-subcard-title">阶段管理</h3>',
             '<div class="dashboard-inline-grid dashboard-split-scroll-grid">',
             '<div class="dashboard-subcard">',
+            '<h3 class="dashboard-subcard-title">阶段列表</h3>',
             field("课程", '<select id="extStageCourse" class="dashboard-select"></select>'),
             field("项目", '<select id="extStageAssignment" class="dashboard-select"></select>'),
             field("阶段", '<select id="extStageSelect" class="dashboard-select"><option value="">新建阶段</option></select>'),
             '<div id="extStageList" class="list dashboard-scroll-region"></div>',
             '</div>',
             '<div class="dashboard-subcard">',
+            '<h3 class="dashboard-subcard-title">阶段设置</h3>',
             field("标题", '<input id="extStageTitle" class="dashboard-input" />'),
             field("开始时间", '<input id="extStageStart" class="dashboard-input" type="datetime-local" />'),
             field("截止时间", '<input id="extStageDue" class="dashboard-input" type="datetime-local" />'),
@@ -404,10 +524,12 @@
             '</div>',
             '</div>',
             '<div id="extStageResult" class="dashboard-empty-state" hidden></div>',
+            '</div>',
+            '</div>',
         ].join("")));
 
         addNavItem("panel-group-manage", "分组管理");
-        addPanel("panel-group-manage", card("分组管理", "教师/助教手动建组、查看小组并兜底调整成员。", [
+        addPanel("panel-group-manage", card("分组管理", "教师统一处理项目分组、成员调整与兜底编排。", [
             '<div class="dashboard-inline-grid dashboard-split-scroll-grid">',
             '<div class="dashboard-subcard">',
             field("课程", '<select id="extGroupCourse" class="dashboard-select"></select>'),
@@ -431,8 +553,11 @@
             '<div id="extGroupResult" class="dashboard-empty-state" hidden></div>',
         ].join("")));
 
-        addNavItem("panel-assistant-manage", "助教管理");
-        addPanel("panel-assistant-manage", card("助教管理", "创建自己的助教账号，并绑定到当前课程。", [
+        addNavItem("panel-teacher-settings", "教师设置");
+        addPanel("panel-teacher-settings", card("教师设置", "当前集中管理助教账号与课程绑定，后续可继续扩展教师侧配置。", [
+            '<div class="dashboard-window-stack">',
+            '<div class="dashboard-merged-section teacher-settings-section">',
+            '<h3 class="dashboard-subcard-title">助教管理</h3>',
             '<div class="dashboard-inline-grid dashboard-split-scroll-grid">',
             '<div class="dashboard-subcard">',
             '<h3 class="dashboard-subcard-title">创建助教</h3>',
@@ -453,6 +578,8 @@
             '</div>',
             '</div>',
             '<div id="extAssistantResult" class="dashboard-empty-state" hidden></div>',
+            '</div>',
+            '</div>',
         ].join("")));
 
         bindTeacherTools();
@@ -955,10 +1082,100 @@
         var submitAssignment = qs("#extSubmitAssignment");
         var submitStage = qs("#extSubmitStage");
         var submitResult = qs("#extSubmitResult");
+        var submitCourseField = qs("#studentSubmitCourseField");
+        var submitAssignmentField = qs("#studentSubmitAssignmentField");
+        var submitStageField = qs("#studentSubmitStageField");
+        var submitCourseOptions = qs("#studentSubmitCourseOptions");
+        var submitAssignmentOptions = qs("#studentSubmitAssignmentOptions");
+        var submitStageOptions = qs("#studentSubmitStageOptions");
+        var submitCourseValue = qs("#studentSubmitCourseValue");
+        var submitAssignmentValue = qs("#studentSubmitAssignmentValue");
+        var submitStageValue = qs("#studentSubmitStageValue");
+        var submitTreeOpen = { course: false, assignment: false, stage: false };
+        var submitTreeCommitted = { course: false, assignment: false };
+        function hydrateSubmitTreeData() {
+            return loadCourseOptions(submitCourse, refreshSubmitAssignments).catch(function () {
+                syncSubmitCascadeVisibility();
+            });
+        }
+        function submitSelectedLabel(select, fallback) {
+            if (!select || !select.options || !select.options.length) return fallback;
+            var option = select.options[select.selectedIndex];
+            return option && option.textContent ? String(option.textContent).trim() : fallback;
+        }
+        function applySubmitTreeOpenState() {
+            [
+                ["course", submitCourseField, submitCourseOptions],
+                ["assignment", submitAssignmentField, submitAssignmentOptions],
+                ["stage", submitStageField, submitStageOptions],
+            ].forEach(function (entry) {
+                var name = entry[0];
+                var field = entry[1];
+                var options = entry[2];
+                var toggle = field && qs("[data-submit-tree-toggle]", field);
+                var isOpen = Boolean(submitTreeOpen[name]);
+                if (field) field.classList.toggle("is-open", Boolean(isOpen));
+                if (options) options.hidden = !isOpen;
+                if (toggle) toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+            });
+        }
+        function closeSubmitTreeSections() {
+            submitTreeOpen.course = false;
+            submitTreeOpen.assignment = false;
+            submitTreeOpen.stage = false;
+            applySubmitTreeOpenState();
+        }
+        function renderSubmitTreeOptions(select, container, emptyText) {
+            if (!container) return;
+            var options = Array.from(select && select.options || []).filter(function (option) {
+                return option.value !== "";
+            });
+            if (!options.length) {
+                container.innerHTML = '<div class="student-submit-tree-empty">' + escapeHtml(emptyText) + '</div>';
+                return;
+            }
+            container.innerHTML = options.map(function (option) {
+                var isActive = String(option.value) === String(select.value);
+                return '<button class="student-submit-tree-option' + (isActive ? ' is-active' : '') + '" type="button" data-submit-tree-value="' + escapeHtml(option.value) + '">' + escapeHtml(option.textContent || "") + '</button>';
+            }).join("");
+        }
+        function syncSubmitTreeUi() {
+            var hasCourse = Boolean(submitCourse && submitCourse.value);
+            var hasAssignment = Boolean(submitAssignment && submitAssignment.value);
+            if (submitCourseValue) submitCourseValue.textContent = submitSelectedLabel(submitCourse, "展开查看全部课程");
+            if (submitAssignmentValue) submitAssignmentValue.textContent = hasCourse ? submitSelectedLabel(submitAssignment, "展开查看全部项目") : "请先选择课程";
+            if (submitStageValue) submitStageValue.textContent = hasAssignment ? submitSelectedLabel(submitStage, "展开查看全部阶段") : "请先选择项目";
+            renderSubmitTreeOptions(submitCourse, submitCourseOptions, "暂无课程");
+            renderSubmitTreeOptions(submitAssignment, submitAssignmentOptions, hasCourse ? "当前课程下暂无项目" : "请先选择课程");
+            renderSubmitTreeOptions(submitStage, submitStageOptions, hasAssignment ? "当前项目下暂无阶段" : "请先选择项目");
+        }
+        function syncSubmitCascadeVisibility() {
+            var hasCourse = Boolean(submitCourse && submitCourse.value);
+            var hasAssignment = Boolean(submitAssignment && submitAssignment.value);
+            if (!hasCourse) {
+                submitTreeCommitted.course = false;
+                submitTreeCommitted.assignment = false;
+                submitTreeOpen.assignment = false;
+                submitTreeOpen.stage = false;
+            }
+            if (!hasAssignment) {
+                submitTreeCommitted.assignment = false;
+                submitTreeOpen.stage = false;
+            }
+            if (submitAssignmentField) submitAssignmentField.hidden = !hasCourse || !submitTreeCommitted.course;
+            if (submitStageField) submitStageField.hidden = !hasAssignment || !submitTreeCommitted.assignment;
+            applySubmitTreeOpenState();
+            syncSubmitTreeUi();
+        }
         function refreshSubmitAssignments() {
-            return loadAssignmentOptions(submitCourse.value, submitAssignment, false).then(refreshSubmitStageAndGroup);
+            syncSubmitCascadeVisibility();
+            return loadAssignmentOptions(submitCourse.value, submitAssignment, false).then(function () {
+                syncSubmitCascadeVisibility();
+                return refreshSubmitStageAndGroup();
+            });
         }
         function refreshSubmitStageAndGroup() {
+            syncSubmitCascadeVisibility();
             if (!submitAssignment.value) return Promise.resolve();
             return Promise.all([
                 loadStageOptions(submitAssignment.value, submitStage, false),
@@ -967,15 +1184,89 @@
                 var myGroup = payloads[1].data || null;
                 qs("#extSubmitGroup").value = myGroup && myGroup.id || "";
                 qs("#extSubmitGroup").dataset.myRole = myGroup && myGroup.myRole || "";
+                syncSubmitCascadeVisibility();
             });
         }
         if (submitCourse) {
-            loadCourseOptions(submitCourse, refreshSubmitAssignments);
+            hydrateSubmitTreeData();
             submitCourse.onchange = refreshSubmitAssignments;
             submitAssignment.onchange = refreshSubmitStageAndGroup;
+            submitStage.onchange = syncSubmitCascadeVisibility;
+            submitCourse.addEventListener("change", syncSubmitCascadeVisibility);
+            submitAssignment.addEventListener("change", syncSubmitCascadeVisibility);
+            qsa("[data-submit-tree-toggle]", submitCourseField && submitCourseField.parentNode || document).forEach(function (toggle) {
+                toggle.addEventListener("click", function () {
+                    var type = toggle.getAttribute("data-submit-tree-toggle") || "";
+                    if (type === "course") {
+                        submitTreeOpen.course = !submitTreeOpen.course;
+                        if (!submitTreeOpen.course) {
+                            submitTreeOpen.assignment = false;
+                            submitTreeOpen.stage = false;
+                        }
+                    } else if (type === "assignment") {
+                        if (!(submitCourse && submitCourse.value)) return;
+                        submitTreeOpen.assignment = !submitTreeOpen.assignment;
+                        if (!submitTreeOpen.assignment) {
+                            submitTreeOpen.stage = false;
+                        }
+                    } else if (type === "stage") {
+                        if (!(submitAssignment && submitAssignment.value)) return;
+                        submitTreeOpen.stage = !submitTreeOpen.stage;
+                    }
+                    syncSubmitCascadeVisibility();
+                });
+            });
+            [
+                [submitCourseOptions, submitCourse, "course"],
+                [submitAssignmentOptions, submitAssignment, "assignment"],
+                [submitStageOptions, submitStage, "stage"],
+            ].forEach(function (entry) {
+                var container = entry[0];
+                var select = entry[1];
+                var type = entry[2];
+                if (!container || !select) return;
+                container.addEventListener("click", function (event) {
+                    var option = event.target.closest("[data-submit-tree-value]");
+                    if (!option) return;
+                    var nextValue = option.getAttribute("data-submit-tree-value") || "";
+                    if (!nextValue) return;
+                    select.value = nextValue;
+                    select.dispatchEvent(new Event("change", { bubbles: true }));
+                    if (type === "course") {
+                        submitTreeCommitted.course = true;
+                        submitTreeCommitted.assignment = false;
+                        submitTreeOpen.course = false;
+                        submitTreeOpen.assignment = false;
+                        submitTreeOpen.stage = false;
+                    } else if (type === "assignment") {
+                        submitTreeCommitted.assignment = true;
+                        submitTreeOpen.assignment = false;
+                        submitTreeOpen.stage = false;
+                    } else {
+                        submitTreeOpen.stage = false;
+                    }
+                    syncSubmitCascadeVisibility();
+                });
+            });
+            syncSubmitCascadeVisibility();
+            window.addEventListener("linksee:student-dashboard-ready", function () {
+                hydrateSubmitTreeData();
+            });
+            qsa('[data-target="panel-file-submit"]').forEach(function (button) {
+                button.addEventListener("click", function () {
+                    window.setTimeout(hydrateSubmitTreeData, 120);
+                });
+            });
+            window.setTimeout(hydrateSubmitTreeData, 1200);
+            window.setTimeout(hydrateSubmitTreeData, 2600);
         }
         qs("#extSubmitSend").onclick = function () {
             var groupInput = qs("#extSubmitGroup");
+            var stageOption = submitStage && submitStage.options ? submitStage.options[submitStage.selectedIndex] : null;
+            var fileNames = Array.from(qs("#extSubmitFiles").files || []).map(function (file) { return file.name; });
+            var titleValue = qs("#extSubmitTitle").value.trim();
+            var repoValue = qs("#extSubmitRepo").value.trim();
+            var linkValues = splitCsv(qs("#extSubmitLinks").value);
             if (!groupInput.value) {
                 return setResult(submitResult, "提交失败", "当前项目还没有可提交的小组。", true);
             }
@@ -983,14 +1274,31 @@
                 return setResult(submitResult, "提交失败", "当前阶段提交仅允许组长发起。", true);
             }
             var form = new FormData();
-            form.append("title", qs("#extSubmitTitle").value.trim());
+            form.append("title", titleValue);
             if (qs("#extSubmitDesc").value.trim()) form.append("description", qs("#extSubmitDesc").value.trim());
             if (qs("#extSubmitContribution").value.trim()) form.append("contributionNote", qs("#extSubmitContribution").value.trim());
-            if (qs("#extSubmitRepo").value.trim()) form.append("repositoryUrl", qs("#extSubmitRepo").value.trim());
-            splitCsv(qs("#extSubmitLinks").value).forEach(function (link) { form.append("links[]", link); });
+            if (repoValue) form.append("repositoryUrl", repoValue);
+            linkValues.forEach(function (link) { form.append("links[]", link); });
             Array.from(qs("#extSubmitFiles").files || []).forEach(function (file) { form.append("files", file); });
             api().postForm("/api/v1/stages/" + encodeURIComponent(submitStage.value) + "/groups/" + encodeURIComponent(groupInput.value) + "/submissions", form).then(function (payload) {
                 setResult(submitResult, "提交成功", "submissionId：" + ((payload.data && payload.data.id) || "--"), false);
+                window.dispatchEvent(new CustomEvent("linksee:submission-created", {
+                    detail: {
+                        submissionId: payload.data && payload.data.id || "",
+                        groupId: groupInput.value,
+                        stageId: submitStage.value,
+                        stageNo: stageOption ? Number(stageOption.dataset.stageNo || 0) : 0,
+                        stageTitle: stageOption ? String(stageOption.dataset.stageTitle || stageOption.textContent || "").trim() : "",
+                        submissionTitle: titleValue,
+                        attemptNo: payload.data && payload.data.attemptNo || 0,
+                        fileNames: fileNames,
+                        linkCount: linkValues.length,
+                        repositoryUrl: repoValue || "",
+                        operatorId: getStoredUserId(),
+                        createdAt: new Date().toISOString(),
+                        content: "",
+                    }
+                }));
             }).catch(function (err) {
                 setResult(submitResult, "提交失败", err.message, true);
             });
@@ -1001,7 +1309,10 @@
         var role = getRole();
         if (role === "academic") bindAcademicPanels();
         if (role === "teacher") bindTeacherPanels();
-        if (role === "student") bindStudentPanels();
+        if (role === "student") {
+            bindStudentPanels();
+            bindStudentTools();
+        }
     }
 
     window.linkseeDashboardExtensions = { install: install };
@@ -1651,6 +1962,18 @@
         return mm + "/" + dd;
     }
 
+    function formatRelativeTime(value) {
+        if (!value) return "刚刚";
+        var date = new Date(value);
+        if (Number.isNaN(date.getTime())) return "刚刚";
+        var diff = Date.now() - date.getTime();
+        if (diff < 60 * 1000) return "刚刚";
+        if (diff < 60 * 60 * 1000) return Math.max(1, Math.floor(diff / (60 * 1000))) + " 分钟前";
+        if (diff < 24 * 60 * 60 * 1000) return Math.max(1, Math.floor(diff / (60 * 60 * 1000))) + " 小时前";
+        if (diff < 48 * 60 * 60 * 1000) return "昨天 " + String(date.getHours()).padStart(2, "0") + ":" + String(date.getMinutes()).padStart(2, "0");
+        return formatShortDate(value) || "刚刚";
+    }
+
     function formatDeadline(value) {
         if (!value) return "未设置截止时间";
         var date = new Date(value);
@@ -1658,6 +1981,18 @@
         var mm = String(date.getMonth() + 1).padStart(2, "0");
         var dd = String(date.getDate()).padStart(2, "0");
         return mm + "/" + dd + " 截止";
+    }
+
+    function deadlineOffsetLabel(value) {
+        if (!value) return "未设截止";
+        var date = new Date(value);
+        if (Number.isNaN(date.getTime())) return "未设截止";
+        var diff = date.getTime() - Date.now();
+        var days = Math.ceil(diff / (24 * 60 * 60 * 1000));
+        if (days < 0) return "已逾期 " + Math.abs(days) + " 天";
+        if (days === 0) return "今天截止";
+        if (days === 1) return "明天截止";
+        return days + " 天后截止";
     }
 
     function findMemberByUserId(userId) {
@@ -1785,27 +2120,136 @@
     function taskStatusTone(status) {
         if (status === "done") return "teal";
         if (status === "in_progress") return "amber";
+        if (status === "file") return "teal";
         if (status === "cancelled") return "slate";
         return "rose";
+    }
+
+    function taskActivityActionTone(activity) {
+        if (!activity) return "neutral";
+        if (activity.action === "created") return "teal";
+        if (activity.action === "edited") return "amber";
+        if (activity.action === "status_changed") return taskStatusTone(taskActivityStatus(activity));
+        if (activity.action === "submitted") return "sky";
+        if (activity.action === "file_uploaded") return "cyan";
+        return "neutral";
     }
 
     function taskActivityLabel(action) {
         if (action === "created") return "新建任务";
         if (action === "edited") return "要求更新";
         if (action === "status_changed") return "状态更新";
+        if (action === "submitted") return "阶段提交";
+        if (action === "file_uploaded") return "文件同步";
         return "协作动态";
     }
 
+    function normalizeActivityFiles(files) {
+        if (!Array.isArray(files)) return [];
+        return files.map(function (file) {
+            if (!file || typeof file !== "object") return null;
+            return {
+                name: String(file.name || "附件"),
+                size: Number(file.size || 0),
+                mimeType: String(file.mimeType || ""),
+                uploadedAt: file.uploadedAt ? String(file.uploadedAt) : "",
+            };
+        }).filter(Boolean);
+    }
+
+    function activityFileKind(name) {
+        var ext = String(name || "").split(".").pop().toLowerCase();
+        if (["pdf"].indexOf(ext) >= 0) return "pdf";
+        if (["zip", "rar", "7z", "tar", "gz"].indexOf(ext) >= 0) return "archive";
+        if (["doc", "docx", "txt", "md"].indexOf(ext) >= 0) return "doc";
+        if (["png", "jpg", "jpeg", "gif", "webp", "svg"].indexOf(ext) >= 0) return "image";
+        return "file";
+    }
+
+    function activityFileTypeLabel(name) {
+        var ext = String(name || "").split(".").pop().toUpperCase();
+        return ext || "FILE";
+    }
+
+    function activityFileIconSvg(kind) {
+        if (kind === "pdf") {
+            return '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.8h5l3 3v9.4a1.8 1.8 0 0 1-1.8 1.8H6A1.8 1.8 0 0 1 4.2 16.2V5.6A1.8 1.8 0 0 1 6 3.8Z"></path><path d="M11 3.8v3.1h3"></path><path d="M6.7 13.5h1.5a1.4 1.4 0 1 0 0-2.8H6.7z"></path><path d="M10 10.7v2.8"></path><path d="M10 13.5h1.1"></path><path d="M13 13.5v-2.8h1"></path></svg>';
+        }
+        if (kind === "archive") {
+            return '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3.8" width="10" height="12.4" rx="1.8"></rect><path d="M8 3.8v3.2h4V3.8"></path><path d="M10 9.4v4.4"></path><path d="M8.6 11h2.8"></path></svg>';
+        }
+        if (kind === "doc") {
+            return '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.8h5l3 3v9.4a1.8 1.8 0 0 1-1.8 1.8H6A1.8 1.8 0 0 1 4.2 16.2V5.6A1.8 1.8 0 0 1 6 3.8Z"></path><path d="M11 3.8v3.1h3"></path><path d="M7 10h6"></path><path d="M7 12.7h6"></path></svg>';
+        }
+        if (kind === "image") {
+            return '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.8" y="4.2" width="12.4" height="11.6" rx="2"></rect><circle cx="8.1" cy="8.1" r="1.2"></circle><path d="m6 13.6 2.6-2.6 1.9 1.8 2.6-3 2.2 3.8"></path></svg>';
+        }
+        return '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.8h5l3 3v9.4a1.8 1.8 0 0 1-1.8 1.8H6A1.8 1.8 0 0 1 4.2 16.2V5.6A1.8 1.8 0 0 1 6 3.8Z"></path><path d="M11 3.8v3.1h3"></path></svg>';
+    }
+
+    function activityFileSummary(activity) {
+        var files = normalizeActivityFiles(activity && activity.files);
+        if (!files.length) return "";
+        var names = files.map(function (file) { return file.name; });
+        return files.length > 3
+            ? "文件：" + names.slice(0, 3).join("、") + " 等 " + files.length + " 个"
+            : "文件：" + names.join("、");
+    }
+
+    function taskActivityChangedFieldChips(activity) {
+        var text = String(activity && activity.content || "");
+        var chips = [];
+        [["标题", "标题"], ["任务说明", "说明"], ["优先级", "优先级"], ["截止时间", "截止"]].forEach(function (row) {
+            if (text.indexOf(row[0]) >= 0) chips.push(row[1]);
+        });
+        return chips;
+    }
+
+    function submissionActivityFileSummary(activity) {
+        if (!activity) return "";
+        var fileNames = Array.isArray(activity.fileNames) ? activity.fileNames.filter(Boolean) : [];
+        var parts = [];
+        if (fileNames.length) {
+            parts.push(fileNames.length > 3 ? "文件：" + fileNames.slice(0, 3).join("、") + " 等 " + fileNames.length + " 个" : "文件：" + fileNames.join("、"));
+        }
+        if (Number(activity.linkCount) > 0) {
+            parts.push("链接 " + Number(activity.linkCount) + " 个");
+        }
+        if (activity.repositoryUrl) {
+            parts.push("附带仓库链接");
+        }
+        return parts.join("；");
+    }
+
     function taskActivityContent(activity) {
-        if (activity && activity.content) return activity.content;
         if (!activity) return "暂无协作动态";
+        var actor = taskActivityActor(activity);
+        var actorLabel = actor && (actor.displayName || actor.name || actor.userId || actor.id) || "成员";
+        var actorRole = actor && actor.role === "leader" ? "组长" : actorLabel;
+        if (activity && activity.content && activity.action !== "edited") return activity.content;
         if (activity.action === "created") return "组长创建了新任务，请负责人及时查看。";
-        if (activity.action === "edited") return "任务要求已更新，请查看最新内容。";
-        if (activity.action === "status_changed") return "任务状态已更新。";
+        if (activity.action === "edited") {
+            var changed = taskActivityChangedFieldChips(activity);
+            if (changed.length === 1) return actorRole + "修改了" + changed[0] + "。";
+            if (changed.length > 1) return actorRole + "更新了" + changed.join("、") + "。";
+            return actorRole + "更新了任务要求。";
+        }
+        if (activity.action === "status_changed") return actorLabel + "更新了任务状态。";
+        if (activity.action === "submitted") {
+            var stageLabel = activity.stageTitle ? "第 " + String(activity.stageNo || "--") + " 阶段 " + activity.stageTitle : "当前阶段";
+            var submissionSummary = submissionActivityFileSummary(activity);
+            return stageLabel + "已提交《" + String(activity.title || "未命名提交") + "》" + (submissionSummary ? "；" + submissionSummary : "。");
+        }
+        if (activity.action === "file_uploaded") {
+            var fileSummary = activityFileSummary(activity);
+            return fileSummary ? "群聊中上传了新文件；" + fileSummary : "群聊中上传了新文件。";
+        }
         return "任务发生了新的协作变更。";
     }
 
     function taskActivityStatus(activity) {
+        if (activity && activity.action === "submitted") return "done";
+        if (activity && activity.action === "file_uploaded") return "file";
         return activity && activity.status ? activity.status : "todo";
     }
 
@@ -1816,18 +2260,222 @@
             || null;
     }
 
+    function isLeaderActivity(activity) {
+        var actor = taskActivityActor(activity);
+        if (actor && actor.role === "leader") return true;
+        return Boolean(state.currentGroup && state.currentGroup.myRole === "leader" && String(activity && activity.operatorId || "") === String(currentUserId()));
+    }
+
+    function isMineActivity(activity) {
+        var me = String(currentUserId());
+        if (String(activity && activity.operatorId || "") === me) return true;
+        return Array.isArray(activity && activity.assigneeIds) && activity.assigneeIds.some(function (id) {
+            return String(id) === me;
+        });
+    }
+
+    function activityMatchesFilter(activity, filter) {
+        if (filter === "all") return true;
+        if (filter === "submission") return activity && activity.action === "submitted";
+        if (filter === "file") return taskActivityStatus(activity) === "file";
+        if (filter === "mine") return isMineActivity(activity);
+        if (filter === "leader") return isLeaderActivity(activity);
+        return taskActivityStatus(activity) === filter;
+    }
+
+    function activityDetailChips(activity) {
+        if (!activity) return [];
+        if (activity.action === "file_uploaded") {
+            return normalizeActivityFiles(activity.files).slice(0, 3).map(function (file) {
+                return { label: file.name, tone: "file", icon: activityFileIconSvg(activityFileKind(file.name)), meta: activityFileTypeLabel(file.name) };
+            });
+        }
+        if (activity.action === "submitted") {
+            var chips = [];
+            if (activity.stageNo) chips.push({ label: "阶段 " + activity.stageNo, tone: "stage" });
+            if (Array.isArray(activity.fileNames) && activity.fileNames.length) {
+                chips.push({ label: activity.fileNames.length + " 个文件", tone: "file" });
+            }
+            if (Number(activity.linkCount) > 0) {
+                chips.push({ label: activity.linkCount + " 个链接", tone: "neutral" });
+            }
+            return chips;
+        }
+        if (activity.action === "edited") {
+            return taskActivityChangedFieldChips(activity).map(function (chip) {
+                return { label: chip, tone: "edit" };
+            });
+        }
+        if (activity.action === "status_changed") {
+            return [{ label: taskStatusLabel(taskActivityStatus(activity)), tone: taskStatusTone(taskActivityStatus(activity)) }];
+        }
+        if (activity.action === "created") {
+            return [{ label: "已分派", tone: "teal" }];
+        }
+        return [];
+    }
+
+    function activitySecondaryLine(activity) {
+        if (!activity) return "";
+        if (activity.action === "submitted") {
+            var stageText = activity.stageTitle ? "第 " + String(activity.stageNo || "--") + " 阶段 · " + activity.stageTitle : "阶段提交";
+            return stageText;
+        }
+        if (activity.action === "file_uploaded") {
+            var files = normalizeActivityFiles(activity.files);
+            return files.length > 1 ? "群聊中共上传 " + files.length + " 个文件" : "群聊文件同步";
+        }
+        if (activity.action === "created") return "已同步到负责人待办";
+        if (activity.action === "edited") return "已同步到工作台";
+        if (activity.action === "status_changed") return "已同步到协作进度";
+        return "";
+    }
+
+    function switchTeamView(viewKey) {
+        qsa("#studentTeamViewTabs .student-view-tab").forEach(function (node) {
+            var active = node.getAttribute("data-team-view") === viewKey;
+            node.classList.toggle("is-active", active);
+        });
+        qsa(".student-team-view").forEach(function (view) {
+            var active = view.id === "studentTeam" + viewKey.charAt(0).toUpperCase() + viewKey.slice(1) + "View";
+            view.hidden = !active;
+            view.classList.toggle("is-active", active);
+        });
+    }
+
+    function switchPanelById(panelId) {
+        var navButton = qs('.side-nav .nav-item[data-target="' + panelId + '"]');
+        if (navButton) {
+            navButton.click();
+            return;
+        }
+        qsa(".page-panel").forEach(function (panel) {
+            var active = panel.id === panelId;
+            panel.hidden = !active;
+            panel.classList.toggle("is-active", active);
+        });
+    }
+
+    function setSelectValue(select, value) {
+        if (!select || value === undefined || value === null) return false;
+        var next = String(value);
+        var matched = Array.from(select.options || []).some(function (option) {
+            return String(option.value) === next;
+        });
+        if (!matched) return false;
+        select.value = next;
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+        return true;
+    }
+
+    function setSelectWithRetry(selectId, value, callback, attempts) {
+        var remaining = attempts || 8;
+        var select = qs("#" + selectId);
+        if (setSelectValue(select, value)) {
+            if (callback) callback();
+            return;
+        }
+        if (remaining <= 0) return;
+        window.setTimeout(function () {
+            setSelectWithRetry(selectId, value, callback, remaining - 1);
+        }, 120);
+    }
+
+    function navigateFromActivity(activity) {
+        if (!activity) return;
+        if (activity.taskId) {
+            switchTeamView("workbench");
+            state.selectedTaskId = String(activity.taskId);
+            renderSelectedTask();
+            return;
+        }
+        if (activity.action === "submitted") {
+            switchPanelById("panel-file-submit");
+            window.setTimeout(function () {
+                if (taskCourse && taskCourse.value) {
+                    setSelectWithRetry("extSubmitCourse", taskCourse.value, function () {
+                        setSelectWithRetry("extSubmitAssignment", taskAssignment && taskAssignment.value || "", function () {
+                            if (activity.stageId) {
+                                setSelectWithRetry("extSubmitStage", activity.stageId, null, 10);
+                            }
+                        }, 10);
+                    }, 10);
+                }
+            }, 80);
+            return;
+        }
+        if (activity.action === "file_uploaded") {
+            if (window.linkseeChatWidget && typeof window.linkseeChatWidget.openConversationByScope === "function" && state.currentGroup && state.currentGroup.id) {
+                window.linkseeChatWidget.openConversationByScope("group", state.currentGroup.id).catch(function () {});
+                return;
+            }
+            var launcher = qs("[data-chat-launcher]");
+            if (launcher) launcher.click();
+        }
+    }
+
     function isTaskActivityMessage(message) {
         if (!message || message.messageType !== "announcement") return false;
         var files = message.files;
         return Boolean(files) && typeof files === "object" && !Array.isArray(files) && files.subType === "task_event";
     }
 
+    function isSubmissionActivityMessage(message) {
+        if (!message || message.messageType !== "announcement") return false;
+        var files = message.files;
+        return Boolean(files) && typeof files === "object" && !Array.isArray(files) && files.subType === "submission_event";
+    }
+
+    function isFileActivityMessage(message) {
+        return Boolean(message && message.messageType === "file" && Array.isArray(message.files) && message.files.length);
+    }
+
     function normalizeTaskActivityRows(messages) {
         var taskMap = new Map((state.tasks || []).map(function (task) {
             return [String(task.id || ""), task];
         }));
-        return (Array.isArray(messages) ? messages : []).filter(isTaskActivityMessage).map(function (message) {
+        return (Array.isArray(messages) ? messages : []).filter(function (message) {
+            return isTaskActivityMessage(message) || isSubmissionActivityMessage(message) || isFileActivityMessage(message);
+        }).map(function (message) {
             var files = message.files || {};
+            if (isFileActivityMessage(message)) {
+                var normalizedFiles = normalizeActivityFiles(message.files);
+                return {
+                    id: "file-activity-" + String(message.id || Date.now()),
+                    taskId: "",
+                    title: normalizedFiles.length > 1 ? "群聊文件更新" : (normalizedFiles[0] && normalizedFiles[0].name) || "群聊文件更新",
+                    content: String(message.content || ""),
+                    action: "file_uploaded",
+                    status: "file",
+                    assigneeIds: [],
+                    operatorId: String(message.senderId || ""),
+                    createdAt: message.createdAt || new Date().toISOString(),
+                    files: normalizedFiles,
+                    scopeType: "group",
+                    scopeId: state.currentGroup && state.currentGroup.id ? String(state.currentGroup.id) : "",
+                };
+            }
+            if (files.subType === "submission_event") {
+                return {
+                    id: "submission-activity-" + String(message.id || files.submissionId || Date.now()),
+                    taskId: "",
+                    title: String(files.submissionTitle || "未命名提交"),
+                    content: String(message.content || ""),
+                    action: "submitted",
+                    status: "done",
+                    assigneeIds: [],
+                    operatorId: String(files.operatorId || message.senderId || ""),
+                    createdAt: message.createdAt || new Date().toISOString(),
+                    stageId: String(files.stageId || ""),
+                    stageNo: Number(files.stageNo || 0),
+                    stageTitle: String(files.stageTitle || ""),
+                    submissionId: String(files.submissionId || ""),
+                    attemptNo: Number(files.attemptNo || 0),
+                    fileNames: Array.isArray(files.fileNames) ? files.fileNames.map(function (name) { return String(name); }) : [],
+                    linkCount: Number(files.linkCount || 0),
+                    repositoryUrl: files.repositoryUrl ? String(files.repositoryUrl) : "",
+                };
+            }
             var taskId = String(files.taskId || "");
             var task = taskMap.get(taskId) || null;
             var assigneeIds = Array.isArray(files.assigneeIds)
@@ -1891,6 +2539,32 @@
         renderActivityFeed();
     }
 
+    function prependSubmissionActivity(detail) {
+        var activity = {
+            id: "local-submission-" + String(detail && detail.submissionId || Date.now()) + "-" + Date.now(),
+            taskId: "",
+            title: detail && detail.submissionTitle || "未命名提交",
+            content: detail && detail.content || "",
+            action: "submitted",
+            status: "done",
+            assigneeIds: [],
+            operatorId: detail && detail.operatorId || currentUserId(),
+            createdAt: detail && detail.createdAt || new Date().toISOString(),
+            stageId: detail && detail.stageId || "",
+            stageNo: Number(detail && detail.stageNo || 0),
+            stageTitle: detail && detail.stageTitle || "",
+            submissionId: detail && detail.submissionId || "",
+            attemptNo: Number(detail && detail.attemptNo || 0),
+            fileNames: Array.isArray(detail && detail.fileNames) ? detail.fileNames.slice() : [],
+            linkCount: Number(detail && detail.linkCount || 0),
+            repositoryUrl: detail && detail.repositoryUrl || "",
+        };
+        state.taskActivities = [activity].concat((state.taskActivities || []).filter(function (row) {
+            return String(row.id) !== String(activity.id);
+        })).slice(0, 20);
+        renderActivityFeed();
+    }
+
     function renderTaskSummary(tasks) {
         if (!taskSummary) return;
         var me = currentUserId();
@@ -1907,14 +2581,15 @@
         }
         taskSummary.innerHTML = rows.slice(0, 3).map(function (task) {
             return [
-                '<article class="student-task-metric">',
+                '<button class="student-task-metric" type="button" data-summary-task-id="' + escapeHtml(task.id) + '">',
                 '<span class="student-task-metric-dot is-' + escapeHtml(taskStatusTone(task.status)) + '"></span>',
                 miniAvatar(resolveAssigneeLabels(task)[0] || currentUserName(), "own", "", Array.isArray(task.assigneeIds) ? task.assigneeIds[0] : ""),
                 '<div class="student-task-metric-copy">',
                 '<strong>' + escapeHtml(task.title || "未命名任务") + '</strong>',
-                '<small>' + escapeHtml(taskStatusLabel(task.status)) + ' · ' + escapeHtml(formatDeadline(task.dueAt)) + '</small>',
+                '<small>' + escapeHtml(taskStatusLabel(task.status)) + ' · ' + escapeHtml(deadlineOffsetLabel(task.dueAt)) + '</small>',
                 '</div>',
-            '</article>'
+                '<span class="student-task-metric-tail">' + escapeHtml(formatDeadline(task.dueAt)) + '</span>',
+            '</button>'
             ].join("");
         }).join("");
     }
@@ -1953,7 +2628,7 @@
             rows = buildFallbackTaskActivities(state.tasks);
         }
         if (state.activityFilter !== "all") {
-            rows = rows.filter(function (activity) { return taskActivityStatus(activity) === state.activityFilter; });
+            rows = rows.filter(function (activity) { return activityMatchesFilter(activity, state.activityFilter); });
         }
         if (!rows.length) {
             activityFeed.innerHTML = '<div class="student-inline-empty">当前筛选下暂无协作动态。</div>';
@@ -1962,19 +2637,34 @@
         activityFeed.innerHTML = rows.slice(0, 10).map(function (activity) {
             var actor = taskActivityActor(activity);
             var actorLabel = actor && (actor.displayName || actor.name || actor.userId || actor.id) || resolveAssigneeLabels({ assigneeIds: activity.assigneeIds || [] })[0] || "--";
+            var activityStatus = taskActivityStatus(activity);
+            var chips = activityDetailChips(activity);
+            var subline = activitySecondaryLine(activity);
+            var targetType = activity.taskId ? "task" : (activity.action === "submitted" ? "submission" : (activity.action === "file_uploaded" ? "file" : ""));
             return [
-                '<article class="student-activity-row">',
-                '<div class="student-activity-avatar-wrap">' + miniAvatar(actorLabel, taskStatusTone(taskActivityStatus(activity)), actor && actor.avatarUrl || "", actor && (actor.userId || actor.id) || "") + '</div>',
+                '<article class="student-activity-row is-' + escapeHtml(taskActivityActionTone(activity)) + (targetType ? ' is-actionable' : '') + '" data-activity-id="' + escapeHtml(activity.id || "") + '" data-activity-target="' + escapeHtml(targetType) + '" data-activity-task-id="' + escapeHtml(activity.taskId || "") + '" data-activity-stage-id="' + escapeHtml(activity.stageId || "") + '" tabindex="' + (targetType ? '0' : '-1') + '">',
+                '<div class="student-activity-avatar-wrap">' + miniAvatar(actorLabel, taskStatusTone(activityStatus), actor && actor.avatarUrl || "", actor && (actor.userId || actor.id) || "") + '</div>',
                 '<div class="student-activity-copy">',
-                '<span class="student-row-kicker">' + escapeHtml(taskActivityLabel(activity.action)) + '</span>',
+                '<span class="student-row-kicker is-' + escapeHtml(taskActivityActionTone(activity)) + '">' + escapeHtml(taskActivityLabel(activity.action)) + '</span>',
                 '<strong>' + escapeHtml(activity.title || "未命名任务") + '</strong>',
+                (subline ? '<div class="student-activity-subline">' + escapeHtml(subline) + '</div>' : ''),
                 '<p>' + escapeHtml(taskActivityContent(activity)) + '</p>',
+                (chips.length ? '<div class="student-activity-chip-row">' + chips.map(function (chip) {
+                    return '<span class="student-activity-chip is-' + escapeHtml(chip.tone || "neutral") + '">' + (chip.icon ? '<span class="student-activity-chip-icon" aria-hidden="true">' + chip.icon + '</span>' : '') + (chip.meta ? '<span class="student-activity-chip-meta">' + escapeHtml(chip.meta) + '</span>' : '') + '<span>' + escapeHtml(chip.label || "") + '</span></span>';
+                }).join("") + '</div>' : ''),
                 '</div>',
-                '<div class="student-activity-meta"><span class="badge badge-' + escapeHtml(taskStatusTone(taskActivityStatus(activity))) + '">' + escapeHtml(taskStatusLabel(taskActivityStatus(activity))) + '</span><small>' + escapeHtml(formatShortDate(activity.createdAt) || "刚刚") + '</small></div>',
+                '<div class="student-activity-meta"><span class="badge badge-' + escapeHtml(taskStatusTone(activityStatus)) + '">' + escapeHtml(activityStatus === "file" ? "文件" : taskStatusLabel(activityStatus)) + '</span><small>' + escapeHtml(formatRelativeTime(activity.createdAt)) + '</small></div>',
                 '</article>'
             ].join("");
         }).join("");
     }
+
+    window.addEventListener("linksee:submission-created", function (event) {
+        var detail = event && event.detail || null;
+        if (!detail || !state.currentGroup) return;
+        if (String(detail.groupId || "") !== String(state.currentGroup.id || "")) return;
+        prependSubmissionActivity(detail);
+    });
 
     function renderMemberList(group) {
         if (!memberList) return;
@@ -1988,10 +2678,22 @@
             var label = member.displayName || member.name || member.userId || member.id || "--";
             var role = member.role === "leader" ? "组长" : "成员";
             var tone = presenceTone(member.presence);
+            var assignedTasks = (state.tasks || []).filter(function (task) {
+                return taskAssigneeIds(task).some(function (assigneeId) {
+                    return String(assigneeId) === String(member.userId || member.id || "");
+                });
+            });
+            var overdueCount = assignedTasks.filter(function (task) {
+                if (!task.dueAt || task.status === "done" || task.status === "cancelled") return false;
+                var due = new Date(task.dueAt);
+                return !Number.isNaN(due.getTime()) && due.getTime() < Date.now();
+            }).length;
+            var memberTrail = [presenceLabel(member.presence), assignedTasks.length + " 项任务"];
+            if (overdueCount > 0) memberTrail.push(overdueCount + " 项逾期");
             return [
                 '<article class="student-member-item">',
                 miniAvatar(label, member.role === "leader" ? "amber" : "teal", member.avatarUrl || "", member.userId || member.id || ""),
-                '<div class="student-member-copy"><strong>' + escapeHtml(label) + '</strong><small>' + escapeHtml(role) + '</small></div>',
+                '<div class="student-member-copy"><strong>' + escapeHtml(label) + '</strong><small>' + escapeHtml(role) + '</small><span class="student-member-trail">' + escapeHtml(memberTrail.join(" · ")) + '</span></div>',
                 '<span class="student-member-state is-' + escapeHtml(tone) + '">' + escapeHtml(presenceLabel(member.presence)) + '</span>',
                 '</article>'
             ].join("");
@@ -2644,17 +3346,40 @@
         if (qs("#studentTaskMineOnly")) qs("#studentTaskMineOnly").addEventListener("change", renderWorkbenchTaskList);
         if (qs("#studentTaskSummaryMoreBtn")) {
             qs("#studentTaskSummaryMoreBtn").addEventListener("click", function () {
-                qsa("#studentTeamViewTabs .student-view-tab").forEach(function (node) {
-                    var active = node.getAttribute("data-team-view") === "workbench";
-                    node.classList.toggle("is-active", active);
-                });
-                qsa(".student-team-view").forEach(function (view) {
-                    var active = view.id === "studentTeamWorkbenchView";
-                    view.hidden = !active;
-                    view.classList.toggle("is-active", active);
-                });
+                switchTeamView("workbench");
                 if (qs("#studentTaskMineOnly")) qs("#studentTaskMineOnly").checked = true;
                 renderWorkbenchTaskList();
+            });
+        }
+        if (taskSummary) {
+            taskSummary.addEventListener("click", function (event) {
+                var row = event.target.closest("[data-summary-task-id]");
+                if (!row) return;
+                state.selectedTaskId = row.getAttribute("data-summary-task-id") || "";
+                switchTeamView("workbench");
+                renderSelectedTask();
+            });
+        }
+        if (activityFeed) {
+            activityFeed.addEventListener("click", function (event) {
+                var row = event.target.closest(".student-activity-row[data-activity-target]");
+                if (!row) return;
+                var targetType = row.getAttribute("data-activity-target") || "";
+                if (!targetType) return;
+                var activity = (state.taskActivities || []).find(function (entry) {
+                    return String(entry.id) === String(row.getAttribute("data-activity-id") || "");
+                });
+                if (activity) navigateFromActivity(activity);
+            });
+            activityFeed.addEventListener("keydown", function (event) {
+                if (event.key !== "Enter" && event.key !== " ") return;
+                var row = event.target.closest(".student-activity-row[data-activity-target]");
+                if (!row) return;
+                event.preventDefault();
+                var activity = (state.taskActivities || []).find(function (entry) {
+                    return String(entry.id) === String(row.getAttribute("data-activity-id") || "");
+                });
+                if (activity) navigateFromActivity(activity);
             });
         }
         if (qs("#studentTaskStatusNext")) {

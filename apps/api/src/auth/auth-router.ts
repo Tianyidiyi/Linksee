@@ -309,7 +309,7 @@ authRouter.post(
     }
 
     const { newPassword, userIds, grade, cohort, adminClass, major } = req.body ?? {};
-    const batchAllowedRoles: Role[] = ["teacher", "student"];
+    const batchAllowedRoles: Role[] = ["teacher", "student", "assistant"];
 
     if (newPassword !== undefined && !isStrongPassword(newPassword)) {
       return res.status(422).json({
