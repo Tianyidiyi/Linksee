@@ -92,6 +92,228 @@
             .map(function (row) { return row.stage; });
     }
 
+    function fileTypeIconSvg(ext) {
+        var value = String(ext || "").toLowerCase();
+        if (value === "pdf") {
+            return '<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M6 2.75h5.3L15 6.46V16a1.25 1.25 0 0 1-1.25 1.25h-7.5A1.25 1.25 0 0 1 5 16V4A1.25 1.25 0 0 1 6.25 2.75Z" stroke="currentColor" stroke-width="1.5"/><path d="M11 2.9V6.3h3.4" stroke="currentColor" stroke-width="1.5"/><path d="M7.2 12.9h1.2c.8 0 1.3-.43 1.3-1.12 0-.7-.5-1.13-1.3-1.13H7.2v3.6Zm3.8 0h.97c1.1 0 1.83-.69 1.83-1.8 0-1.12-.73-1.8-1.83-1.8H11v3.6Zm-3.8-1.33h1.02c.34 0 .54-.18.54-.47 0-.28-.2-.46-.54-.46H7.2v.93Zm4.78 0h.18c.45 0 .73-.28.73-.74 0-.45-.28-.73-.73-.73h-.18v1.47Zm2.5 1.33v-3.6H16" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        }
+        if (value === "xls" || value === "xlsx" || value === "csv") {
+            return '<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M6 2.75h5.3L15 6.46V16a1.25 1.25 0 0 1-1.25 1.25h-7.5A1.25 1.25 0 0 1 5 16V4A1.25 1.25 0 0 1 6.25 2.75Z" stroke="currentColor" stroke-width="1.5"/><path d="M11 2.9V6.3h3.4" stroke="currentColor" stroke-width="1.5"/><path d="m7.35 10.1 1.1 1.42 1.1-1.42m-2.2 3 1.1-1.42 1.1 1.42m1.15-3v3m1.82-3h1.55m-1.55 1.5h1.4m-1.4 1.5h1.55" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        }
+        if (value === "doc" || value === "docx") {
+            return '<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M6 2.75h5.3L15 6.46V16a1.25 1.25 0 0 1-1.25 1.25h-7.5A1.25 1.25 0 0 1 5 16V4A1.25 1.25 0 0 1 6.25 2.75Z" stroke="currentColor" stroke-width="1.5"/><path d="M11 2.9V6.3h3.4" stroke="currentColor" stroke-width="1.5"/><path d="M7.25 10.1v3h1.06c.96 0 1.59-.6 1.59-1.5 0-.9-.63-1.5-1.6-1.5H7.25Zm3.68 0v3l1-.98 1 .98v-3m1.08 0v3H16" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        }
+        return '<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M6 2.75h5.3L15 6.46V16a1.25 1.25 0 0 1-1.25 1.25h-7.5A1.25 1.25 0 0 1 5 16V4A1.25 1.25 0 0 1 6.25 2.75Z" stroke="currentColor" stroke-width="1.5"/><path d="M11 2.9V6.3h3.4" stroke="currentColor" stroke-width="1.5"/><path d="M7.4 10.2h5.2M7.4 12h5.2M7.4 13.8h3.6" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/></svg>';
+    }
+
+    function teacherCourseMockData() {
+        return {
+            courses: [
+                {
+                    id: "mock-teacher-course-01",
+                    courseNo: "SE-2026-01",
+                    name: "软件工程综合实践",
+                    academicYear: 2026,
+                    semester: "2",
+                    status: "active",
+                }
+            ],
+            assignmentsByCourse: {
+                "mock-teacher-course-01": [
+                    {
+                        id: "mock-teacher-assignment-01",
+                        courseId: "mock-teacher-course-01",
+                        title: "项目 1：需求分析与原型设计",
+                        description: "围绕课程主题完成需求拆解、用户旅程梳理与原型方案设计。",
+                        status: "active",
+                        descriptionFiles: [
+                            { id: "maf-1", originalName: "需求说明模板.docx", size: 82432, uploadedAt: "2026-06-01T10:20:00+08:00" }
+                        ]
+                    },
+                    {
+                        id: "mock-teacher-assignment-02",
+                        courseId: "mock-teacher-course-01",
+                        title: "项目 2：系统实现与联调测试",
+                        description: "进入前后端实现阶段，完成接口联调、测试和演示准备。",
+                        status: "draft",
+                        descriptionFiles: []
+                    },
+                    {
+                        id: "mock-teacher-assignment-03",
+                        courseId: "mock-teacher-course-01",
+                        title: "项目 3：课程总结与答辩",
+                        description: "整理阶段成果，提交课程总结材料并准备结题答辩。",
+                        status: "draft",
+                        descriptionFiles: []
+                    }
+                ]
+            },
+            stagesByAssignment: {
+                "mock-teacher-assignment-01": [
+                    {
+                        id: "mock-teacher-stage-01",
+                        assignmentId: "mock-teacher-assignment-01",
+                        stageNo: 1,
+                        title: "选题确认",
+                        description: "确认小组题目、方向与成员分工，完成开题登记。",
+                        submissionDesc: "提交选题登记表与分工说明。",
+                        acceptCriteria: "选题明确、方向可行、成员职责清晰。",
+                        startAt: "2026-06-02T08:00:00+08:00",
+                        dueAt: "2026-06-05T23:59:00+08:00",
+                        weight: 15,
+                        status: "closed",
+                        requirementFiles: []
+                    },
+                    {
+                        id: "mock-teacher-stage-02",
+                        assignmentId: "mock-teacher-assignment-01",
+                        stageNo: 2,
+                        title: "需求文档提交",
+                        description: "提交需求规格说明与用户流程梳理。",
+                        submissionDesc: "上传需求规格说明书、用户流程图和原型初稿。",
+                        acceptCriteria: "需求边界清晰，流程闭环完整，可支持后续原型设计。",
+                        startAt: "2026-06-06T08:00:00+08:00",
+                        dueAt: "2026-06-11T23:59:00+08:00",
+                        weight: 30,
+                        status: "closed",
+                        requirementFiles: []
+                    },
+                    {
+                        id: "mock-teacher-stage-03",
+                        assignmentId: "mock-teacher-assignment-01",
+                        stageNo: 3,
+                        title: "原型评审",
+                        description: "按小组展示交互原型，进行课堂评审与修改反馈。",
+                        submissionDesc: "提交高保真原型链接、说明文档与评审记录。",
+                        acceptCriteria: "原型逻辑自洽、关键流程完整、评审意见可追踪。",
+                        startAt: "2026-06-12T08:00:00+08:00",
+                        dueAt: "2026-06-18T23:59:00+08:00",
+                        weight: 25,
+                        status: "open",
+                        requirementFiles: [
+                            { id: "msf-1", originalName: "原型评审说明.pdf", size: 552960, uploadedAt: "2026-06-12T09:00:00+08:00" },
+                            { id: "msf-2", originalName: "评分标准.xlsx", size: 59392, uploadedAt: "2026-06-12T09:05:00+08:00" }
+                        ]
+                    }
+                ],
+                "mock-teacher-assignment-02": [
+                    {
+                        id: "mock-teacher-stage-04",
+                        assignmentId: "mock-teacher-assignment-02",
+                        stageNo: 1,
+                        title: "迭代开发",
+                        description: "完成主要模块实现与版本迭代。",
+                        submissionDesc: "提交里程碑代码与联调说明。",
+                        acceptCriteria: "核心功能完整，版本可运行。",
+                        startAt: "2026-06-20T08:00:00+08:00",
+                        dueAt: "2026-06-28T23:59:00+08:00",
+                        weight: 35,
+                        status: "planned",
+                        requirementFiles: []
+                    },
+                    {
+                        id: "mock-teacher-stage-05",
+                        assignmentId: "mock-teacher-assignment-02",
+                        stageNo: 2,
+                        title: "联调测试",
+                        description: "完成测试用例执行与问题修复。",
+                        submissionDesc: "提交测试报告与缺陷清单。",
+                        acceptCriteria: "主要问题收敛，测试记录完整。",
+                        startAt: "2026-06-29T08:00:00+08:00",
+                        dueAt: "2026-07-05T23:59:00+08:00",
+                        weight: 35,
+                        status: "planned",
+                        requirementFiles: []
+                    }
+                ],
+                "mock-teacher-assignment-03": [
+                    {
+                        id: "mock-teacher-stage-06",
+                        assignmentId: "mock-teacher-assignment-03",
+                        stageNo: 1,
+                        title: "结题汇报",
+                        description: "整理课程成果并准备结题展示。",
+                        submissionDesc: "提交 PPT、项目总结与归档材料。",
+                        acceptCriteria: "成果完整，展示结构清晰。",
+                        startAt: "2026-07-06T08:00:00+08:00",
+                        dueAt: "2026-07-12T23:59:00+08:00",
+                        weight: 20,
+                        status: "planned",
+                        requirementFiles: []
+                    }
+                ]
+            },
+            groupsByAssignment: {
+                "mock-teacher-assignment-01": [
+                    { id: "mock-group-01", assignmentId: "mock-teacher-assignment-01", groupNo: 1, name: "交互体验组", status: "active", _count: { members: 4 } },
+                    { id: "mock-group-02", assignmentId: "mock-teacher-assignment-01", groupNo: 2, name: "数据可视化组", status: "active", _count: { members: 4 } },
+                    { id: "mock-group-03", assignmentId: "mock-teacher-assignment-01", groupNo: 3, name: "原型实现组", status: "forming", _count: { members: 3 } },
+                    { id: "mock-group-04", assignmentId: "mock-teacher-assignment-01", groupNo: 4, name: "系统分析组", status: "active", _count: { members: 5 } }
+                ],
+                "mock-teacher-assignment-02": [
+                    { id: "mock-group-05", assignmentId: "mock-teacher-assignment-02", groupNo: 1, name: "前后端联调组", status: "forming", _count: { members: 5 } }
+                ],
+                "mock-teacher-assignment-03": []
+            },
+            groupMembersByGroup: {
+                "mock-group-01": [
+                    { userId: "2026010001", user: { profile: { realName: "张三", accountNo: "2026010001", avatarUrl: "" } } },
+                    { userId: "2026010002", user: { profile: { realName: "李四", accountNo: "2026010002", avatarUrl: "" } } },
+                    { userId: "2026010003", user: { profile: { realName: "王五", accountNo: "2026010003", avatarUrl: "" } } },
+                    { userId: "2026010004", user: { profile: { realName: "赵六", accountNo: "2026010004", avatarUrl: "" } } }
+                ],
+                "mock-group-02": [
+                    { userId: "2026010011", user: { profile: { realName: "陈一", accountNo: "2026010011", avatarUrl: "" } } },
+                    { userId: "2026010012", user: { profile: { realName: "吴二", accountNo: "2026010012", avatarUrl: "" } } },
+                    { userId: "2026010013", user: { profile: { realName: "郑三", accountNo: "2026010013", avatarUrl: "" } } },
+                    { userId: "2026010014", user: { profile: { realName: "周四", accountNo: "2026010014", avatarUrl: "" } } }
+                ],
+                "mock-group-03": [
+                    { userId: "2026010021", user: { profile: { realName: "冯五", accountNo: "2026010021", avatarUrl: "" } } },
+                    { userId: "2026010022", user: { profile: { realName: "钱六", accountNo: "2026010022", avatarUrl: "" } } },
+                    { userId: "2026010023", user: { profile: { realName: "孙七", accountNo: "2026010023", avatarUrl: "" } } }
+                ],
+                "mock-group-04": [
+                    { userId: "2026010031", user: { profile: { realName: "蒋八", accountNo: "2026010031", avatarUrl: "" } } },
+                    { userId: "2026010032", user: { profile: { realName: "沈九", accountNo: "2026010032", avatarUrl: "" } } },
+                    { userId: "2026010033", user: { profile: { realName: "韩十", accountNo: "2026010033", avatarUrl: "" } } },
+                    { userId: "2026010034", user: { profile: { realName: "杨十一", accountNo: "2026010034", avatarUrl: "" } } },
+                    { userId: "2026010035", user: { profile: { realName: "朱十二", accountNo: "2026010035", avatarUrl: "" } } }
+                ],
+                "mock-group-05": [
+                    { userId: "2026010041", user: { profile: { realName: "秦十三", accountNo: "2026010041", avatarUrl: "" } } },
+                    { userId: "2026010042", user: { profile: { realName: "尤十四", accountNo: "2026010042", avatarUrl: "" } } },
+                    { userId: "2026010043", user: { profile: { realName: "许十五", accountNo: "2026010043", avatarUrl: "" } } },
+                    { userId: "2026010044", user: { profile: { realName: "何十六", accountNo: "2026010044", avatarUrl: "" } } },
+                    { userId: "2026010045", user: { profile: { realName: "吕十七", accountNo: "2026010045", avatarUrl: "" } } }
+                ]
+            },
+            assistantsByCourse: {
+                "mock-teacher-course-01": [
+                    {
+                        assistantUserId: "9477883033",
+                        assistant: {
+                            id: "9477883033",
+                            profile: { realName: "Smoke Assistant", accountNo: "9477883033", avatarUrl: "" }
+                        }
+                    },
+                    {
+                        assistantUserId: "9477883044",
+                        assistant: {
+                            id: "9477883044",
+                            profile: { realName: "陈助教", accountNo: "9477883044", avatarUrl: "" }
+                        }
+                    }
+                ]
+            },
+            ownedAssistants: [
+                { assistantUserId: "9477883033", realName: "Smoke Assistant", accountNo: "9477883033" },
+                { assistantUserId: "9477883044", realName: "陈助教", accountNo: "9477883044" },
+                { assistantUserId: "9477883055", realName: "李助教", accountNo: "9477883055" }
+            ]
+        };
+    }
+
     function preferredDashboardCourseId() {
         var state = studentDashboardState();
         var rows = state && Array.isArray(state.todoRows) ? state.todoRows : [];
@@ -196,6 +418,20 @@
         wrapper.id = id;
         wrapper.innerHTML = html;
         container.appendChild(wrapper);
+    }
+
+    function removeNavItem(targetId) {
+        var node = qs('.side-nav [data-target="' + targetId + '"]');
+        if (node && node.parentNode) {
+            node.parentNode.removeChild(node);
+        }
+    }
+
+    function removePanel(id) {
+        var node = document.getElementById(id);
+        if (node && node.parentNode) {
+            node.parentNode.removeChild(node);
+        }
     }
 
     function card(title, note, body) {
@@ -468,116 +704,93 @@
     }
 
     function bindTeacherPanels() {
-        addNavItem("panel-course-design", "项目与阶段");
-        addPanel("panel-course-design", card("项目与阶段", "教师侧统一维护项目、阶段与过程材料；助教继续聚焦批阅与协同。", [
-            '<div class="dashboard-window-stack">',
-            '<div class="dashboard-merged-section teacher-course-design-section">',
-            '<h3 class="dashboard-subcard-title">项目管理</h3>',
-            '<div class="dashboard-inline-grid dashboard-split-scroll-grid">',
-            '<div class="dashboard-subcard">',
-            '<h3 class="dashboard-subcard-title">项目列表</h3>',
-            field("课程", '<select id="extAssignCourse" class="dashboard-select"></select>'),
-            '<div id="extAssignmentList" class="list dashboard-scroll-region"></div>',
-            '</div>',
-            '<div class="dashboard-subcard">',
-            '<h3 class="dashboard-subcard-title">创建/编辑项目</h3>',
-            field("选中项目", '<select id="extAssignSelect" class="dashboard-select"><option value="">新建项目</option></select>'),
-            field("标题", '<input id="extAssignTitle" class="dashboard-input" />'),
-            field("状态", '<select id="extAssignStatus" class="dashboard-select"><option value="draft">draft</option><option value="active">active</option><option value="archived">archived</option></select>'),
-            field("说明", '<textarea id="extAssignDesc" class="dashboard-textarea"></textarea>'),
-            field("说明附件", '<input id="extAssignFiles" class="dashboard-input" type="file" multiple />'),
-            '<div class="dashboard-panel-actions">',
-            '<button id="extAssignCreate" class="btn btn-primary academic-btn-block" type="button">创建项目</button>',
-            '<button id="extAssignPatch" class="btn btn-secondary academic-btn-block" type="button">保存项目</button>',
-            '<button id="extAssignUpload" class="btn btn-secondary academic-btn-block" type="button">上传附件</button>',
-            '</div>',
-            '</div>',
-            '</div>',
-            '<div id="extAssignResult" class="dashboard-empty-state" hidden></div>',
-            '</div>',
-            '<div class="dashboard-merged-section teacher-course-design-section">',
-            '<h3 class="dashboard-subcard-title">阶段管理</h3>',
-            '<div class="dashboard-inline-grid dashboard-split-scroll-grid">',
-            '<div class="dashboard-subcard">',
-            '<h3 class="dashboard-subcard-title">阶段列表</h3>',
-            field("课程", '<select id="extStageCourse" class="dashboard-select"></select>'),
-            field("项目", '<select id="extStageAssignment" class="dashboard-select"></select>'),
-            field("阶段", '<select id="extStageSelect" class="dashboard-select"><option value="">新建阶段</option></select>'),
-            '<div id="extStageList" class="list dashboard-scroll-region"></div>',
-            '</div>',
-            '<div class="dashboard-subcard">',
-            '<h3 class="dashboard-subcard-title">阶段设置</h3>',
-            field("标题", '<input id="extStageTitle" class="dashboard-input" />'),
-            field("开始时间", '<input id="extStageStart" class="dashboard-input" type="datetime-local" />'),
-            field("截止时间", '<input id="extStageDue" class="dashboard-input" type="datetime-local" />'),
-            field("权重", '<input id="extStageWeight" class="dashboard-input" type="number" min="0" max="100" step="0.1" />'),
-            field("状态", '<select id="extStageStatus" class="dashboard-select"><option value="planned">planned</option><option value="open">open</option><option value="closed">closed</option><option value="archived">archived</option></select>'),
-            field("提交说明", '<textarea id="extStageSubmission" class="dashboard-textarea"></textarea>'),
-            field("验收标准", '<textarea id="extStageCriteria" class="dashboard-textarea"></textarea>'),
-            field("阶段材料", '<input id="extStageFiles" class="dashboard-input" type="file" multiple />'),
-            '<div class="dashboard-panel-actions">',
-            '<button id="extStageCreate" class="btn btn-primary academic-btn-block" type="button">创建阶段</button>',
-            '<button id="extStagePatch" class="btn btn-secondary academic-btn-block" type="button">保存阶段</button>',
-            '<button id="extStageUpload" class="btn btn-secondary academic-btn-block" type="button">上传材料</button>',
-            '<button id="extStageArchive" class="btn btn-secondary academic-btn-block" type="button">归档阶段</button>',
-            '</div>',
-            '</div>',
-            '</div>',
-            '<div id="extStageResult" class="dashboard-empty-state" hidden></div>',
-            '</div>',
-            '</div>',
-        ].join("")));
+        removeNavItem("panel-course-design");
+        removeNavItem("panel-group-manage");
+        removeNavItem("panel-teacher-settings");
+        removePanel("panel-course-design");
+        removePanel("panel-group-manage");
+        removePanel("panel-teacher-settings");
 
-        addNavItem("panel-group-manage", "分组管理");
-        addPanel("panel-group-manage", card("分组管理", "教师统一处理项目分组、成员调整与兜底编排。", [
-            '<div class="dashboard-inline-grid dashboard-split-scroll-grid">',
-            '<div class="dashboard-subcard">',
-            field("课程", '<select id="extGroupCourse" class="dashboard-select"></select>'),
-            field("项目", '<select id="extGroupAssignment" class="dashboard-select"></select>'),
-            '<button id="extGroupReload" class="btn btn-secondary academic-btn-block" type="button">刷新小组</button>',
-            '<div id="extGroupList" class="list dashboard-scroll-region"></div>',
+        addNavItem("panel-course-manage", "课程管理", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16"></path><path d="M4 12h16"></path><path d="M4 17.5h10"></path><path d="M18 16v4"></path><path d="M16 18h4"></path></svg>');
+        addPanel("panel-course-manage", card("课程管理", "", [
+            '<div class="teacher-course-manage-shell">',
+            '<div class="teacher-course-hero">',
+            '<div class="teacher-course-hero-copy">',
+            '<h3>课程管理</h3>',
             '</div>',
-            '<div class="dashboard-subcard">',
-            '<h3 class="dashboard-subcard-title">小组操作</h3>',
-            field("小组名称", '<input id="extGroupName" class="dashboard-input" />'),
-            field("小组号", '<input id="extGroupNo" class="dashboard-input" type="number" />'),
-            field("目标小组 ID", '<input id="extGroupId" class="dashboard-input" />'),
-            field("学生用户 ID", '<input id="extGroupUserId" class="dashboard-input" maxlength="10" />'),
-            '<div class="dashboard-panel-actions">',
-            '<button id="extGroupCreate" class="btn btn-primary academic-btn-block" type="button">创建小组</button>',
-            '<button id="extGroupAddMember" class="btn btn-secondary academic-btn-block" type="button">加入成员</button>',
-            '<button id="extGroupRemoveMember" class="btn btn-secondary academic-btn-block" type="button">移出成员</button>',
+            '<div class="teacher-course-hero-actions">',
+            '<div class="teacher-course-hero-topline">',
+            '<label class="teacher-course-inline-field teacher-course-inline-field-course"><select id="extTeacherCourseContext" class="dashboard-select"></select></label>',
+            '<span id="extTeacherCourseYear" class="teacher-course-hero-pill is-year">-- 学年</span>',
+            '<span id="extTeacherCourseSemester" class="teacher-course-hero-pill is-semester">-- 学期</span>',
+            '<span id="extTeacherCourseStatus" class="teacher-course-hero-pill is-status">--</span>',
+            '<button id="extTeacherCourseRefresh" class="teacher-course-icon-btn" type="button" aria-label="刷新课程管理"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"></path><path d="M21 3v6h-6"></path></svg></button>',
             '</div>',
-            '</div>',
-            '</div>',
-            '<div id="extGroupResult" class="dashboard-empty-state" hidden></div>',
-        ].join("")));
-
-        addNavItem("panel-teacher-settings", "教师设置");
-        addPanel("panel-teacher-settings", card("教师设置", "当前集中管理助教账号与课程绑定，后续可继续扩展教师侧配置。", [
-            '<div class="dashboard-window-stack">',
-            '<div class="dashboard-merged-section teacher-settings-section">',
-            '<h3 class="dashboard-subcard-title">助教管理</h3>',
-            '<div class="dashboard-inline-grid dashboard-split-scroll-grid">',
-            '<div class="dashboard-subcard">',
-            '<h3 class="dashboard-subcard-title">创建助教</h3>',
-            field("助教 ID", '<input id="extAssistantId" class="dashboard-input" maxlength="10" />'),
-            field("姓名", '<input id="extAssistantName" class="dashboard-input" />'),
-            field("默认密码", '<input id="extAssistantPassword" class="dashboard-input" placeholder="留空自动生成" />'),
-            '<button id="extAssistantCreate" class="btn btn-primary academic-btn-block" type="button">创建助教账号</button>',
-            '</div>',
-            '<div class="dashboard-subcard">',
-            '<h3 class="dashboard-subcard-title">课程绑定</h3>',
-            field("课程", '<select id="extAssistantCourse" class="dashboard-select"></select>'),
-            field("助教 ID", '<input id="extAssistantBindId" class="dashboard-input" maxlength="10" />'),
-            '<div class="dashboard-panel-actions">',
-            '<button id="extAssistantBind" class="btn btn-secondary academic-btn-block" type="button">绑定助教</button>',
-            '<button id="extAssistantUnbind" class="btn btn-secondary academic-btn-block" type="button">解绑助教</button>',
-            '</div>',
-            '<div id="extAssistantList" class="list dashboard-scroll-region"></div>',
-            '</div>',
+            '<div class="teacher-course-hero-summary">',
+            '<span id="extTeacherProjectCount" class="teacher-course-hero-metric">项目 0</span>',
+            '<span id="extTeacherStageCount" class="teacher-course-hero-metric">阶段 0</span>',
+            '<span id="extTeacherAssistantCount" class="teacher-course-hero-metric">助教 0</span>',
+            '<span id="extTeacherGroupCount" class="teacher-course-hero-metric">小组 0</span>',
             '</div>',
             '<div id="extAssistantResult" class="dashboard-empty-state" hidden></div>',
+            '</div>',
+            '<div hidden><select id="extAssignCourse"></select><select id="extStageCourse"></select><select id="extStageAssignment"></select><select id="extGroupCourse"></select><select id="extGroupAssignment"></select><select id="extAssistantCourse"></select><input id="extAssistantBindId" /></div>',
+            '<div id="extTeacherAssistantDialog" class="teacher-course-dialog-backdrop" hidden><div class="teacher-course-dialog" role="dialog" aria-modal="true" aria-labelledby="extTeacherAssistantDialogTitle"><div class="teacher-course-dialog-head"><div><strong id="extTeacherAssistantDialogTitle">绑定课程助教</strong></div><button id="extTeacherAssistantClose" class="teacher-course-dialog-close" type="button" aria-label="关闭">×</button></div><div class="teacher-course-dialog-body"><label class="teacher-course-inline-field"><span>助教子账号</span><select id="extAssistantOwnedSelect" class="dashboard-select"><option value="">从子账号中选择助教</option></select></label></div><div class="teacher-course-dialog-actions"><button id="extTeacherAssistantCancel" class="teacher-course-secondary-btn" type="button">取消</button><button id="extAssistantBind" class="teacher-course-primary-btn" type="button">确认绑定</button></div></div></div>',
+            '<div id="extTeacherStageEditorDialog" class="teacher-course-dialog-backdrop" hidden><div class="teacher-course-dialog teacher-course-dialog-wide" role="dialog" aria-modal="true" aria-labelledby="extTeacherStageEditorTitle"><div class="teacher-course-dialog-head"><div><strong id="extTeacherStageEditorTitle">编辑层级</strong></div><button id="extTeacherStageEditorClose" class="teacher-course-dialog-close" type="button" aria-label="关闭">×</button></div><div class="teacher-course-dialog-body teacher-course-edit-dialog-body"><div class="teacher-course-edit-dialog-context"><span id="extTeacherEditCourseMeta">当前课程：--</span><span id="extTeacherEditAssignmentMeta">当前项目：未选择</span><span id="extTeacherEditStageMeta">当前阶段：未选择</span></div><div class="teacher-course-edit-modebar"><span id="extTeacherEditModeBadge" class="teacher-course-edit-mode-badge">课程层级</span><p id="extTeacherEditModeHint" class="teacher-course-edit-mode-hint">当前仅选择课程，可在该课程下新建项目。</p></div><section id="extTeacherAssignmentSection" class="teacher-course-edit-section"><div class="teacher-course-edit-section-head"><strong>项目</strong><span id="extTeacherAssignmentHint">当前可新建项目，或在选中项目后修改标题、说明与状态。</span></div><div class="teacher-course-editor-grid"><label class="user-settings-field"><span>项目标题</span><input id="extAssignTitle" class="dashboard-input" /></label><label class="user-settings-field"><span>项目状态</span><select id="extAssignStatus" class="dashboard-select"><option value="draft">draft</option><option value="active">active</option><option value="archived">archived</option></select></label></div><label class="user-settings-field"><span>项目说明</span><textarea id="extAssignDesc" class="dashboard-textarea"></textarea></label><div class="teacher-course-edit-actions"><button id="extAssignCreate" class="teacher-course-secondary-btn" type="button">新建项目</button><button id="extAssignPatch" class="teacher-course-primary-btn" type="button">保存项目</button></div><div id="extAssignResult" class="dashboard-empty-state" hidden></div></section><section id="extTeacherStageSection" class="teacher-course-edit-section"><div class="teacher-course-edit-section-head"><strong>阶段</strong><span id="extTeacherStageHint">当前选中项目后，可在该项目下新建阶段；选中阶段后，可修改当前阶段。</span></div><div class="teacher-course-editor-grid"><label class="user-settings-field"><span>阶段标题</span><input id="extStageTitle" class="dashboard-input" /></label><label class="user-settings-field"><span>阶段状态</span><select id="extStageStatus" class="dashboard-select"><option value="planned">planned</option><option value="open">open</option><option value="closed">closed</option><option value="archived">archived</option></select></label><label class="user-settings-field"><span>开始时间</span><input id="extStageStart" class="dashboard-input" type="datetime-local" /></label><label class="user-settings-field"><span>截止时间</span><input id="extStageDue" class="dashboard-input" type="datetime-local" /></label><label class="user-settings-field"><span>阶段权重</span><input id="extStageWeight" class="dashboard-input" type="number" min="0" max="100" step="0.1" /></label><label class="user-settings-field"><span>所属项目</span><div id="extStageProjectSummary" class="teacher-course-stage-project-summary"></div></label></div><div class="teacher-course-editor-grid teacher-course-editor-grid-notes"><label class="user-settings-field"><span>阶段说明</span><textarea id="extStageDesc" class="dashboard-textarea"></textarea></label><label class="user-settings-field"><span>提交说明</span><textarea id="extStageSubmission" class="dashboard-textarea"></textarea></label></div><label class="user-settings-field"><span>验收标准</span><textarea id="extStageCriteria" class="dashboard-textarea"></textarea></label><div class="teacher-course-edit-actions"><button id="extStageCreate" class="teacher-course-secondary-btn" type="button">新建阶段</button><button id="extStagePatch" class="teacher-course-primary-btn" type="button">保存阶段</button><button id="extStageArchive" class="teacher-course-danger-btn" type="button">归档阶段</button></div><div id="extStageResult" class="dashboard-empty-state" hidden></div></section></div></div></div>',
+            '<div id="extTeacherAssignmentCreateDialog" class="teacher-course-dialog-backdrop" hidden><div class="teacher-course-dialog" role="dialog" aria-modal="true" aria-labelledby="extTeacherAssignmentCreateTitleBar"><div class="teacher-course-dialog-head"><div><strong id="extTeacherAssignmentCreateTitleBar">新建项目</strong></div><button id="extTeacherAssignmentCreateClose" class="teacher-course-dialog-close" type="button" aria-label="关闭">×</button></div><div class="teacher-course-dialog-body"><div class="teacher-course-edit-dialog-context"><span id="extTeacherAssignmentCreateCourseMeta">当前课程：--</span></div><div class="teacher-course-editor-grid"><label class="user-settings-field"><span>项目标题</span><input id="extTeacherAssignmentCreateTitle" class="dashboard-input" /></label><label class="user-settings-field"><span>项目状态</span><select id="extTeacherAssignmentCreateStatus" class="dashboard-select"><option value="draft">draft</option><option value="active">active</option><option value="archived">archived</option></select></label></div><label class="user-settings-field"><span>项目说明</span><textarea id="extTeacherAssignmentCreateDesc" class="dashboard-textarea"></textarea></label><div id="extTeacherAssignmentCreateResult" class="dashboard-empty-state" hidden></div></div><div class="teacher-course-dialog-actions"><button id="extTeacherAssignmentCreateCancel" class="teacher-course-secondary-btn" type="button">取消</button><button id="extTeacherAssignmentCreateSubmit" class="teacher-course-primary-btn" type="button">新建项目</button></div></div></div>',
+            '<div id="extTeacherAssignmentManageDialog" class="teacher-course-dialog-backdrop" hidden><div class="teacher-course-dialog teacher-course-dialog-wide" role="dialog" aria-modal="true" aria-labelledby="extTeacherAssignmentManageTitleBar"><div class="teacher-course-dialog-head"><div><strong id="extTeacherAssignmentManageTitleBar">编辑项目</strong></div><button id="extTeacherAssignmentManageClose" class="teacher-course-dialog-close" type="button" aria-label="关闭">×</button></div><div class="teacher-course-dialog-body teacher-course-edit-dialog-body"><div class="teacher-course-edit-dialog-context"><span id="extTeacherAssignmentManageCourseMeta">当前课程：--</span><span id="extTeacherAssignmentManageMeta">当前项目：--</span></div><section class="teacher-course-edit-section"><div class="teacher-course-edit-section-head"><strong>项目信息</strong></div><div class="teacher-course-editor-grid"><label class="user-settings-field"><span>项目标题</span><input id="extTeacherAssignmentManageTitle" class="dashboard-input" /></label><label class="user-settings-field"><span>项目状态</span><select id="extTeacherAssignmentManageStatus" class="dashboard-select"><option value="draft">draft</option><option value="active">active</option><option value="archived">archived</option></select></label></div><label class="user-settings-field"><span>项目说明</span><textarea id="extTeacherAssignmentManageDesc" class="dashboard-textarea"></textarea></label><div class="teacher-course-edit-actions"><button id="extTeacherAssignmentManageSave" class="teacher-course-primary-btn" type="button">保存项目</button><button id="extTeacherAssignmentDelete" class="teacher-course-danger-btn" type="button">删除项目</button></div><div id="extTeacherAssignmentManageResult" class="dashboard-empty-state" hidden></div></section><section class="teacher-course-edit-section"><div class="teacher-course-edit-section-head"><strong>新建阶段</strong></div><div class="teacher-course-editor-grid"><label class="user-settings-field"><span>阶段标题</span><input id="extTeacherAssignmentStageTitle" class="dashboard-input" /></label><label class="user-settings-field"><span>阶段状态</span><select id="extTeacherAssignmentStageStatus" class="dashboard-select"><option value="planned">planned</option><option value="open">open</option><option value="closed">closed</option><option value="archived">archived</option></select></label><label class="user-settings-field"><span>开始时间</span><input id="extTeacherAssignmentStageStart" class="dashboard-input" type="datetime-local" /></label><label class="user-settings-field"><span>截止时间</span><input id="extTeacherAssignmentStageDue" class="dashboard-input" type="datetime-local" /></label><label class="user-settings-field"><span>阶段权重</span><input id="extTeacherAssignmentStageWeight" class="dashboard-input" type="number" min="0" max="100" step="0.1" /></label></div><div class="teacher-course-editor-grid teacher-course-editor-grid-notes"><label class="user-settings-field"><span>阶段说明</span><textarea id="extTeacherAssignmentStageDesc" class="dashboard-textarea"></textarea></label><label class="user-settings-field"><span>提交说明</span><textarea id="extTeacherAssignmentStageSubmission" class="dashboard-textarea"></textarea></label></div><label class="user-settings-field"><span>验收标准</span><textarea id="extTeacherAssignmentStageCriteria" class="dashboard-textarea"></textarea></label><div class="teacher-course-edit-actions"><button id="extTeacherAssignmentStageCreate" class="teacher-course-secondary-btn" type="button">新建阶段</button></div><div id="extTeacherAssignmentStageResult" class="dashboard-empty-state" hidden></div></section></div><div class="teacher-course-dialog-actions"><button id="extTeacherAssignmentManageCancel" class="teacher-course-secondary-btn" type="button">关闭</button></div></div></div>',
+            '<div id="extTeacherStageManageDialog" class="teacher-course-dialog-backdrop" hidden><div class="teacher-course-dialog teacher-course-dialog-wide" role="dialog" aria-modal="true" aria-labelledby="extTeacherStageManageTitleBar"><div class="teacher-course-dialog-head"><div><strong id="extTeacherStageManageTitleBar">编辑阶段</strong></div><button id="extTeacherStageManageClose" class="teacher-course-dialog-close" type="button" aria-label="关闭">×</button></div><div class="teacher-course-dialog-body teacher-course-edit-dialog-body"><div class="teacher-course-edit-dialog-context"><span id="extTeacherStageManageCourseMeta">当前课程：--</span><span id="extTeacherStageManageAssignmentMeta">当前项目：--</span><span id="extTeacherStageManageMeta">当前阶段：--</span></div><section class="teacher-course-edit-section"><div class="teacher-course-edit-section-head"><strong>阶段信息</strong></div><div class="teacher-course-editor-grid"><label class="user-settings-field"><span>阶段标题</span><input id="extTeacherStageManageTitle" class="dashboard-input" /></label><label class="user-settings-field"><span>阶段状态</span><select id="extTeacherStageManageStatus" class="dashboard-select"><option value="planned">planned</option><option value="open">open</option><option value="closed">closed</option><option value="archived">archived</option></select></label><label class="user-settings-field"><span>开始时间</span><input id="extTeacherStageManageStart" class="dashboard-input" type="datetime-local" /></label><label class="user-settings-field"><span>截止时间</span><input id="extTeacherStageManageDue" class="dashboard-input" type="datetime-local" /></label><label class="user-settings-field"><span>阶段权重</span><input id="extTeacherStageManageWeight" class="dashboard-input" type="number" min="0" max="100" step="0.1" /></label></div><div class="teacher-course-editor-grid teacher-course-editor-grid-notes"><label class="user-settings-field"><span>阶段说明</span><textarea id="extTeacherStageManageDesc" class="dashboard-textarea"></textarea></label><label class="user-settings-field"><span>提交说明</span><textarea id="extTeacherStageManageSubmission" class="dashboard-textarea"></textarea></label></div><label class="user-settings-field"><span>验收标准</span><textarea id="extTeacherStageManageCriteria" class="dashboard-textarea"></textarea></label><div class="teacher-course-edit-actions"><button id="extTeacherStageManageSave" class="teacher-course-primary-btn" type="button">保存阶段</button><button id="extTeacherStageDelete" class="teacher-course-danger-btn" type="button">归档阶段</button></div><div id="extTeacherStageManageResult" class="dashboard-empty-state" hidden></div></section></div><div class="teacher-course-dialog-actions"><button id="extTeacherStageManageCancel" class="teacher-course-secondary-btn" type="button">关闭</button></div></div></div>',
+            '<div id="extTeacherGroupEditorDialog" class="teacher-course-dialog-backdrop" hidden><div class="teacher-course-dialog teacher-course-dialog-wide teacher-course-group-editor-dialog" role="dialog" aria-modal="true" aria-labelledby="extTeacherGroupEditorTitle"><div class="teacher-course-dialog-head"><div><strong id="extTeacherGroupEditorTitle">小组编辑</strong></div><button id="extTeacherGroupEditorClose" class="teacher-course-dialog-close" type="button" aria-label="关闭">×</button></div><div class="teacher-course-dialog-body teacher-course-group-editor-body"><div class="teacher-course-edit-dialog-context"><span id="extTeacherGroupEditorCourseMeta">当前课程：--</span><span id="extTeacherGroupEditorAssignmentMeta">当前项目：未选择</span><span id="extTeacherGroupEditorSelectionMeta">当前小组：未选择</span></div><div class="teacher-course-group-editor-grid"><section class="teacher-course-group-editor-panel"><div class="teacher-course-edit-section-head"><strong>分组操作</strong></div><div class="teacher-course-group-editor-toolbar teacher-course-group-editor-toolbar-top"><label class="user-settings-field"><span>小组名称</span><input id="extTeacherGroupCreateName" class="dashboard-input" /></label><label class="user-settings-field"><span>小组号</span><input id="extTeacherGroupCreateNo" class="dashboard-input" type="number" /></label><div class="teacher-course-group-editor-toolbar-icons"><button id="extTeacherGroupCreate" class="teacher-course-group-icon-action teacher-course-group-toolbar-icon" type="button" aria-label="新建小组" title="新建小组"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 4.2v11.6M4.2 10h11.6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg></button><button id="extTeacherGroupEditorRefresh" class="teacher-course-group-icon-action teacher-course-group-toolbar-icon" type="button" aria-label="刷新数据" title="刷新数据"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M15.8 8.2A6.1 6.1 0 0 0 5.4 6.6M4.2 4.7v2.9h2.9M4.2 11.8A6.1 6.1 0 0 0 14.6 13.4m1.2 2v-2.9h-2.9" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div></div><div class="teacher-course-group-editor-toolbar teacher-course-group-editor-toolbar-bottom"><label class="user-settings-field"><span>自动分组人数</span><input id="extTeacherGroupAutoSize" class="dashboard-input" type="number" min="2" max="10" value="4" /></label><div class="teacher-course-group-editor-toolbar-actions"><button id="extTeacherGroupAutoCreate" class="teacher-course-primary-btn" type="button">一键分组</button></div></div><div class="teacher-course-group-editor-subhead"><strong>未分组学生</strong><span id="extTeacherUngroupedMeta">0 人</span></div><div id="extTeacherUngroupedList" class="teacher-course-group-editor-ungrouped-list"></div></section><section class="teacher-course-group-editor-panel"><div class="teacher-course-edit-section-head"><strong>小组详情</strong></div><div class="teacher-course-group-editor-selectrow"><select id="extTeacherManagedGroupSelect" class="dashboard-select" aria-label="选择当前小组"></select><div class="teacher-course-group-editor-inline-actions"><button id="extTeacherGroupActivate" class="teacher-course-group-icon-action" type="button" aria-label="确认成组" title="确认成组"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4.8 10.4 8.3 13.9 15.2 7" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button id="extTeacherGroupDelete" class="teacher-course-group-icon-action is-danger" type="button" aria-label="删除" title="删除"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5.9 6.2h8.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M8 6.2V4.9c0-.5.4-.9.9-.9h2.2c.5 0 .9.4.9.9v1.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M7 8.2v5.2M10 8.2v5.2M13 8.2v5.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M6.6 6.2h6.8v8.1c0 .9-.7 1.6-1.6 1.6H8.2c-.9 0-1.6-.7-1.6-1.6V6.2Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></button></div></div><div id="extTeacherManagedGroupMembers" class="teacher-course-group-editor-member-list"></div><div class="teacher-course-group-editor-member-actions"><label class="user-settings-field"><span>添加成员</span><div class="teacher-course-group-add-inline"><input id="extTeacherGroupMemberAddInput" class="dashboard-input" maxlength="10" placeholder="输入学生一卡通号" /><button id="extTeacherGroupMemberAdd" class="teacher-course-group-icon-action teacher-course-group-submit-arrow" type="button" aria-label="添加到当前小组" title="添加到当前小组"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4.5 10h10.2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><path d="m10.8 5.8 4.2 4.2-4.2 4.2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div></label></div></section></div><div id="extTeacherGroupEditorResult" class="dashboard-empty-state" hidden></div></div><div class="teacher-course-dialog-actions"><button id="extTeacherGroupEditorCancel" class="teacher-course-secondary-btn" type="button">关闭</button></div></div></div>',
+            '<div id="extTeacherGroupMoveDialog" class="teacher-course-dialog-backdrop" hidden><div class="teacher-course-dialog teacher-course-group-move-dialog" role="dialog" aria-modal="true" aria-labelledby="extTeacherGroupMoveTitle"><div class="teacher-course-dialog-head"><div><strong id="extTeacherGroupMoveTitle">更换小组</strong></div><button id="extTeacherGroupMoveClose" class="teacher-course-dialog-close" type="button" aria-label="关闭">×</button></div><div class="teacher-course-dialog-body"><div class="teacher-course-edit-dialog-context"><span id="extTeacherGroupMoveMemberMeta">成员：--</span><span id="extTeacherGroupMoveSourceMeta">当前小组：--</span></div><label class="user-settings-field"><span>目标小组</span><select id="extTeacherGroupMoveTarget" class="dashboard-select"></select></label><div id="extTeacherGroupMoveResult" class="dashboard-empty-state" hidden></div></div><div class="teacher-course-dialog-actions"><button id="extTeacherGroupMoveCancel" class="teacher-course-secondary-btn" type="button">取消</button><button id="extTeacherGroupMoveConfirm" class="teacher-course-primary-btn" type="button">确认换组</button></div></div></div>',
+            '</div>',
+            '<div class="teacher-course-workspace">',
+            '<aside class="teacher-course-structure">',
+            '<div class="teacher-course-panel-head"><strong>课程结构</strong><span id="extTeacherStructureMeta" class="teacher-course-panel-meta">请选择课程</span></div>',
+            '<div id="extTeacherCourseTree" class="teacher-course-structure-tree"></div>',
+            '<div class="teacher-course-structure-footer"><button id="extTeacherAssignmentCreateOpen" class="teacher-course-tree-create-btn" type="button" aria-label="新建项目" title="新建项目"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 4.2v11.6M4.2 10h11.6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg></button></div>',
+            '</aside>',
+            '<section class="teacher-course-detail">',
+            '<div class="teacher-course-detail-topline">',
+            '<div id="extTeacherStagePath" class="teacher-course-stage-path">请选择左侧项目与阶段</div>',
+            '</div>',
+            '<div class="teacher-course-stage-summary">',
+            '<div class="teacher-course-stage-summary-grid">',
+            '<div class="teacher-course-stage-summary-item"><span>截止时间</span><strong id="extTeacherStageDeadline">--</strong></div>',
+            '<div class="teacher-course-stage-summary-item"><span>当前状态</span><strong id="extTeacherStageState">--</strong></div>',
+            '<div class="teacher-course-stage-summary-item"><span>已提交小组数</span><strong id="extTeacherStageGroupProgress">0 / 0</strong></div>',
+            '<div class="teacher-course-stage-summary-item teacher-course-stage-summary-item-assistant"><span>负责助教</span><div class="teacher-course-stage-summary-inline"><strong id="extTeacherAssistantSummary">暂未配置</strong><button id="extTeacherAssistantOpen" class="teacher-course-inline-icon" type="button" aria-label="配置课程助教"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .72 1.7 1.7 0 0 0-.28 1v.18a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.72-1 1.7 1.7 0 0 0-1-.28H2.7a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.72 1.7 1.7 0 0 0 .28-1V2.7a2 2 0 1 1 4 0v.1A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.32.28.57.63.72 1 .12.31.18.64.18 1h.18a2 2 0 1 1 0 4h-.1A1.7 1.7 0 0 0 19.4 15z"></path></svg></button></div></div>',
+            '</div>',
+            '<div class="teacher-course-stage-summary-actions">',
+            '<button id="extTeacherStageEditToggle" class="teacher-course-primary-btn" type="button">编辑项目</button>',
+            '</div>',
+            '</div>',
+            '<div hidden><select id="extAssignSelect"><option value="">新建项目</option></select><select id="extStageSelect"><option value="">新建阶段</option></select></div>',
+            '<section class="teacher-course-section">',
+            '<div class="teacher-course-subsection-head"><strong>小组阅览</strong><span id="extTeacherGroupMeta">当前项目全部小组</span><button id="extTeacherGroupEditorOpen" class="teacher-course-ghost-btn" type="button">编辑小组</button></div>',
+            '<div class="teacher-course-group-table-wrap">',
+            '<div class="teacher-course-group-table-head"><span>组号</span><span>小组名称</span><span>成员概览</span><span>人数</span><span>提交状态</span><span>操作</span></div>',
+            '<div id="extGroupList" class="teacher-course-group-table-body"></div>',
+            '</div>',
+            '</section>',
+            '<section class="teacher-course-section teacher-course-section-bottom">',
+            '<div class="teacher-course-subsection-head teacher-course-subsection-head-materials"><strong>阶段说明 / 附件</strong><button id="extTeacherAttachmentUpload" class="teacher-course-ghost-btn teacher-course-upload-btn" type="button">上传附件</button></div>',
+            '<div class="teacher-course-bottom-grid teacher-course-bottom-grid-materials">',
+            '<div class="teacher-course-stage-note-card teacher-course-stage-note-card-materials">',
+            '<div class="teacher-course-material-panel-head"><strong>阶段说明</strong></div>',
+            '<div class="teacher-course-material-note"><span>说明内容</span><p id="extTeacherStageDescription">当前阶段暂无说明。</p></div>',
+            '<div class="teacher-course-material-meta-list">',
+            '<div class="teacher-course-material-meta-item"><span>提交说明</span><p id="extTeacherStageSubmission">当前阶段暂无提交要求。</p></div>',
+            '<div class="teacher-course-material-meta-item"><span>验收标准</span><p id="extTeacherStageCriteriaView">当前阶段暂无验收标准。</p></div>',
+            '</div>',
+            '</div>',
+            '<div class="teacher-course-file-card teacher-course-file-card-materials">',
+            '<div class="teacher-course-material-panel-head"><strong>附件</strong></div>',
+            '<div class="teacher-course-attachment-head"><span>附件名称</span><span>大小</span><span>时间</span></div>',
+            '<div id="extTeacherAttachmentList" class="teacher-course-attachment-list"></div>',
+            '<input id="extAssignFiles" class="teacher-course-file-input" type="file" multiple />',
+            '<input id="extStageFiles" class="teacher-course-file-input" type="file" multiple />',
+            '</div>',
+            '</div>',
             '</div>',
             '</div>',
         ].join("")));
@@ -586,34 +799,1509 @@
     }
 
     function bindTeacherTools() {
+        var courseContext = qs("#extTeacherCourseContext");
+        var courseRefresh = qs("#extTeacherCourseRefresh");
         var assignCourse = qs("#extAssignCourse");
         var assignSelect = qs("#extAssignSelect");
         var assignResult = qs("#extAssignResult");
-        function refreshAssignments() {
-            return loadAssignmentOptions(assignCourse.value, assignSelect, true).then(function (rows) {
-                qs("#extAssignmentList").innerHTML = rows.map(function (a) {
-                    return '<div class="list-item dashboard-list-item-vertical"><div class="dashboard-split-row"><strong>' + escapeHtml(a.title) + '</strong><span class="badge badge-active">' + escapeHtml(a.status) + '</span></div><div class="muted">ID: ' + escapeHtml(a.id) + '</div></div>';
-                }).join("") || '<div class="dashboard-empty-state"><strong>暂无项目</strong><p>当前课程还没有项目。</p></div>';
-                return rows;
+        var stageCourse = qs("#extStageCourse");
+        var stageAssignment = qs("#extStageAssignment");
+        var stageSelect = qs("#extStageSelect");
+        var stageSelectMirror = qs("#extStageSelectMirror");
+        var stageResult = qs("#extStageResult");
+        var groupCourse = qs("#extGroupCourse");
+        var groupAssignment = qs("#extGroupAssignment");
+        var groupResult = qs("#extTeacherGroupEditorResult");
+        var assistantCourse = qs("#extAssistantCourse");
+        var assistantResult = qs("#extAssistantResult");
+        var assistantOwnedSelect = qs("#extAssistantOwnedSelect");
+        var stageProjectSummary = qs("#extStageProjectSummary");
+        var assistantDialog = qs("#extTeacherAssistantDialog");
+        var stageEditorDialog = qs("#extTeacherStageEditorDialog");
+        var assignmentCreateDialog = qs("#extTeacherAssignmentCreateDialog");
+        var assignmentManageDialog = qs("#extTeacherAssignmentManageDialog");
+        var stageManageDialog = qs("#extTeacherStageManageDialog");
+        var groupEditorDialog = qs("#extTeacherGroupEditorDialog");
+        var groupMoveDialog = qs("#extTeacherGroupMoveDialog");
+        var teacherMock = teacherCourseMockData();
+        var teacherMockPref = "";
+        try {
+            teacherMockPref = window.localStorage ? String(window.localStorage.getItem("linksee_teacher_course_mock") || "") : "";
+        } catch (_err) {
+            teacherMockPref = "";
+        }
+        var teacherMockAllowed = teacherMockPref !== "0";
+        var teacherToolState = {
+            courses: [],
+            assignments: [],
+            stages: [],
+            groups: [],
+            assistants: [],
+            ownedAssistants: [],
+            courseMembers: [],
+            groupMembers: {},
+            mockMode: teacherMockAllowed,
+            collapsedAssignments: {},
+            selectedGroupId: "",
+            pendingMoveUserId: "",
+            editTarget: "assignment",
+        };
+
+        function enableTeacherMockMode() {
+            if (!teacherMockAllowed) return false;
+            teacherToolState.mockMode = true;
+            return true;
+        }
+
+        function teacherErrorMessage(err, fallbackText) {
+            if (err && err.message) return err.message;
+            return fallbackText || "真实接口请求失败";
+        }
+
+        function reportTeacherLoadError(err, title) {
+            setResult(assistantResult || groupResult || stageResult || assignResult, title || "加载失败", teacherErrorMessage(err, "真实链路加载失败"), true);
+        }
+
+        function mockCourseRows() {
+            return (teacherMock.courses || []).slice();
+        }
+
+        function mockAssignmentRows(courseId) {
+            return ((teacherMock.assignmentsByCourse && teacherMock.assignmentsByCourse[String(courseId)]) || []).slice();
+        }
+
+        function mockStageRows(assignmentId) {
+            return ((teacherMock.stagesByAssignment && teacherMock.stagesByAssignment[String(assignmentId)]) || []).slice();
+        }
+
+        function ensureMockAssignmentsForCourse(courseId) {
+            if (!teacherMock.assignmentsByCourse) teacherMock.assignmentsByCourse = {};
+            if (!teacherMock.assignmentsByCourse[String(courseId)]) {
+                teacherMock.assignmentsByCourse[String(courseId)] = [];
+            }
+            return teacherMock.assignmentsByCourse[String(courseId)];
+        }
+
+        function ensureMockStagesForAssignment(assignmentId) {
+            if (!teacherMock.stagesByAssignment) teacherMock.stagesByAssignment = {};
+            if (!teacherMock.stagesByAssignment[String(assignmentId)]) {
+                teacherMock.stagesByAssignment[String(assignmentId)] = [];
+            }
+            return teacherMock.stagesByAssignment[String(assignmentId)];
+        }
+
+        function findMockAssignment(assignmentId) {
+            var found = null;
+            Object.keys(teacherMock.assignmentsByCourse || {}).some(function (courseId) {
+                var rows = teacherMock.assignmentsByCourse[String(courseId)] || [];
+                var match = rows.find(function (row) {
+                    return String(row.id) === String(assignmentId);
+                }) || null;
+                if (match) {
+                    found = { assignment: match, courseId: courseId, rows: rows };
+                    return true;
+                }
+                return false;
+            });
+            return found;
+        }
+
+        function findMockStage(stageId) {
+            var found = null;
+            Object.keys(teacherMock.stagesByAssignment || {}).some(function (assignmentId) {
+                var rows = teacherMock.stagesByAssignment[String(assignmentId)] || [];
+                var match = rows.find(function (row) {
+                    return String(row.id) === String(stageId);
+                }) || null;
+                if (match) {
+                    found = { stage: match, assignmentId: assignmentId, rows: rows };
+                    return true;
+                }
+                return false;
+            });
+            return found;
+        }
+
+        function mockCreateAssignment(courseId, body) {
+            if (!courseId) return mockError("请先选择课程。");
+            var rows = ensureMockAssignmentsForCourse(courseId);
+            var title = String(body && body.title || "").trim();
+            if (!title) return mockError("项目标题不能为空。");
+            var assignment = {
+                id: "mock-teacher-assignment-" + Date.now(),
+                courseId: String(courseId),
+                title: title,
+                description: body && body.description != null ? body.description : null,
+                status: body && body.status ? body.status : "draft",
+                descriptionFiles: []
+            };
+            rows.unshift(assignment);
+            ensureMockStagesForAssignment(assignment.id);
+            return Promise.resolve({ ok: true, data: assignment });
+        }
+
+        function mockPatchAssignment(assignmentId, body) {
+            var found = findMockAssignment(assignmentId);
+            if (!found || !found.assignment) return mockError("未找到当前项目。");
+            if (body && body.title !== undefined) {
+                var title = String(body.title || "").trim();
+                if (!title) return mockError("项目标题不能为空。");
+                found.assignment.title = title;
+            }
+            if (body && body.description !== undefined) found.assignment.description = body.description;
+            if (body && body.status !== undefined) found.assignment.status = body.status;
+            return Promise.resolve({ ok: true, data: found.assignment });
+        }
+
+        function mockDeleteAssignment(assignmentId) {
+            var found = findMockAssignment(assignmentId);
+            if (!found || !found.assignment) return mockError("未找到当前项目。");
+            if (String(found.assignment.status || "") !== "draft") {
+                return mockError("只有 draft 项目才可以删除。");
+            }
+            if (ensureMockStagesForAssignment(assignmentId).length > 0) {
+                return mockError("当前项目下还有阶段，不能删除。");
+            }
+            if (mockGroupRows(assignmentId).length > 0) {
+                return mockError("当前项目下还有小组，不能删除。");
+            }
+            var index = found.rows.findIndex(function (row) {
+                return String(row.id) === String(assignmentId);
+            });
+            if (index >= 0) found.rows.splice(index, 1);
+            delete teacherMock.stagesByAssignment[String(assignmentId)];
+            delete teacherMock.groupsByAssignment[String(assignmentId)];
+            return Promise.resolve({ ok: true });
+        }
+
+        function mockCreateStage(assignmentId, body) {
+            if (!assignmentId) return mockError("请先选择项目。");
+            var rows = ensureMockStagesForAssignment(assignmentId);
+            var title = String(body && body.title || "").trim();
+            if (!title) return mockError("阶段标题不能为空。");
+            if (!body || !body.dueAt) return mockError("截止时间不能为空。");
+            var nextStageNo = rows.reduce(function (max, row) {
+                return Math.max(max, Number(row.stageNo || 0));
+            }, 0) + 1;
+            var stage = {
+                id: "mock-teacher-stage-" + Date.now(),
+                assignmentId: String(assignmentId),
+                stageNo: nextStageNo,
+                title: title,
+                description: body.description != null ? body.description : null,
+                startAt: body.startAt || null,
+                dueAt: body.dueAt,
+                weight: body.weight != null ? body.weight : null,
+                submissionDesc: body.submissionDesc != null ? body.submissionDesc : null,
+                acceptCriteria: body.acceptCriteria != null ? body.acceptCriteria : null,
+                status: body.status || "planned",
+                requirementFiles: []
+            };
+            rows.push(stage);
+            return Promise.resolve({ ok: true, data: stage });
+        }
+
+        function mockPatchStage(stageId, body) {
+            var found = findMockStage(stageId);
+            if (!found || !found.stage) return mockError("未找到当前阶段。");
+            Object.keys(body || {}).forEach(function (key) {
+                if (body[key] !== undefined) found.stage[key] = body[key];
+            });
+            return Promise.resolve({ ok: true, data: found.stage });
+        }
+
+        function mockArchiveStage(stageId) {
+            var found = findMockStage(stageId);
+            if (!found || !found.stage) return mockError("未找到当前阶段。");
+            found.stage.status = "archived";
+            return Promise.resolve({ ok: true });
+        }
+
+        function mockGroupRows(assignmentId) {
+            return ((teacherMock.groupsByAssignment && teacherMock.groupsByAssignment[String(assignmentId)]) || []).slice();
+        }
+
+        function mockGroupMemberRows(groupId) {
+            return ((teacherMock.groupMembersByGroup && teacherMock.groupMembersByGroup[String(groupId)]) || []).slice();
+        }
+
+        function ensureMockAssignmentGroups(assignmentId) {
+            if (!teacherMock.groupsByAssignment) teacherMock.groupsByAssignment = {};
+            if (!teacherMock.groupsByAssignment[String(assignmentId)]) {
+                teacherMock.groupsByAssignment[String(assignmentId)] = [];
+            }
+            return teacherMock.groupsByAssignment[String(assignmentId)];
+        }
+
+        function ensureMockGroupMembers(groupId) {
+            if (!teacherMock.groupMembersByGroup) teacherMock.groupMembersByGroup = {};
+            if (!teacherMock.groupMembersByGroup[String(groupId)]) {
+                teacherMock.groupMembersByGroup[String(groupId)] = [];
+            }
+            return teacherMock.groupMembersByGroup[String(groupId)];
+        }
+
+        function syncMockGroupMemberCount(groupId) {
+            var assignmentId = String(groupAssignment && groupAssignment.value || "");
+            var groups = ensureMockAssignmentGroups(assignmentId);
+            var group = groups.find(function (row) {
+                return String(row.id) === String(groupId);
+            });
+            if (group) {
+                group._count = group._count || {};
+                group._count.members = ensureMockGroupMembers(groupId).length;
+            }
+        }
+
+        function findMockCourseMemberByAccount(accountNo) {
+            return mockCourseMemberRows(courseContext && courseContext.value).find(function (row) {
+                return String(courseMemberAccountNo(row)) === String(accountNo);
+            }) || null;
+        }
+
+        function mockGroupMemberFromCourseRow(row, role) {
+            var accountNo = courseMemberAccountNo(row);
+            return {
+                userId: accountNo,
+                role: role || "member",
+                user: {
+                    id: courseMemberUserId(row) || accountNo,
+                    profile: {
+                        realName: courseMemberRealName(row),
+                        accountNo: accountNo,
+                        avatarUrl: row && row.user && row.user.profile && row.user.profile.avatarUrl || ""
+                    },
+                    studentProfile: row && row.user && row.user.studentProfile ? row.user.studentProfile : { stuNo: accountNo }
+                }
+            };
+        }
+
+        function mockError(message) {
+            return Promise.reject(new Error(message));
+        }
+
+        function mockCreateGroup(body) {
+            var assignmentId = String(groupAssignment && groupAssignment.value || "");
+            if (!assignmentId) return mockError("请先选择项目。");
+            var groups = ensureMockAssignmentGroups(assignmentId);
+            var nextNo = body && body.groupNo ? Number(body.groupNo) : groups.reduce(function (max, row) {
+                return Math.max(max, Number(row.groupNo || 0));
+            }, 0) + 1;
+            if (groups.some(function (row) { return Number(row.groupNo) === Number(nextNo); })) {
+                return mockError("组号已存在。");
+            }
+            var createdId = "mock-group-" + Date.now();
+            var group = {
+                id: createdId,
+                assignmentId: assignmentId,
+                groupNo: nextNo,
+                name: body && body.name ? body.name : ("第 " + nextNo + " 组"),
+                status: "forming",
+                _count: { members: 0 }
+            };
+            groups.push(group);
+            ensureMockGroupMembers(createdId);
+            return Promise.resolve({ ok: true, data: { id: createdId } });
+        }
+
+        function mockAutoGroup(groupSize) {
+            var assignmentId = String(groupAssignment && groupAssignment.value || "");
+            if (!assignmentId) return mockError("请先选择项目。");
+            var size = Number(groupSize || 0);
+            if (!Number.isInteger(size) || size < 2) return mockError("自动分组人数至少为 2。");
+            var groups = ensureMockAssignmentGroups(assignmentId);
+            var ungroupedRows = ungroupedCourseMembers();
+            if (!ungroupedRows.length) {
+                return Promise.resolve({ ok: true, data: { assignmentId: assignmentId, createdGroups: 0, groupedStudents: 0, groupSize: size } });
+            }
+            var nextNo = groups.reduce(function (max, row) {
+                return Math.max(max, Number(row.groupNo || 0));
+            }, 0) + 1;
+            var createdGroups = 0;
+            var groupedStudents = 0;
+            for (var index = 0; index < ungroupedRows.length; index += size) {
+                var chunk = ungroupedRows.slice(index, index + size);
+                var groupId = "mock-group-" + Date.now() + "-" + createdGroups;
+                var groupNo = nextNo++;
+                groups.push({
+                    id: groupId,
+                    assignmentId: assignmentId,
+                    groupNo: groupNo,
+                    name: "第 " + groupNo + " 组",
+                    status: "forming",
+                    _count: { members: chunk.length }
+                });
+                teacherMock.groupMembersByGroup[String(groupId)] = chunk.map(function (row, rowIndex) {
+                    return mockGroupMemberFromCourseRow(row, rowIndex === 0 ? "leader" : "member");
+                });
+                createdGroups += 1;
+                groupedStudents += chunk.length;
+            }
+            return Promise.resolve({ ok: true, data: { assignmentId: assignmentId, createdGroups: createdGroups, groupedStudents: groupedStudents, groupSize: size } });
+        }
+
+        function mockActivateGroup(groupId) {
+            var assignmentId = String(groupAssignment && groupAssignment.value || "");
+            var group = ensureMockAssignmentGroups(assignmentId).find(function (row) {
+                return String(row.id) === String(groupId);
+            });
+            if (!group) return mockError("未找到当前小组。");
+            group.status = "active";
+            return Promise.resolve({ ok: true, data: group });
+        }
+
+        function mockDeleteGroup(groupId) {
+            var assignmentId = String(groupAssignment && groupAssignment.value || "");
+            var groups = ensureMockAssignmentGroups(assignmentId);
+            var index = groups.findIndex(function (row) {
+                return String(row.id) === String(groupId);
+            });
+            if (index < 0) return mockError("未找到当前小组。");
+            if (ensureMockGroupMembers(groupId).length > 0) {
+                return mockError("当前小组仍有成员，必须先清空后才可以删除。");
+            }
+            groups.splice(index, 1);
+            delete teacherMock.groupMembersByGroup[String(groupId)];
+            return Promise.resolve({ ok: true });
+        }
+
+        function mockAddGroupMember(groupId, userId) {
+            var assignmentId = String(groupAssignment && groupAssignment.value || "");
+            var groups = ensureMockAssignmentGroups(assignmentId);
+            var group = groups.find(function (row) {
+                return String(row.id) === String(groupId);
+            });
+            if (!group) return mockError("未找到当前小组。");
+            var row = findMockCourseMemberByAccount(userId);
+            if (!row) return mockError("未找到该学生。");
+            if (groups.some(function (otherGroup) {
+                return String(otherGroup.id) !== String(groupId) && ensureMockGroupMembers(otherGroup.id).some(function (member) {
+                    return String(memberAccountNo(member)) === String(userId);
+                });
+            })) {
+                return mockError("该学生已经在当前项目的其他小组中。");
+            }
+            ensureMockGroupMembers(groupId).push(mockGroupMemberFromCourseRow(row, ensureMockGroupMembers(groupId).length ? "member" : "leader"));
+            syncMockGroupMemberCount(groupId);
+            return Promise.resolve({ ok: true });
+        }
+
+        function mockRemoveGroupMember(groupId, userId) {
+            var members = ensureMockGroupMembers(groupId);
+            var index = members.findIndex(function (row) {
+                return String(memberAccountNo(row)) === String(userId);
+            });
+            if (index < 0) return mockError("未找到该成员。");
+            members.splice(index, 1);
+            if (members.length && !members.some(function (row) { return row.role === "leader"; })) {
+                members[0].role = "leader";
+            }
+            syncMockGroupMemberCount(groupId);
+            return Promise.resolve({ ok: true });
+        }
+
+        function mockMoveGroupMember(groupId, userId, targetGroupId) {
+            if (!targetGroupId) return mockError("请选择目标小组。");
+            var sourceMembers = ensureMockGroupMembers(groupId);
+            var index = sourceMembers.findIndex(function (row) {
+                return String(memberAccountNo(row)) === String(userId);
+            });
+            if (index < 0) return mockError("未找到该成员。");
+            var moved = sourceMembers.splice(index, 1)[0];
+            moved.role = "member";
+            if (sourceMembers.length && !sourceMembers.some(function (row) { return row.role === "leader"; })) {
+                sourceMembers[0].role = "leader";
+            }
+            var targetMembers = ensureMockGroupMembers(targetGroupId);
+            if (!targetMembers.length) moved.role = "leader";
+            targetMembers.push(moved);
+            syncMockGroupMemberCount(groupId);
+            syncMockGroupMemberCount(targetGroupId);
+            return Promise.resolve({ ok: true });
+        }
+
+        function mockAssistantRows(courseId) {
+            return ((teacherMock.assistantsByCourse && teacherMock.assistantsByCourse[String(courseId)]) || []).slice();
+        }
+
+        function mockCourseMemberRows(courseId) {
+            var rows = ((teacherMock.courseMembersByCourse && teacherMock.courseMembersByCourse[String(courseId)]) || []).slice();
+            if (rows.length) return rows;
+            if (String(courseId) !== "mock-teacher-course-01") return [];
+            return [
+                { user: { id: "2026010001", profile: { realName: "张三", accountNo: "2026010001", avatarUrl: "" }, studentProfile: { stuNo: "2026010001" } } },
+                { user: { id: "2026010002", profile: { realName: "李四", accountNo: "2026010002", avatarUrl: "" }, studentProfile: { stuNo: "2026010002" } } },
+                { user: { id: "2026010003", profile: { realName: "王五", accountNo: "2026010003", avatarUrl: "" }, studentProfile: { stuNo: "2026010003" } } },
+                { user: { id: "2026010004", profile: { realName: "赵六", accountNo: "2026010004", avatarUrl: "" }, studentProfile: { stuNo: "2026010004" } } },
+                { user: { id: "2026010011", profile: { realName: "陈一", accountNo: "2026010011", avatarUrl: "" }, studentProfile: { stuNo: "2026010011" } } },
+                { user: { id: "2026010012", profile: { realName: "吴二", accountNo: "2026010012", avatarUrl: "" }, studentProfile: { stuNo: "2026010012" } } },
+                { user: { id: "2026010013", profile: { realName: "郑三", accountNo: "2026010013", avatarUrl: "" }, studentProfile: { stuNo: "2026010013" } } },
+                { user: { id: "2026010014", profile: { realName: "周四", accountNo: "2026010014", avatarUrl: "" }, studentProfile: { stuNo: "2026010014" } } },
+                { user: { id: "2026010021", profile: { realName: "冯五", accountNo: "2026010021", avatarUrl: "" }, studentProfile: { stuNo: "2026010021" } } },
+                { user: { id: "2026010022", profile: { realName: "钱六", accountNo: "2026010022", avatarUrl: "" }, studentProfile: { stuNo: "2026010022" } } },
+                { user: { id: "2026010023", profile: { realName: "孙七", accountNo: "2026010023", avatarUrl: "" }, studentProfile: { stuNo: "2026010023" } } },
+                { user: { id: "2026010031", profile: { realName: "蒋八", accountNo: "2026010031", avatarUrl: "" }, studentProfile: { stuNo: "2026010031" } } },
+                { user: { id: "2026010032", profile: { realName: "沈九", accountNo: "2026010032", avatarUrl: "" }, studentProfile: { stuNo: "2026010032" } } },
+                { user: { id: "2026010033", profile: { realName: "韩十", accountNo: "2026010033", avatarUrl: "" }, studentProfile: { stuNo: "2026010033" } } },
+                { user: { id: "2026010034", profile: { realName: "杨十一", accountNo: "2026010034", avatarUrl: "" }, studentProfile: { stuNo: "2026010034" } } },
+                { user: { id: "2026010035", profile: { realName: "朱十二", accountNo: "2026010035", avatarUrl: "" }, studentProfile: { stuNo: "2026010035" } } },
+                { user: { id: "2026010041", profile: { realName: "秦十三", accountNo: "2026010041", avatarUrl: "" }, studentProfile: { stuNo: "2026010041" } } },
+                { user: { id: "2026010042", profile: { realName: "尤十四", accountNo: "2026010042", avatarUrl: "" }, studentProfile: { stuNo: "2026010042" } } },
+                { user: { id: "2026010043", profile: { realName: "许十五", accountNo: "2026010043", avatarUrl: "" }, studentProfile: { stuNo: "2026010043" } } },
+                { user: { id: "2026010044", profile: { realName: "何十六", accountNo: "2026010044", avatarUrl: "" }, studentProfile: { stuNo: "2026010044" } } },
+                { user: { id: "2026010045", profile: { realName: "吕十七", accountNo: "2026010045", avatarUrl: "" }, studentProfile: { stuNo: "2026010045" } } },
+                { user: { id: "2026010051", profile: { realName: "罗十八", accountNo: "2026010051", avatarUrl: "" }, studentProfile: { stuNo: "2026010051" } } },
+                { user: { id: "2026010052", profile: { realName: "魏十九", accountNo: "2026010052", avatarUrl: "" }, studentProfile: { stuNo: "2026010052" } } },
+                { user: { id: "2026010053", profile: { realName: "陶二十", accountNo: "2026010053", avatarUrl: "" }, studentProfile: { stuNo: "2026010053" } } }
+            ];
+        }
+
+        function selectedCourse() {
+            return teacherToolState.courses.find(function (row) {
+                return String(row.id) === String(courseContext && courseContext.value || "");
+            }) || null;
+        }
+
+        function selectedAssignment() {
+            return teacherToolState.assignments.find(function (row) {
+                return String(row.id) === String(assignSelect && assignSelect.value || "");
+            }) || null;
+        }
+
+        function selectedStage() {
+            return teacherToolState.stages.find(function (row) {
+                return String(row.id) === String(stageSelect && stageSelect.value || "");
+            }) || null;
+        }
+
+        function activeEditTarget() {
+            if (teacherToolState.editTarget === "stage" && selectedStage()) {
+                return "stage";
+            }
+            if (selectedAssignment()) {
+                return "assignment";
+            }
+            return "";
+        }
+
+        function setEditTarget(target) {
+            teacherToolState.editTarget = target === "stage" ? "stage" : "assignment";
+        }
+
+        function selectedManagedGroup() {
+            return teacherToolState.groups.find(function (row) {
+                return String(row.id) === String(teacherToolState.selectedGroupId || "");
+            }) || null;
+        }
+
+        function formatCourseStatus(status) {
+            if (status === "draft") return "草稿";
+            if (status === "active") return "已发布";
+            if (status === "archived") return "已归档";
+            return status || "--";
+        }
+
+        function formatStageStatus(status) {
+            if (status === "planned") return "待开始";
+            if (status === "open") return "进行中";
+            if (status === "closed") return "已截止";
+            if (status === "archived") return "已归档";
+            return status || "--";
+        }
+
+        function formatGroupStatus(status) {
+            if (status === "forming") return "组队中";
+            if (status === "active") return "已成组";
+            if (status === "archived") return "已归档";
+            return status || "--";
+        }
+
+        function isStageComplete(status) {
+            var value = String(status || "").toLowerCase();
+            return value === "closed" || value === "archived";
+        }
+
+        function assignmentTreeTitle(title, index) {
+            var raw = String(title || "").trim();
+            if (!raw) return "项目 " + String(index + 1);
+            return raw.replace(/^项目\s*\d+\s*[：:]\s*/u, "");
+        }
+
+        function formatSemester(value) {
+            var text = String(value || "").trim();
+            if (!text) return "-- 学期";
+            if (/^\d+$/.test(text)) return "第 " + text + " 学期";
+            return text;
+        }
+
+        function formatDateText(value) {
+            if (!value) return "--";
+            var date = new Date(value);
+            if (Number.isNaN(date.getTime())) return String(value);
+            var year = date.getFullYear();
+            var month = String(date.getMonth() + 1).padStart(2, "0");
+            var day = String(date.getDate()).padStart(2, "0");
+            var hour = String(date.getHours()).padStart(2, "0");
+            var minute = String(date.getMinutes()).padStart(2, "0");
+            return year + "-" + month + "-" + day + " " + hour + ":" + minute;
+        }
+
+        function fileDisplayName(file) {
+            return file.originalName || file.filename || file.name || file.fileName || file.storageKey || "未命名附件";
+        }
+
+        function fileDisplaySize(file) {
+            var size = Number(file.size || file.sizeBytes || file.byteSize || 0);
+            if (!size) return "--";
+            if (size < 1024) return String(size) + " B";
+            if (size < 1024 * 1024) return (size / 1024).toFixed(1).replace(/\.0$/, "") + " KB";
+            return (size / 1024 / 1024).toFixed(1).replace(/\.0$/, "") + " MB";
+        }
+
+        function groupMemberNames(groupId) {
+            var rows = teacherToolState.groupMembers[String(groupId)] || [];
+            if (!rows.length) return "暂无成员";
+            return rows.slice(0, 4).map(function (row) {
+                return row.user && row.user.profile && row.user.profile.realName || row.userId || "--";
+            }).join("、");
+        }
+
+        function memberAccountNo(row) {
+            return row && row.user && row.user.profile && row.user.profile.accountNo || row && row.userId || "";
+        }
+
+        function memberRealName(row) {
+            return row && row.user && row.user.profile && row.user.profile.realName || memberAccountNo(row) || "--";
+        }
+
+        function courseMemberUserId(row) {
+            return row && row.user && row.user.id || row && row.userId || "";
+        }
+
+        function courseMemberAccountNo(row) {
+            return row && row.user && row.user.profile && row.user.profile.accountNo || courseMemberUserId(row) || "";
+        }
+
+        function courseMemberRealName(row) {
+            return row && row.user && row.user.profile && row.user.profile.realName || courseMemberAccountNo(row) || "--";
+        }
+
+        function assignmentGroupedUserIds() {
+            var ids = {};
+            Object.keys(teacherToolState.groupMembers || {}).forEach(function (groupId) {
+                (teacherToolState.groupMembers[groupId] || []).forEach(function (row) {
+                    var userId = memberAccountNo(row);
+                    if (userId) ids[String(userId)] = true;
+                });
+            });
+            return ids;
+        }
+
+        function ungroupedCourseMembers() {
+            var groupedIds = assignmentGroupedUserIds();
+            return (teacherToolState.courseMembers || []).filter(function (row) {
+                var userId = courseMemberAccountNo(row);
+                var isStudent = Boolean(row && row.user && row.user.studentProfile);
+                return isStudent && userId && !groupedIds[String(userId)];
             });
         }
-        if (assignCourse) {
-            loadCourseOptions(assignCourse, refreshAssignments);
-            assignCourse.onchange = refreshAssignments;
+
+        function avatarMarkup(url, name, tone) {
+            if (url) {
+                return '<img class="teacher-course-avatar" src="' + escapeHtml(url) + '" alt="' + escapeHtml(name || "") + '" />';
+            }
+            return '<span class="teacher-course-avatar teacher-course-avatar-fallback is-' + escapeHtml(tone || "teal") + '">' + escapeHtml((name || "U").slice(0, 2)) + '</span>';
         }
-        qs("#extAssignCreate").onclick = function () {
+
+        function syncCourseSelection(nextValue) {
+            var value = String(nextValue || "");
+            [assignCourse, stageCourse, groupCourse, assistantCourse].forEach(function (select) {
+                if (select) {
+                    if (!select.options.length && courseContext && courseContext.options.length) {
+                        select.innerHTML = courseContext.innerHTML;
+                    }
+                    select.value = value;
+                }
+            });
+        }
+
+        function updateTeacherCourseMetrics() {
+            var projectCount = qs("#extTeacherProjectCount");
+            var stageCount = qs("#extTeacherStageCount");
+            var assistantCount = qs("#extTeacherAssistantCount");
+            var groupCount = qs("#extTeacherGroupCount");
+            if (projectCount) projectCount.textContent = "项目 " + String(teacherToolState.assignments.length || 0);
+            if (stageCount) stageCount.textContent = "阶段 " + String(teacherToolState.stages.length || 0);
+            if (assistantCount) assistantCount.textContent = "助教 " + String(teacherToolState.assistants.length || 0);
+            if (groupCount) groupCount.textContent = "小组 " + String(teacherToolState.groups.length || 0);
+
+            var course = selectedCourse();
+            var yearNode = qs("#extTeacherCourseYear");
+            var semesterNode = qs("#extTeacherCourseSemester");
+            var statusNode = qs("#extTeacherCourseStatus");
+            var structureMeta = qs("#extTeacherStructureMeta");
+            if (yearNode) yearNode.textContent = course ? String(course.academicYear || "--") + " 学年" : "-- 学年";
+            if (semesterNode) semesterNode.textContent = course ? formatSemester(course.semester) : "-- 学期";
+            if (statusNode) statusNode.textContent = course ? formatCourseStatus(course.status) : "--";
+            if (structureMeta) structureMeta.textContent = course ? ((course.courseNo || "--") + " · " + (course.name || "--")) : "请选择课程";
+        }
+
+        function updateMaterialMeta() {
+            var assignMeta = qs("#extAssignMaterialMeta");
+            var stageMeta = qs("#extStageMaterialMeta");
+            var selectedAssignmentRow = selectedAssignment();
+            var selectedStageRow = selectedStage();
+            var assignmentFiles = selectedAssignmentRow && Array.isArray(selectedAssignmentRow.descriptionFiles) ? selectedAssignmentRow.descriptionFiles.length : 0;
+            var stageFiles = selectedStageRow && Array.isArray(selectedStageRow.requirementFiles) ? selectedStageRow.requirementFiles.length : 0;
+            if (assignMeta) assignMeta.textContent = "附件 " + String(assignmentFiles);
+            if (stageMeta) stageMeta.textContent = "材料 " + String(stageFiles);
+        }
+
+        function fillAssignmentForm(row) {
+            var selected = row || null;
+            if (qs("#extAssignTitle")) qs("#extAssignTitle").value = selected ? (selected.title || "") : "";
+            if (qs("#extAssignDesc")) qs("#extAssignDesc").value = selected ? (selected.description || "") : "";
+            if (qs("#extAssignStatus")) qs("#extAssignStatus").value = selected ? (selected.status || "draft") : "draft";
+            var assignmentMeta = qs("#extTeacherEditAssignmentMeta");
+            if (assignmentMeta) {
+                assignmentMeta.textContent = "当前项目：" + (selected ? (selected.title || "未命名项目") : "未选择");
+            }
+            updateMaterialMeta();
+        }
+
+        function toLocalDateTime(value) {
+            if (!value) return "";
+            var date = new Date(value);
+            if (Number.isNaN(date.getTime())) return "";
+            var year = date.getFullYear();
+            var month = String(date.getMonth() + 1).padStart(2, "0");
+            var day = String(date.getDate()).padStart(2, "0");
+            var hour = String(date.getHours()).padStart(2, "0");
+            var minute = String(date.getMinutes()).padStart(2, "0");
+            return year + "-" + month + "-" + day + "T" + hour + ":" + minute;
+        }
+
+        function fillStageForm(row) {
+            var selected = row || null;
+            if (qs("#extStageTitle")) qs("#extStageTitle").value = selected ? (selected.title || "") : "";
+            if (qs("#extStageStart")) qs("#extStageStart").value = selected ? toLocalDateTime(selected.startAt) : "";
+            if (qs("#extStageDue")) qs("#extStageDue").value = selected ? toLocalDateTime(selected.dueAt) : "";
+            if (qs("#extStageWeight")) qs("#extStageWeight").value = selected && selected.weight != null ? String(selected.weight) : "";
+            if (qs("#extStageStatus")) qs("#extStageStatus").value = selected ? (selected.status || "planned") : "planned";
+            if (qs("#extStageDesc")) qs("#extStageDesc").value = selected ? (selected.description || "") : "";
+            if (qs("#extStageSubmission")) qs("#extStageSubmission").value = selected ? (selected.submissionDesc || "") : "";
+            if (qs("#extStageCriteria")) qs("#extStageCriteria").value = selected ? (selected.acceptCriteria || "") : "";
+            var stageMeta = qs("#extTeacherEditStageMeta");
+            if (stageMeta) {
+                stageMeta.textContent = "当前阶段：" + (selected ? ((selected.stageNo ? ("阶段 " + selected.stageNo + " · ") : "") + (selected.title || "未命名阶段")) : "未选择");
+            }
+            if (stageProjectSummary) {
+                var assignment = teacherToolState.assignments.find(function (item) { return String(item.id) === String(stageAssignment && stageAssignment.value || ""); }) || null;
+                stageProjectSummary.innerHTML = assignment
+                    ? '<strong>' + escapeHtml(assignment.title || "--") + '</strong><small>' + escapeHtml(assignment.status || "--") + '</small>'
+                    : '<span class="muted">请选择项目后查看阶段。</span>';
+            }
+            updateMaterialMeta();
+        }
+
+        function toggleHidden(node, hidden) {
+            if (!node) return;
+            node.hidden = Boolean(hidden);
+        }
+
+        function toggleButton(node, visible) {
+            if (!node) return;
+            node.hidden = !visible;
+            node.disabled = !visible;
+        }
+
+        function teacherEditMode() {
+            if (!selectedCourse()) return "disabled";
+            if (selectedStage()) return "stage";
+            if (selectedAssignment()) return "assignment";
+            return "course";
+        }
+
+        function applyTeacherEditMode() {
+            var mode = teacherEditMode();
+            var titleNode = qs("#extTeacherStageEditorTitle");
+            var badgeNode = qs("#extTeacherEditModeBadge");
+            var hintNode = qs("#extTeacherEditModeHint");
+            var assignmentSection = qs("#extTeacherAssignmentSection");
+            var stageSection = qs("#extTeacherStageSection");
+            var assignmentHint = qs("#extTeacherAssignmentHint");
+            var stageHint = qs("#extTeacherStageHint");
+            var course = selectedCourse();
+            var assignment = selectedAssignment();
+            var stage = selectedStage();
+
+            if (mode === "disabled") {
+                if (titleNode) titleNode.textContent = "编辑层级";
+                if (badgeNode) badgeNode.textContent = "未选择课程";
+                if (hintNode) hintNode.textContent = "请先选择课程，再创建项目或编辑项目、阶段。";
+                if (assignmentHint) assignmentHint.textContent = "请先选择课程。";
+                if (stageHint) stageHint.textContent = "请先选择课程与项目。";
+                toggleHidden(assignmentSection, false);
+                toggleHidden(stageSection, true);
+                fillAssignmentForm(null);
+                fillStageForm(null);
+                toggleButton(qs("#extAssignCreate"), false);
+                toggleButton(qs("#extAssignPatch"), false);
+                toggleButton(qs("#extStageCreate"), false);
+                toggleButton(qs("#extStagePatch"), false);
+                toggleButton(qs("#extStageArchive"), false);
+                return;
+            }
+
+            if (mode === "course") {
+                if (titleNode) titleNode.textContent = "新建项目";
+                if (badgeNode) badgeNode.textContent = "课程层级";
+                if (hintNode) hintNode.textContent = "当前仅选择课程，可在该课程下新建项目。";
+                if (assignmentHint) assignmentHint.textContent = "项目创建后，才可以继续为该项目新增阶段。";
+                if (stageHint) stageHint.textContent = "请先在左侧选择项目，再为该项目创建阶段。";
+                toggleHidden(assignmentSection, false);
+                toggleHidden(stageSection, true);
+                fillAssignmentForm(null);
+                if (stageAssignment) stageAssignment.value = "";
+                fillStageForm(null);
+                toggleButton(qs("#extAssignCreate"), true);
+                toggleButton(qs("#extAssignPatch"), false);
+                toggleButton(qs("#extStageCreate"), false);
+                toggleButton(qs("#extStagePatch"), false);
+                toggleButton(qs("#extStageArchive"), false);
+                return;
+            }
+
+            if (mode === "assignment") {
+                if (titleNode) titleNode.textContent = "编辑项目 / 新建阶段";
+                if (badgeNode) badgeNode.textContent = "项目层级";
+                if (hintNode) hintNode.textContent = "当前选中项目，可修改项目信息，并在该项目下继续新建阶段。";
+                if (assignmentHint) assignmentHint.textContent = "当前正在编辑已选项目，可修改项目标题、说明与状态。";
+                if (stageHint) stageHint.textContent = "新阶段会创建在当前项目下，阶段创建后可再单独进入编辑。";
+                toggleHidden(assignmentSection, false);
+                toggleHidden(stageSection, false);
+                fillAssignmentForm(assignment);
+                if (stageAssignment) stageAssignment.value = assignment ? String(assignment.id || "") : "";
+                if (stageSelect) stageSelect.value = "";
+                fillStageForm(null);
+                toggleButton(qs("#extAssignCreate"), false);
+                toggleButton(qs("#extAssignPatch"), true);
+                toggleButton(qs("#extStageCreate"), true);
+                toggleButton(qs("#extStagePatch"), false);
+                toggleButton(qs("#extStageArchive"), false);
+                return;
+            }
+
+            if (titleNode) titleNode.textContent = "编辑阶段";
+            if (badgeNode) badgeNode.textContent = "阶段层级";
+            if (hintNode) hintNode.textContent = "当前选中阶段，仅可修改该阶段本身；如需新增阶段，请先回到项目层级。";
+            if (assignmentHint) assignmentHint.textContent = "项目信息请回到项目层级后再修改。";
+            if (stageHint) stageHint.textContent = "当前可修改阶段标题、时间、权重、说明、提交说明、验收标准与状态。";
+            toggleHidden(assignmentSection, true);
+            toggleHidden(stageSection, false);
+            if (stageAssignment) {
+                stageAssignment.value = stage && stage.assignmentId ? String(stage.assignmentId) : (assignment ? String(assignment.id || "") : "");
+            }
+            fillStageForm(stage);
+            toggleButton(qs("#extAssignCreate"), false);
+            toggleButton(qs("#extAssignPatch"), false);
+            toggleButton(qs("#extStageCreate"), false);
+            toggleButton(qs("#extStagePatch"), true);
+            toggleButton(qs("#extStageArchive"), true);
+        }
+
+        function renderTeacherCourseTree() {
+            var treeNode = qs("#extTeacherCourseTree");
+            if (!treeNode) return;
+            var assignmentRows = teacherToolState.assignments || [];
+            var stageRows = teacherToolState.stages || [];
+            if (!assignmentRows.length) {
+                treeNode.innerHTML = '<div class="teacher-course-empty"><strong>暂无项目</strong><p>当前课程还没有项目与阶段。</p></div>';
+                return;
+            }
+            var currentAssignmentId = String(assignSelect && assignSelect.value || "");
+            var currentStageId = String(stageSelect && stageSelect.value || "");
+            var html = [];
+            var course = selectedCourse();
+            html.push('<div class="teacher-course-tree-course"><span class="teacher-course-tree-course-dot"></span><strong>' + escapeHtml(course && course.name || "当前课程") + '</strong></div>');
+            assignmentRows.forEach(function (assignment, index) {
+                var relatedStages = stageRows.filter(function (stage) {
+                    return String(stage.assignmentId || "") === String(assignment.id || currentAssignmentId)
+                        && String(stage.status || "").toLowerCase() !== "archived";
+                });
+                var hasPendingStage = relatedStages.some(function (stage) { return !isStageComplete(stage.status); });
+                var isCollapsed = Boolean(teacherToolState.collapsedAssignments[String(assignment.id)]);
+                var activeClass = currentAssignmentId === String(assignment.id) ? " is-active" : "";
+                html.push('<section class="teacher-course-tree-section' + activeClass + (isCollapsed ? ' is-collapsed' : '') + '">');
+                html.push(
+                    '<div class="teacher-course-tree-project">' +
+                    '<button class="teacher-course-tree-toggle" type="button" data-assignment-toggle="' + escapeHtml(assignment.id) + '" aria-label="' + (isCollapsed ? "展开项目" : "收起项目") + '">' +
+                    '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + (isCollapsed ? 'M7 5.5 12 10 7 14.5' : 'M5.5 7 10 12 14.5 7') + '"></path></svg>' +
+                    '</button>' +
+                    '<button class="teacher-course-tree-project-main" type="button" data-assignment-pick="' + escapeHtml(assignment.id) + '">' +
+                    '<span class="teacher-course-tree-project-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M2.5 5.25A1.75 1.75 0 0 1 4.25 3.5H7.1c.4 0 .78.14 1.08.4l1.18 1.03c.12.1.27.16.43.16h5.96a1.75 1.75 0 0 1 1.75 1.75v.9H2.5v-2.5Z"></path><path d="M2.5 8.5h15v6.25a1.75 1.75 0 0 1-1.75 1.75H4.25A1.75 1.75 0 0 1 2.5 14.75V8.5Z"></path></svg></span>' +
+                    '<strong>项目 ' + escapeHtml(String(index + 1)) + '：' + escapeHtml(assignmentTreeTitle(assignment.title, index)) + '</strong>' +
+                    '</button>' +
+                    '<span class="teacher-course-tree-project-tail">' +
+                    '<span class="teacher-course-tree-project-count">' + escapeHtml(String(relatedStages.length)) + '</span>' +
+                    (hasPendingStage ? '<span class="teacher-course-tree-state-dot is-pending" aria-hidden="true"></span>' : '<span class="teacher-course-tree-state-check" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 10.5 8.5 14 15 6.5"></path></svg></span>') +
+                    '</span>' +
+                    '</div>'
+                );
+                if (!isCollapsed && relatedStages.length) {
+                    html.push('<div class="teacher-course-tree-stage-list">');
+                    relatedStages.forEach(function (stage, stageIndex) {
+                        var stageClass = currentStageId === String(stage.id) ? " is-active" : "";
+                        html.push(
+                            '<button class="teacher-course-tree-stage' + stageClass + '" type="button" data-stage-pick="' + escapeHtml(stage.id) + '">' +
+                            '<span class="teacher-course-tree-stage-line">' +
+                            '<span class="teacher-course-tree-stage-text">阶段 ' + escapeHtml(String(stage.stageNo || stageIndex + 1)) + ' ' + escapeHtml(stage.title || "--") + '</span>' +
+                            (isStageComplete(stage.status)
+                                ? '<span class="teacher-course-tree-state-check" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 10.5 8.5 14 15 6.5"></path></svg></span>'
+                                : '<span class="teacher-course-tree-state-dot is-pending" aria-hidden="true"></span>') +
+                            '</span>' +
+                            '</button>'
+                        );
+                    });
+                    html.push('</div>');
+                } else if (!isCollapsed) {
+                    html.push('<div class="teacher-course-tree-stage-empty">该项目暂未创建阶段</div>');
+                }
+                html.push('</section>');
+            });
+            treeNode.innerHTML = html.join("");
+        }
+
+        function renderTeacherStageOverview() {
+            var course = selectedCourse();
+            var assignment = selectedAssignment();
+            var stage = selectedStage();
+            var pathNode = qs("#extTeacherStagePath");
+            var deadlineNode = qs("#extTeacherStageDeadline");
+            var stateNode = qs("#extTeacherStageState");
+            var groupProgressNode = qs("#extTeacherStageGroupProgress");
+            var assistantSummaryNode = qs("#extTeacherAssistantSummary");
+            var descNode = qs("#extTeacherStageDescription");
+            var submissionNode = qs("#extTeacherStageSubmission");
+            var criteriaNode = qs("#extTeacherStageCriteriaView");
+            var groupMeta = qs("#extTeacherGroupMeta");
+            var editToggle = qs("#extTeacherStageEditToggle");
+            var totalGroups = teacherToolState.groups.length || 0;
+            var submittedGroups = teacherToolState.groups.filter(function (row) {
+                return String(row.status || "").toLowerCase() !== "forming";
+            }).length;
+            var editTarget = activeEditTarget();
+
+            if (pathNode) {
+                if (!course || !assignment) {
+                    pathNode.textContent = "请选择左侧项目与阶段";
+                } else {
+                    var assignmentIndex = teacherToolState.assignments.findIndex(function (row) {
+                        return String(row.id) === String(assignment.id);
+                    });
+                    var pathHtml = [
+                        '<span class="teacher-course-stage-path-root">' + escapeHtml(course.name || course.courseNo || "--") + '</span>',
+                        '<span class="teacher-course-stage-path-sep">/</span>',
+                        '<button class="teacher-course-stage-path-btn' + (editTarget === "assignment" ? ' is-active' : '') + '" type="button" data-edit-target="assignment">' +
+                        escapeHtml("项目 " + String(assignmentIndex + 1) + "：" + assignmentTreeTitle(assignment.title, 0)) +
+                        '</button>'
+                    ];
+                    if (stage) {
+                        pathHtml.push('<span class="teacher-course-stage-path-sep">/</span>');
+                        pathHtml.push('<button class="teacher-course-stage-path-btn' + (editTarget === "stage" ? ' is-active' : '') + '" type="button" data-edit-target="stage">' + escapeHtml("阶段 " + String(stage.stageNo || "--") + " " + (stage.title || "--")) + '</button>');
+                    }
+                    pathNode.innerHTML = pathHtml.join("");
+                }
+            }
+            if (deadlineNode) deadlineNode.textContent = stage ? formatDateText(stage.dueAt) : "--";
+            if (stateNode) stateNode.textContent = stage ? formatStageStatus(stage.status) : "--";
+            if (groupProgressNode) groupProgressNode.textContent = String(submittedGroups) + " / " + String(totalGroups);
+            if (assistantSummaryNode) assistantSummaryNode.textContent = teacherToolState.assistants.length
+                ? teacherToolState.assistants.map(function (row) {
+                    var profile = row.assistant && row.assistant.profile ? row.assistant.profile : {};
+                    return profile.realName || row.assistantUserId || "--";
+                }).join("、")
+                : "暂未配置";
+            if (descNode) descNode.textContent = stage && stage.description ? stage.description : "当前阶段暂无说明。";
+            if (submissionNode) submissionNode.textContent = stage && stage.submissionDesc ? stage.submissionDesc : "当前阶段暂无提交要求。";
+            if (criteriaNode) criteriaNode.textContent = stage && stage.acceptCriteria ? stage.acceptCriteria : "当前阶段暂无验收标准。";
+            if (groupMeta) groupMeta.textContent = assignment ? ("项目 · " + assignmentTreeTitle(assignment.title, 0) + " · " + String(totalGroups) + " 个小组") : "当前项目全部小组";
+            if (editToggle) {
+                editToggle.disabled = !assignment;
+                editToggle.textContent = editTarget === "stage" ? "编辑阶段" : "编辑项目";
+            }
+        }
+
+        function renderTeacherAssistants() {
+            renderBoundAssistants();
+        }
+
+        function renderTeacherGroups() {
+            var listNode = qs("#extGroupList");
+            if (!listNode) return;
+            var stage = selectedStage();
+            if (!teacherToolState.groups.length) {
+                teacherToolState.selectedGroupId = "";
+                listNode.innerHTML = '<div class="teacher-course-group-empty"><strong>暂未分组</strong><span>当前项目下还没有小组</span></div>';
+                return;
+            }
+            listNode.innerHTML = teacherToolState.groups.map(function (group) {
+                var normalizedStatus = String(group.status || "").toLowerCase();
+                var submitState = normalizedStatus === "forming" ? "pending" : normalizedStatus === "archived" ? "ended" : "done";
+                var submitLabel = submitState === "pending" ? "待提交" : submitState === "ended" ? "已结束" : "已提交";
+                var memberRows = teacherToolState.groupMembers[String(group.id)] || [];
+                var memberCount = memberRows.length || group._count && group._count.members || 0;
+                var isSelected = String(teacherToolState.selectedGroupId || "") === String(group.id);
+                var stageTitle = stage && stage.title ? stage.title : "未关联阶段";
+                var actionHtml = '<button class="teacher-course-table-btn is-compact" type="button" data-group-edit="' + escapeHtml(group.id) + '">编辑</button>';
+                return [
+                    '<div class="teacher-course-group-table-row' + (isSelected ? ' is-selected' : '') + '" data-group-pick="' + escapeHtml(group.id) + '">',
+                    '<span>第 ' + escapeHtml(String(group.groupNo || "--")) + ' 组</span>',
+                    '<span class="teacher-course-group-name-cell"><strong>' + escapeHtml(group.name || ("第 " + group.groupNo + " 组")) + '</strong><small>' + escapeHtml(stageTitle) + '</small></span>',
+                    '<span class="teacher-course-group-members">' + escapeHtml(groupMemberNames(group.id)) + '</span>',
+                    '<span>' + escapeHtml(String(memberCount)) + ' 人</span>',
+                    '<span class="teacher-course-group-submit is-' + escapeHtml(submitState) + '"><i></i>' + escapeHtml(submitLabel) + '</span>',
+                    '<span class="teacher-course-group-actions">' + actionHtml + '</span>',
+                    '</div>',
+                ].join("");
+            }).join("");
+        }
+
+        function renderTeacherGroupEditor() {
+            if (!groupEditorDialog) return;
+            var course = selectedCourse();
+            var assignment = selectedAssignment();
+            var managedGroup = selectedManagedGroup();
+            var selectionMeta = qs("#extTeacherGroupEditorSelectionMeta");
+            var courseMeta = qs("#extTeacherGroupEditorCourseMeta");
+            var assignmentMeta = qs("#extTeacherGroupEditorAssignmentMeta");
+            var managedSelect = qs("#extTeacherManagedGroupSelect");
+            var memberList = qs("#extTeacherManagedGroupMembers");
+            var ungroupedList = qs("#extTeacherUngroupedList");
+            var ungroupedMeta = qs("#extTeacherUngroupedMeta");
+            var ungroupedRows = ungroupedCourseMembers();
+
+            if (courseMeta) courseMeta.textContent = "当前课程：" + (course ? ((course.courseNo || "--") + " · " + (course.name || "--")) : "--");
+            if (assignmentMeta) assignmentMeta.textContent = "当前项目：" + (assignment ? (assignment.title || "未命名项目") : "未选择");
+            if (selectionMeta) selectionMeta.textContent = "当前小组：" + (managedGroup ? (managedGroup.name || ("第 " + managedGroup.groupNo + " 组")) : "未选择");
+
+            if (managedSelect) {
+                managedSelect.innerHTML = teacherToolState.groups.length
+                    ? teacherToolState.groups.map(function (group) {
+                        var label = "第 " + String(group.groupNo || "--") + " 组 · " + (group.name || "未命名小组");
+                        return '<option value="' + escapeHtml(group.id) + '">' + escapeHtml(label) + '</option>';
+                    }).join("")
+                    : '<option value="">暂无小组</option>';
+                managedSelect.value = managedGroup ? String(managedGroup.id) : "";
+            }
+
+            if (ungroupedMeta) {
+                ungroupedMeta.textContent = String(ungroupedRows.length) + " 人";
+            }
+            if (ungroupedList) {
+                ungroupedList.innerHTML = ungroupedRows.length
+                    ? ungroupedRows.map(function (row) {
+                        return '<div class="teacher-course-group-student-row"><div class="teacher-course-group-student-main"><strong>' + escapeHtml(courseMemberRealName(row)) + '</strong><small>' + escapeHtml(courseMemberAccountNo(row)) + '</small></div><button class="teacher-course-group-icon-action teacher-course-group-list-arrow" type="button" data-ungrouped-add="' + escapeHtml(courseMemberAccountNo(row)) + '"' + (managedGroup ? "" : " disabled") + ' aria-label="加入当前小组" title="加入当前小组"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4.5 10h10.2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><path d="m10.8 5.8 4.2 4.2-4.2 4.2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>';
+                    }).join("")
+                    : '<div class="teacher-course-group-editor-empty">当前项目下没有未分组学生。</div>';
+            }
+
+            if (memberList) {
+                var memberRows = managedGroup ? (teacherToolState.groupMembers[String(managedGroup.id)] || []) : [];
+                memberList.innerHTML = managedGroup
+                    ? (
+                        '<div class="teacher-course-group-editor-member-head"><span>成员</span><span>账号</span><span>角色</span><span>操作</span></div>' +
+                        (memberRows.length ? memberRows.map(function (row) {
+                            var role = row.role === "leader" ? "组长" : "成员";
+                            var userId = memberAccountNo(row);
+                            return '<div class="teacher-course-group-editor-member-row"><span><strong>' + escapeHtml(memberRealName(row)) + '</strong></span><span>' + escapeHtml(userId) + '</span><span>' + escapeHtml(role) + '</span><span class="teacher-course-group-editor-member-ops"><button class="teacher-course-text-btn" type="button" data-member-move="' + escapeHtml(userId) + '">换组</button><button class="teacher-course-text-btn is-danger" type="button" data-member-remove="' + escapeHtml(userId) + '">移除</button></span></div>';
+                        }).join("") : '<div class="teacher-course-group-editor-empty">当前小组还没有成员。</div>')
+                    )
+                    : '<div class="teacher-course-group-editor-empty">请先在上方选择要编辑的小组。</div>';
+            }
+        }
+
+        function renderTeacherGroupMoveDialog() {
+            if (!groupMoveDialog) return;
+            var managedGroup = selectedManagedGroup();
+            var userId = teacherToolState.pendingMoveUserId || "";
+            var memberRows = managedGroup ? (teacherToolState.groupMembers[String(managedGroup.id)] || []) : [];
+            var pickedMember = memberRows.find(function (row) {
+                return String(memberAccountNo(row)) === String(userId);
+            }) || null;
+            var targetNode = qs("#extTeacherGroupMoveTarget");
+            var memberMeta = qs("#extTeacherGroupMoveMemberMeta");
+            var sourceMeta = qs("#extTeacherGroupMoveSourceMeta");
+
+            if (memberMeta) {
+                memberMeta.textContent = "成员：" + (pickedMember ? (memberRealName(pickedMember) + " · " + memberAccountNo(pickedMember)) : "--");
+            }
+            if (sourceMeta) {
+                sourceMeta.textContent = "当前小组：" + (managedGroup ? (managedGroup.name || ("第 " + managedGroup.groupNo + " 组")) : "--");
+            }
+            if (targetNode) {
+                targetNode.innerHTML = '<option value="">选择目标小组</option>' + teacherToolState.groups.filter(function (group) {
+                    return !managedGroup || String(group.id) !== String(managedGroup.id);
+                }).map(function (group) {
+                    var label = "第 " + String(group.groupNo || "--") + " 组 · " + (group.name || "未命名小组");
+                    return '<option value="' + escapeHtml(group.id) + '">' + escapeHtml(label) + '</option>';
+                }).join("");
+            }
+        }
+
+        function openTeacherGroupMoveDialog(userId) {
+            if (!groupMoveDialog) return;
+            teacherToolState.pendingMoveUserId = String(userId || "");
+            renderTeacherGroupMoveDialog();
+            clearResult(qs("#extTeacherGroupMoveResult"));
+            groupMoveDialog.hidden = false;
+        }
+
+        function closeTeacherGroupMoveDialog() {
+            if (!groupMoveDialog) return;
+            teacherToolState.pendingMoveUserId = "";
+            clearResult(qs("#extTeacherGroupMoveResult"));
+            if (qs("#extTeacherGroupMoveTarget")) qs("#extTeacherGroupMoveTarget").value = "";
+            groupMoveDialog.hidden = true;
+        }
+
+        function renderTeacherAttachments() {
+            var listNode = qs("#extTeacherAttachmentList");
+            if (!listNode) return;
+            var assignment = selectedAssignment();
+            var stage = selectedStage();
+            var files = [];
+            if (assignment && Array.isArray(assignment.descriptionFiles)) {
+                files = files.concat(assignment.descriptionFiles.map(function (file) {
+                    return { scope: "项目", file: file };
+                }));
+            }
+            if (stage && Array.isArray(stage.requirementFiles)) {
+                files = files.concat(stage.requirementFiles.map(function (file) {
+                    return { scope: "阶段", file: file };
+                }));
+            }
+            if (!files.length) {
+                listNode.innerHTML = '<div class="teacher-course-attachment-empty">当前阶段暂时没有附件</div>';
+                return;
+            }
+            listNode.innerHTML = files.map(function (entry) {
+                var file = entry.file || {};
+                var fileName = fileDisplayName(file);
+                var ext = String(fileName.split(".").pop() || "").toLowerCase();
+                var iconClass = /pdf/.test(ext) ? "is-pdf" : /(xls|xlsx|csv)/.test(ext) ? "is-sheet" : /(doc|docx)/.test(ext) ? "is-doc" : "is-file";
+                return [
+                    '<div class="teacher-course-attachment-item">',
+                    '<div class="teacher-course-attachment-main">',
+                    '<span class="teacher-course-attachment-icon ' + iconClass + '" aria-hidden="true">' + fileTypeIconSvg(ext) + '</span>',
+                    '<div class="teacher-course-attachment-copy"><strong>' + escapeHtml(fileName) + '</strong></div>',
+                    '</div>',
+                    '<span class="teacher-course-attachment-size">' + escapeHtml(fileDisplaySize(file)) + '</span>',
+                    '<span class="teacher-course-attachment-date">' + escapeHtml(formatDateText(file.uploadedAt || file.createdAt || file.updatedAt || "")) + '</span>',
+                    '</div>',
+                ].join("");
+            }).join("");
+        }
+
+        function renderTeacherWorkspace() {
+            updateTeacherCourseMetrics();
+            var courseMeta = qs("#extTeacherEditCourseMeta");
+            var course = selectedCourse();
+            if (courseMeta) {
+                courseMeta.textContent = "当前课程：" + (course ? ((course.courseNo || "--") + " · " + (course.name || "--")) : "--");
+            }
+            renderTeacherCourseTree();
+            renderTeacherStageOverview();
+            renderTeacherAssistants();
+            renderTeacherGroups();
+            renderTeacherAttachments();
+            renderTeacherGroupEditor();
+            if (stageEditorDialog && !stageEditorDialog.hidden) {
+                applyTeacherEditMode();
+            }
+            if (assignmentManageDialog && !assignmentManageDialog.hidden) {
+                fillAssignmentManageDialog();
+            }
+            if (stageManageDialog && !stageManageDialog.hidden) {
+                fillStageManageDialog();
+            }
+        }
+
+        function renderOwnedAssistants() {
+            if (!assistantOwnedSelect) return;
+            assistantOwnedSelect.innerHTML = '<option value="">从子账号中选择助教</option>' + teacherToolState.ownedAssistants.map(function (row) {
+                var label = (row.realName || row.accountNo || row.assistantUserId || "--") + " · " + (row.accountNo || row.assistantUserId || "--");
+                return '<option value="' + escapeHtml(row.assistantUserId || row.id || "") + '">' + escapeHtml(label) + '</option>';
+            }).join("");
+        }
+
+        function renderBoundAssistants() {
+            updateTeacherCourseMetrics();
+        }
+
+        function openAssistantDialog() {
+            if (!assistantDialog) return;
+            assistantDialog.hidden = false;
+            document.body.classList.add("teacher-course-dialog-open");
+        }
+
+        function closeAssistantDialog() {
+            if (!assistantDialog) return;
+            assistantDialog.hidden = true;
+            document.body.classList.remove("teacher-course-dialog-open");
+        }
+
+        function openDialog(dialog) {
+            if (!dialog) return;
+            dialog.hidden = false;
+            document.body.classList.add("teacher-course-dialog-open");
+        }
+
+        function closeDialog(dialog) {
+            if (!dialog) return;
+            dialog.hidden = true;
+            document.body.classList.remove("teacher-course-dialog-open");
+        }
+
+        function fillAssignmentCreateDialog() {
+            var course = selectedCourse();
+            var courseMeta = qs("#extTeacherAssignmentCreateCourseMeta");
+            if (courseMeta) courseMeta.textContent = "当前课程：" + (course ? ((course.courseNo || "--") + " · " + (course.name || "--")) : "--");
+            if (qs("#extTeacherAssignmentCreateTitle")) qs("#extTeacherAssignmentCreateTitle").value = "";
+            if (qs("#extTeacherAssignmentCreateStatus")) qs("#extTeacherAssignmentCreateStatus").value = "draft";
+            if (qs("#extTeacherAssignmentCreateDesc")) qs("#extTeacherAssignmentCreateDesc").value = "";
+        }
+
+        function fillAssignmentManageDialog() {
+            var course = selectedCourse();
+            var assignment = selectedAssignment();
+            var courseMeta = qs("#extTeacherAssignmentManageCourseMeta");
+            var assignmentMeta = qs("#extTeacherAssignmentManageMeta");
+            if (courseMeta) courseMeta.textContent = "当前课程：" + (course ? ((course.courseNo || "--") + " · " + (course.name || "--")) : "--");
+            if (assignmentMeta) assignmentMeta.textContent = "当前项目：" + (assignment ? (assignment.title || "未命名项目") : "--");
+            if (qs("#extTeacherAssignmentManageTitle")) qs("#extTeacherAssignmentManageTitle").value = assignment ? (assignment.title || "") : "";
+            if (qs("#extTeacherAssignmentManageStatus")) qs("#extTeacherAssignmentManageStatus").value = assignment ? (assignment.status || "draft") : "draft";
+            if (qs("#extTeacherAssignmentManageDesc")) qs("#extTeacherAssignmentManageDesc").value = assignment ? (assignment.description || "") : "";
+            if (qs("#extTeacherAssignmentStageTitle")) qs("#extTeacherAssignmentStageTitle").value = "";
+            if (qs("#extTeacherAssignmentStageStatus")) qs("#extTeacherAssignmentStageStatus").value = "planned";
+            if (qs("#extTeacherAssignmentStageStart")) qs("#extTeacherAssignmentStageStart").value = "";
+            if (qs("#extTeacherAssignmentStageDue")) qs("#extTeacherAssignmentStageDue").value = "";
+            if (qs("#extTeacherAssignmentStageWeight")) qs("#extTeacherAssignmentStageWeight").value = "";
+            if (qs("#extTeacherAssignmentStageDesc")) qs("#extTeacherAssignmentStageDesc").value = "";
+            if (qs("#extTeacherAssignmentStageSubmission")) qs("#extTeacherAssignmentStageSubmission").value = "";
+            if (qs("#extTeacherAssignmentStageCriteria")) qs("#extTeacherAssignmentStageCriteria").value = "";
+            if (qs("#extTeacherAssignmentDelete")) {
+                qs("#extTeacherAssignmentDelete").hidden = !(assignment && String(assignment.status || "") === "draft");
+            }
+        }
+
+        function fillStageManageDialog() {
+            var course = selectedCourse();
+            var assignment = selectedAssignment();
+            var stage = selectedStage();
+            var courseMeta = qs("#extTeacherStageManageCourseMeta");
+            var assignmentMeta = qs("#extTeacherStageManageAssignmentMeta");
+            var stageMeta = qs("#extTeacherStageManageMeta");
+            if (courseMeta) courseMeta.textContent = "当前课程：" + (course ? ((course.courseNo || "--") + " · " + (course.name || "--")) : "--");
+            if (assignmentMeta) assignmentMeta.textContent = "当前项目：" + (assignment ? (assignment.title || "未命名项目") : "--");
+            if (stageMeta) stageMeta.textContent = "当前阶段：" + (stage ? ((stage.stageNo ? ("阶段 " + stage.stageNo + " · ") : "") + (stage.title || "未命名阶段")) : "--");
+            if (qs("#extTeacherStageManageTitle")) qs("#extTeacherStageManageTitle").value = stage ? (stage.title || "") : "";
+            if (qs("#extTeacherStageManageStatus")) qs("#extTeacherStageManageStatus").value = stage ? (stage.status || "planned") : "planned";
+            if (qs("#extTeacherStageManageStart")) qs("#extTeacherStageManageStart").value = stage ? toLocalDateTime(stage.startAt) : "";
+            if (qs("#extTeacherStageManageDue")) qs("#extTeacherStageManageDue").value = stage ? toLocalDateTime(stage.dueAt) : "";
+            if (qs("#extTeacherStageManageWeight")) qs("#extTeacherStageManageWeight").value = stage && stage.weight != null ? String(stage.weight) : "";
+            if (qs("#extTeacherStageManageDesc")) qs("#extTeacherStageManageDesc").value = stage ? (stage.description || "") : "";
+            if (qs("#extTeacherStageManageSubmission")) qs("#extTeacherStageManageSubmission").value = stage ? (stage.submissionDesc || "") : "";
+            if (qs("#extTeacherStageManageCriteria")) qs("#extTeacherStageManageCriteria").value = stage ? (stage.acceptCriteria || "") : "";
+            if (qs("#extTeacherStageDelete")) {
+                qs("#extTeacherStageDelete").hidden = !stage || String(stage.status || "") === "archived";
+                qs("#extTeacherStageDelete").textContent = "归档阶段";
+            }
+        }
+
+        function buildAssignmentBody(prefix) {
+            return {
+                title: qs(prefix + "Title").value.trim(),
+                description: qs(prefix + "Desc").value.trim() || null,
+                status: qs(prefix + "Status").value,
+            };
+        }
+
+        function buildStageBody(prefix) {
+            var start = qs(prefix + "Start").value;
+            return {
+                title: qs(prefix + "Title").value.trim(),
+                description: qs(prefix + "Desc").value.trim() || null,
+                startAt: start ? new Date(start).toISOString() : null,
+                dueAt: qs(prefix + "Due").value ? new Date(qs(prefix + "Due").value).toISOString() : undefined,
+                weight: qs(prefix + "Weight").value ? Number(qs(prefix + "Weight").value) : null,
+                status: qs(prefix + "Status").value,
+                submissionDesc: qs(prefix + "Submission").value.trim() || null,
+                acceptCriteria: qs(prefix + "Criteria").value.trim() || null,
+            };
+        }
+
+        function openAssignmentCreateDialog() {
+            clearResult(qs("#extTeacherAssignmentCreateResult"));
+            fillAssignmentCreateDialog();
+            openDialog(assignmentCreateDialog);
+        }
+
+        function closeAssignmentCreateDialog() {
+            closeDialog(assignmentCreateDialog);
+        }
+
+        function openAssignmentManageDialog() {
+            if (!selectedAssignment()) return;
+            clearResult(qs("#extTeacherAssignmentManageResult"));
+            clearResult(qs("#extTeacherAssignmentStageResult"));
+            fillAssignmentManageDialog();
+            openDialog(assignmentManageDialog);
+        }
+
+        function closeAssignmentManageDialog() {
+            closeDialog(assignmentManageDialog);
+        }
+
+        function openStageManageDialog() {
+            if (!selectedStage()) return;
+            clearResult(qs("#extTeacherStageManageResult"));
+            fillStageManageDialog();
+            openDialog(stageManageDialog);
+        }
+
+        function closeStageManageDialog() {
+            closeDialog(stageManageDialog);
+        }
+
+        function openStageEditorDialog() {
+            if (activeEditTarget() === "stage") {
+                openStageManageDialog();
+                return;
+            }
+            if (activeEditTarget() === "assignment") {
+                openAssignmentManageDialog();
+            }
+        }
+
+        function closeStageEditorDialog() {
+            closeDialog(stageEditorDialog);
+        }
+
+        function openGroupEditorDialog(groupId) {
+            if (!groupEditorDialog) return;
+            if (groupId) {
+                teacherToolState.selectedGroupId = String(groupId);
+            } else if (!teacherToolState.selectedGroupId && teacherToolState.groups[0]) {
+                teacherToolState.selectedGroupId = String(teacherToolState.groups[0].id);
+            }
+            clearResult(groupResult);
+            renderTeacherGroupEditor();
+            groupEditorDialog.hidden = false;
+            document.body.classList.add("teacher-course-dialog-open");
+        }
+
+        function closeGroupEditorDialog() {
+            if (!groupEditorDialog) return;
+            closeTeacherGroupMoveDialog();
+            groupEditorDialog.hidden = true;
+            document.body.classList.remove("teacher-course-dialog-open");
+        }
+
+        function activateGroup(groupId) {
+            if (!groupId) return Promise.resolve();
+            if (teacherToolState.mockMode) {
+                return mockActivateGroup(groupId).then(function () {
+                    setResult(groupResult, "操作成功", "该小组已确认成组。", false);
+                    return refreshGroups();
+                }).catch(function (err) {
+                    setResult(groupResult, "操作失败", err.message, true);
+                });
+            }
+            return api().patchJson("/api/v1/groups/" + encodeURIComponent(groupId) + "/status", { status: "active" }).then(function () {
+                setResult(groupResult, "操作成功", "该小组已确认成组。", false);
+                return refreshGroups();
+            }).catch(function (err) {
+                setResult(groupResult, "操作失败", err.message, true);
+            });
+        }
+
+        function syncAssignmentTargets() {
+            if (stageAssignment) {
+                stageAssignment.innerHTML = assignSelect ? assignSelect.innerHTML : '<option value="">请选择项目</option>';
+                stageAssignment.value = assignSelect && assignSelect.value ? assignSelect.value : "";
+            }
+            if (groupAssignment) {
+                groupAssignment.innerHTML = assignSelect ? assignSelect.innerHTML : '<option value="">请选择项目</option>';
+                groupAssignment.value = assignSelect && assignSelect.value ? assignSelect.value : "";
+            }
+        }
+
+        function refreshCourseMembers() {
+            if (!courseContext || !courseContext.value) {
+                teacherToolState.courseMembers = [];
+                return Promise.resolve([]);
+            }
+            if (teacherToolState.mockMode) {
+                teacherToolState.courseMembers = mockCourseMemberRows(courseContext.value);
+                return Promise.resolve(teacherToolState.courseMembers);
+            }
+            return api().getJson("/api/v1/courses/" + encodeURIComponent(courseContext.value) + "/members?status=active&limit=500&offset=0").then(function (payload) {
+                teacherToolState.courseMembers = normalizeRows(payload);
+                return teacherToolState.courseMembers;
+            }).catch(function (err) {
+                if (!enableTeacherMockMode()) throw err;
+                teacherToolState.courseMembers = mockCourseMemberRows(courseContext.value);
+                return teacherToolState.courseMembers;
+            });
+        }
+
+        function loadOwnedAssistants() {
+            if (teacherToolState.mockMode) {
+                teacherToolState.ownedAssistants = (teacherMock.ownedAssistants || []).slice();
+                renderOwnedAssistants();
+                return Promise.resolve(teacherToolState.ownedAssistants);
+            }
+            return api().getJson("/api/v1/users/assistants/mine").then(function (payload) {
+                teacherToolState.ownedAssistants = normalizeRows(payload);
+                renderOwnedAssistants();
+            }).catch(function (err) {
+                if (!enableTeacherMockMode()) throw err;
+                teacherToolState.ownedAssistants = (teacherMock.ownedAssistants || []).slice();
+                renderOwnedAssistants();
+            });
+        }
+
+        function refreshTeacherWorkspace() {
+            syncCourseSelection(courseContext && courseContext.value);
+            return Promise.all([
+                refreshCourseMembers(),
+                refreshAssignments(),
+                refreshAssistants(),
+            ]).then(function () {
+                syncAssignmentTargets();
+                return Promise.all([
+                    refreshStageAssignments(),
+                    refreshGroupAssignments(),
+                ]);
+            });
+        }
+
+        function refreshAssignments() {
+            if (teacherToolState.mockMode) {
+                var mockRows = mockAssignmentRows(assignCourse.value);
+                assignSelect.innerHTML = '<option value="">请选择项目</option>' + optionRows(mockRows, function (assignment) {
+                    return (assignment.title || assignment.id) + " · " + (assignment.status || "--");
+                });
+                ensureSelectValue(assignSelect, mockRows, true);
+                teacherToolState.assignments = mockRows;
+                fillAssignmentForm(selectedAssignment());
+                syncAssignmentTargets();
+                renderTeacherWorkspace();
+                return Promise.resolve(mockRows);
+            }
+            return loadAssignmentOptions(assignCourse.value, assignSelect, true).then(function (rows) {
+                teacherToolState.assignments = rows;
+                var selectedAssignment = rows.find(function (row) { return String(row.id) === String(assignSelect.value || ""); }) || null;
+                fillAssignmentForm(selectedAssignment);
+                syncAssignmentTargets();
+                renderTeacherWorkspace();
+                return rows;
+            }).catch(function (err) {
+                if (!enableTeacherMockMode()) throw err;
+                return refreshAssignments();
+            });
+        }
+        if (assignCourse && courseContext) {
+            if (teacherToolState.mockMode) {
+                var mockRows = mockCourseRows();
+                courseContext.innerHTML = optionRows(mockRows, function (course) {
+                    return (course.name || course.courseNo || course.id) + " · " + (course.status || "--");
+                });
+                ensureSelectValue(courseContext, mockRows, false);
+                teacherToolState.courses = mockRows;
+                syncCourseSelection(courseContext.value);
+                [assignCourse, stageCourse, groupCourse, assistantCourse].forEach(function (select) {
+                    if (select) {
+                        select.innerHTML = courseContext.innerHTML;
+                        select.value = courseContext.value;
+                    }
+                });
+                refreshTeacherWorkspace().then(function () {
+                    syncCourseSelection(courseContext.value);
+                    renderTeacherWorkspace();
+                }).catch(function (err) {
+                    reportTeacherLoadError(err, "课程加载失败");
+                });
+            } else {
+                loadCourseOptions(courseContext, function (rows) {
+                teacherToolState.courses = rows;
+                syncCourseSelection(courseContext.value);
+                return refreshTeacherWorkspace();
+                }).catch(function (err) {
+                if (enableTeacherMockMode()) {
+                    var rows = mockCourseRows();
+                    courseContext.innerHTML = optionRows(rows, function (course) {
+                        return (course.name || course.courseNo || course.id) + " · " + (course.status || "--");
+                    });
+                    ensureSelectValue(courseContext, rows, false);
+                    teacherToolState.courses = rows;
+                    syncCourseSelection(courseContext.value);
+                    return refreshTeacherWorkspace();
+                }
+                throw err;
+                }).then(function () {
+                syncCourseSelection(courseContext.value);
+                renderTeacherWorkspace();
+                }).catch(function (err) {
+                reportTeacherLoadError(err, "课程加载失败");
+                });
+            }
+            courseContext.onchange = function () {
+                syncCourseSelection(courseContext.value);
+                refreshTeacherWorkspace().catch(function (err) {
+                    reportTeacherLoadError(err, "课程刷新失败");
+                });
+            };
+            assignCourse.onchange = function () {
+                if (courseContext) {
+                    courseContext.value = assignCourse.value;
+                }
+                syncCourseSelection(assignCourse.value);
+                refreshTeacherWorkspace().catch(function (err) {
+                    reportTeacherLoadError(err, "课程刷新失败");
+                });
+            };
+            if (courseRefresh) {
+                courseRefresh.onclick = function () {
+                    return refreshTeacherWorkspace().catch(function (err) {
+                        reportTeacherLoadError(err, "刷新失败");
+                    });
+                };
+            }
+        }
+        if (qs("#extAssignCreate")) qs("#extAssignCreate").onclick = function () {
+            if (!assignCourse.value) return setResult(assignResult, "无法创建", "请先选择课程。", true);
             api().postJson("/api/v1/courses/" + encodeURIComponent(assignCourse.value) + "/assignments", {
                 title: qs("#extAssignTitle").value.trim(),
                 description: qs("#extAssignDesc").value.trim() || null,
                 status: qs("#extAssignStatus").value,
-            }).then(function () {
+            }).then(function (payload) {
                 setResult(assignResult, "创建成功", "项目已创建。", false);
-                return refreshAssignments();
+                return refreshAssignments().then(function () {
+                    var createdId = payload && payload.data && payload.data.id ? String(payload.data.id) : "";
+                    if (createdId && assignSelect) {
+                        assignSelect.value = createdId;
+                        syncAssignmentTargets();
+                        fillAssignmentForm(selectedAssignment());
+                    }
+                    return refreshStages();
+                });
             }).catch(function (err) {
                 setResult(assignResult, "创建失败", err.message, true);
             });
         };
-        qs("#extAssignPatch").onclick = function () {
+        if (qs("#extAssignPatch")) qs("#extAssignPatch").onclick = function () {
             var id = assignSelect.value;
             if (!id) return setResult(assignResult, "无法保存", "请先选择项目。", true);
             api().patchJson("/api/v1/assignments/" + encodeURIComponent(id), {
@@ -627,42 +2315,109 @@
                 setResult(assignResult, "保存失败", err.message, true);
             });
         };
-        qs("#extAssignUpload").onclick = function () {
+        function uploadAssignmentFiles() {
             var id = assignSelect.value;
             var input = qs("#extAssignFiles");
-            if (!id || !input.files.length) return setResult(assignResult, "无法上传", "请选择项目和附件。", true);
+            if (!id || !input.files.length) return setResult(assignResult, "无法上传", "请先选择项目和附件。", true);
             var form = new FormData();
-            qsa("#extAssignFiles")[0].files && Array.from(input.files).forEach(function (file) { form.append("files", file); });
-            api().postForm("/api/v1/assignments/" + encodeURIComponent(id) + "/materials", form).then(function () {
-                setResult(assignResult, "上传成功", "项目说明附件已上传。", false);
+            Array.from(input.files).forEach(function (file) { form.append("files", file); });
+            return api().postForm("/api/v1/assignments/" + encodeURIComponent(id) + "/materials", form).then(function () {
+                input.value = "";
+                setResult(assignResult, "上传成功", "项目附件已上传。", false);
+                return refreshAssignments();
             }).catch(function (err) {
                 setResult(assignResult, "上传失败", err.message, true);
             });
-        };
-
-        var stageCourse = qs("#extStageCourse");
-        var stageAssignment = qs("#extStageAssignment");
-        var stageSelect = qs("#extStageSelect");
-        var stageResult = qs("#extStageResult");
+        }
         function refreshStageAssignments() {
+            if (teacherToolState.mockMode) {
+                var rows = mockAssignmentRows(stageCourse.value);
+                stageAssignment.innerHTML = optionRows(rows, function (assignment) {
+                    return (assignment.title || assignment.id) + " · " + (assignment.status || "--");
+                });
+                ensureSelectValue(stageAssignment, rows, false);
+                return refreshStages();
+            }
             return loadAssignmentOptions(stageCourse.value, stageAssignment, false).then(refreshStages);
         }
         function refreshStages() {
+            var keepBlankSelection = !String(stageSelect && stageSelect.value || "");
+            if (teacherToolState.mockMode) {
+                var rows = mockStageRows(stageAssignment.value);
+                stageSelect.innerHTML = '<option value="">请选择阶段</option>' + rows.map(function (stage) {
+                    var label = (stage.title || ("阶段 " + stage.stageNo)) + " · " + (stage.status || "--");
+                    return '<option value="' + escapeHtml(stage.id) + '" data-stage-no="' + escapeHtml(stage.stageNo) + '" data-stage-title="' + escapeHtml(stage.title || ("阶段 " + stage.stageNo)) + '">' + escapeHtml(label) + '</option>';
+                }).join("");
+                ensureSelectValue(stageSelect, rows, true);
+                if (keepBlankSelection) stageSelect.value = "";
+                if (stageSelectMirror) {
+                    stageSelectMirror.innerHTML = stageSelect.innerHTML;
+                    stageSelectMirror.value = stageSelect.value;
+                }
+                teacherToolState.stages = teacherToolState.assignments.reduce(function (all, assignment) {
+                    return all.concat(mockStageRows(assignment.id).map(function (stage) {
+                        stage.assignmentId = assignment.id;
+                        return stage;
+                    }));
+                }, []);
+                fillStageForm(selectedStage());
+                renderTeacherWorkspace();
+                return Promise.resolve(rows);
+            }
             return loadStageOptions(stageAssignment.value, stageSelect, true).then(function (rows) {
-                qs("#extStageList").innerHTML = rows.map(function (s) {
-                    return '<div class="list-item dashboard-list-item-vertical"><div class="dashboard-split-row"><strong>' + escapeHtml(s.title) + '</strong><span class="badge badge-active">' + escapeHtml(s.status) + '</span></div><div class="muted">ID: ' + escapeHtml(s.id) + ' · 截止：' + escapeHtml(s.dueAt || "--") + '</div></div>';
-                }).join("") || '<div class="dashboard-empty-state"><strong>暂无阶段</strong><p>当前项目还没有阶段。</p></div>';
+                if (keepBlankSelection && stageSelect) stageSelect.value = "";
+                if (stageSelectMirror) {
+                    stageSelectMirror.innerHTML = stageSelect.innerHTML;
+                    stageSelectMirror.value = stageSelect.value;
+                }
+                return Promise.all((teacherToolState.assignments || []).map(function (assignment) {
+                    var scratch = document.createElement("select");
+                    return loadStageOptions(assignment.id, scratch, false).then(function (assignmentStages) {
+                        return assignmentStages.map(function (stage) {
+                            stage.assignmentId = assignment.id;
+                            return stage;
+                        });
+                    }).catch(function () {
+                        return [];
+                    });
+                })).then(function (stageBuckets) {
+                    teacherToolState.stages = stageBuckets.reduce(function (all, bucket) {
+                        return all.concat(bucket);
+                    }, []);
+                    var selectedStage = teacherToolState.stages.find(function (row) { return String(row.id) === String(stageSelect.value || ""); }) || null;
+                    fillStageForm(selectedStage);
+                    renderTeacherWorkspace();
+                });
+            }).catch(function (err) {
+                if (!enableTeacherMockMode()) throw err;
+                return refreshStages();
             });
         }
         if (stageCourse) {
-            loadCourseOptions(stageCourse, refreshStageAssignments);
-            stageCourse.onchange = refreshStageAssignments;
-            stageAssignment.onchange = refreshStages;
+            stageCourse.onchange = function () {
+                if (courseContext) courseContext.value = stageCourse.value;
+                syncCourseSelection(stageCourse.value);
+                refreshTeacherWorkspace().catch(function (err) {
+                    reportTeacherLoadError(err, "阶段刷新失败");
+                });
+            };
+            stageAssignment.onchange = function () {
+                refreshStages().catch(function (err) {
+                    reportTeacherLoadError(err, "阶段加载失败");
+                });
+            };
+            stageSelect.onchange = function () {
+                var selectedStage = teacherToolState.stages.find(function (row) { return String(row.id) === String(stageSelect.value || ""); }) || null;
+                setEditTarget(selectedStage ? "stage" : "assignment");
+                fillStageForm(selectedStage);
+                renderTeacherWorkspace();
+            };
         }
         function stageBody() {
             var start = qs("#extStageStart").value;
             return {
                 title: qs("#extStageTitle").value.trim(),
+                description: qs("#extStageDesc").value.trim() || null,
                 startAt: start ? new Date(start).toISOString() : null,
                 dueAt: qs("#extStageDue").value ? new Date(qs("#extStageDue").value).toISOString() : undefined,
                 weight: qs("#extStageWeight").value ? Number(qs("#extStageWeight").value) : null,
@@ -671,15 +2426,24 @@
                 acceptCriteria: qs("#extStageCriteria").value.trim() || null,
             };
         }
-        qs("#extStageCreate").onclick = function () {
-            api().postJson("/api/v1/assignments/" + encodeURIComponent(stageAssignment.value) + "/stages", stageBody()).then(function () {
+        if (qs("#extStageCreate")) qs("#extStageCreate").onclick = function () {
+            if (!stageAssignment.value) return setResult(stageResult, "无法创建", "请先选择项目，再新建阶段。", true);
+            api().postJson("/api/v1/assignments/" + encodeURIComponent(stageAssignment.value) + "/stages", stageBody()).then(function (payload) {
                 setResult(stageResult, "创建成功", "阶段已创建。", false);
-                return refreshStages();
+                return refreshStages().then(function () {
+                    var createdId = payload && payload.data && payload.data.id ? String(payload.data.id) : "";
+                    if (createdId && stageSelect) {
+                        stageSelect.value = createdId;
+                        if (stageSelectMirror) stageSelectMirror.value = createdId;
+                        fillStageForm(selectedStage());
+                        renderTeacherWorkspace();
+                    }
+                });
             }).catch(function (err) {
                 setResult(stageResult, "创建失败", err.message, true);
             });
         };
-        qs("#extStagePatch").onclick = function () {
+        if (qs("#extStagePatch")) qs("#extStagePatch").onclick = function () {
             if (!stageSelect.value) return setResult(stageResult, "无法保存", "请先选择阶段。", true);
             api().patchJson("/api/v1/stages/" + encodeURIComponent(stageSelect.value), stageBody()).then(function () {
                 setResult(stageResult, "保存成功", "阶段已更新。", false);
@@ -688,18 +2452,172 @@
                 setResult(stageResult, "保存失败", err.message, true);
             });
         };
-        qs("#extStageUpload").onclick = function () {
+
+        function submitAssignmentCreate() {
+            var resultNode = qs("#extTeacherAssignmentCreateResult");
+            if (!courseContext.value) return setResult(resultNode, "无法创建", "请先选择课程。", true);
+            var body = buildAssignmentBody("#extTeacherAssignmentCreate");
+            var action = teacherToolState.mockMode
+                ? mockCreateAssignment(courseContext.value, body)
+                : api().postJson("/api/v1/courses/" + encodeURIComponent(courseContext.value) + "/assignments", body);
+            return action.then(function (payload) {
+                var createdId = payload && payload.data && payload.data.id ? String(payload.data.id) : "";
+                setResult(resultNode, "创建成功", "项目已创建。", false);
+                return refreshAssignments().then(function () {
+                    if (createdId && assignSelect) {
+                        assignSelect.value = createdId;
+                        syncAssignmentTargets();
+                        if (stageSelect) stageSelect.value = "";
+                        if (stageSelectMirror) stageSelectMirror.value = "";
+                        setEditTarget("assignment");
+                    }
+                    renderTeacherWorkspace();
+                    closeAssignmentCreateDialog();
+                });
+            }).catch(function (err) {
+                setResult(resultNode, "创建失败", err.message, true);
+            });
+        }
+
+        function submitAssignmentManageSave() {
+            var assignment = selectedAssignment();
+            var resultNode = qs("#extTeacherAssignmentManageResult");
+            if (!assignment) return setResult(resultNode, "无法保存", "请先选择项目。", true);
+            var body = buildAssignmentBody("#extTeacherAssignmentManage");
+            var action = teacherToolState.mockMode
+                ? mockPatchAssignment(assignment.id, body)
+                : api().patchJson("/api/v1/assignments/" + encodeURIComponent(assignment.id), body);
+            return action.then(function () {
+                setResult(resultNode, "保存成功", "项目已更新。", false);
+                return refreshAssignments().then(function () {
+                    if (assignSelect) assignSelect.value = String(assignment.id);
+                    syncAssignmentTargets();
+                    renderTeacherWorkspace();
+                    fillAssignmentManageDialog();
+                });
+            }).catch(function (err) {
+                setResult(resultNode, "保存失败", err.message, true);
+            });
+        }
+
+        function submitAssignmentDelete() {
+            var assignment = selectedAssignment();
+            var resultNode = qs("#extTeacherAssignmentManageResult");
+            if (!assignment) return setResult(resultNode, "无法删除", "请先选择项目。", true);
+            var action = teacherToolState.mockMode
+                ? mockDeleteAssignment(assignment.id)
+                : requestDelete("/api/v1/assignments/" + encodeURIComponent(assignment.id));
+            return action.then(function () {
+                setResult(resultNode, "删除成功", "项目已删除。", false);
+                if (assignSelect) assignSelect.value = "";
+                if (stageSelect) stageSelect.value = "";
+                if (stageSelectMirror) stageSelectMirror.value = "";
+                setEditTarget("assignment");
+                return refreshTeacherWorkspace().then(function () {
+                    closeAssignmentManageDialog();
+                });
+            }).catch(function (err) {
+                setResult(resultNode, "删除失败", err.message, true);
+            });
+        }
+
+        function submitAssignmentStageCreate() {
+            var assignment = selectedAssignment();
+            var resultNode = qs("#extTeacherAssignmentStageResult");
+            if (!assignment) return setResult(resultNode, "无法创建", "请先选择项目。", true);
+            var body = buildStageBody("#extTeacherAssignmentStage");
+            var action = teacherToolState.mockMode
+                ? mockCreateStage(assignment.id, body)
+                : api().postJson("/api/v1/assignments/" + encodeURIComponent(assignment.id) + "/stages", body);
+            return action.then(function (payload) {
+                var createdId = payload && payload.data && payload.data.id ? String(payload.data.id) : "";
+                setResult(resultNode, "创建成功", "阶段已创建。", false);
+                return refreshStages().then(function () {
+                    if (stageSelect) stageSelect.value = createdId || "";
+                    if (stageSelectMirror) stageSelectMirror.value = createdId || "";
+                    setEditTarget("stage");
+                    renderTeacherWorkspace();
+                    closeAssignmentManageDialog();
+                });
+            }).catch(function (err) {
+                setResult(resultNode, "创建失败", err.message, true);
+            });
+        }
+
+        function submitStageManageSave() {
+            var stage = selectedStage();
+            var resultNode = qs("#extTeacherStageManageResult");
+            if (!stage) return setResult(resultNode, "无法保存", "请先选择阶段。", true);
+            var body = buildStageBody("#extTeacherStageManage");
+            var action = teacherToolState.mockMode
+                ? mockPatchStage(stage.id, body)
+                : api().patchJson("/api/v1/stages/" + encodeURIComponent(stage.id), body);
+            return action.then(function () {
+                setResult(resultNode, "保存成功", "阶段已更新。", false);
+                return refreshStages().then(function () {
+                    if (stageSelect) stageSelect.value = String(stage.id);
+                    if (stageSelectMirror) stageSelectMirror.value = String(stage.id);
+                    setEditTarget("stage");
+                    renderTeacherWorkspace();
+                    fillStageManageDialog();
+                });
+            }).catch(function (err) {
+                setResult(resultNode, "保存失败", err.message, true);
+            });
+        }
+
+        function submitStageDelete() {
+            var stage = selectedStage();
+            var resultNode = qs("#extTeacherStageManageResult");
+            if (!stage) return setResult(resultNode, "无法归档", "请先选择阶段。", true);
+            var stageId = String(stage.id);
+            var action = teacherToolState.mockMode
+                ? mockArchiveStage(stageId)
+                : requestDelete("/api/v1/stages/" + encodeURIComponent(stageId));
+            return action.then(function () {
+                setResult(resultNode, "归档成功", "阶段已归档。", false);
+                if (stageSelect) stageSelect.value = "";
+                if (stageSelectMirror) stageSelectMirror.value = "";
+                setEditTarget("assignment");
+                return refreshStages().then(function () {
+                    renderTeacherWorkspace();
+                    closeStageManageDialog();
+                });
+            }).catch(function (err) {
+                setResult(resultNode, "归档失败", err.message, true);
+            });
+        }
+        function uploadStageFiles() {
             var input = qs("#extStageFiles");
-            if (!stageSelect.value || !input.files.length) return setResult(stageResult, "无法上传", "请选择阶段和材料。", true);
+            if (!stageSelect.value || !input.files.length) return setResult(stageResult, "无法上传", "请先选择阶段和附件。", true);
             var form = new FormData();
             Array.from(input.files).forEach(function (file) { form.append("files", file); });
-            api().postForm("/api/v1/stages/" + encodeURIComponent(stageSelect.value) + "/materials", form).then(function () {
-                setResult(stageResult, "上传成功", "阶段材料已上传。", false);
+            return api().postForm("/api/v1/stages/" + encodeURIComponent(stageSelect.value) + "/materials", form).then(function () {
+                input.value = "";
+                setResult(stageResult, "上传成功", "阶段附件已上传。", false);
+                return refreshStages();
             }).catch(function (err) {
                 setResult(stageResult, "上传失败", err.message, true);
             });
+        }
+        if (qs("#extTeacherAttachmentUpload")) qs("#extTeacherAttachmentUpload").onclick = function () {
+            if (stageSelect && stageSelect.value) {
+                qs("#extStageFiles").click();
+                return;
+            }
+            if (assignSelect && assignSelect.value) {
+                qs("#extAssignFiles").click();
+                return;
+            }
+            setResult(stageResult || assignResult, "无法上传", "请先选择项目或阶段。", true);
         };
-        qs("#extStageArchive").onclick = function () {
+        if (qs("#extAssignFiles")) qs("#extAssignFiles").addEventListener("change", function () {
+            if (this.files && this.files.length) uploadAssignmentFiles();
+        });
+        if (qs("#extStageFiles")) qs("#extStageFiles").addEventListener("change", function () {
+            if (this.files && this.files.length) uploadStageFiles();
+        });
+        if (qs("#extStageArchive")) qs("#extStageArchive").onclick = function () {
             if (!stageSelect.value) return setResult(stageResult, "无法归档", "请先选择阶段。", true);
             requestDelete("/api/v1/stages/" + encodeURIComponent(stageSelect.value)).then(function () {
                 setResult(stageResult, "归档成功", "阶段已归档。", false);
@@ -708,96 +2626,447 @@
                 setResult(stageResult, "归档失败", err.message, true);
             });
         };
-
-        var groupCourse = qs("#extGroupCourse");
-        var groupAssignment = qs("#extGroupAssignment");
-        var groupResult = qs("#extGroupResult");
         function refreshGroupAssignments() {
+            if (teacherToolState.mockMode) {
+                var rows = mockAssignmentRows(groupCourse.value);
+                groupAssignment.innerHTML = optionRows(rows, function (assignment) {
+                    return (assignment.title || assignment.id) + " · " + (assignment.status || "--");
+                });
+                ensureSelectValue(groupAssignment, rows, false);
+                return refreshGroups();
+            }
             return loadAssignmentOptions(groupCourse.value, groupAssignment, false).then(refreshGroups);
         }
         function refreshGroups() {
-            if (!groupAssignment.value) return Promise.resolve();
+            if (!groupAssignment.value) {
+                teacherToolState.groups = [];
+                teacherToolState.groupMembers = {};
+                teacherToolState.selectedGroupId = "";
+                renderTeacherWorkspace();
+                return Promise.resolve();
+            }
+            if (teacherToolState.mockMode) {
+                var groupRows = mockGroupRows(groupAssignment.value);
+                teacherToolState.groups = groupRows;
+                if (!groupRows.some(function (group) { return String(group.id) === String(teacherToolState.selectedGroupId || ""); })) {
+                    teacherToolState.selectedGroupId = groupRows[0] ? String(groupRows[0].id) : "";
+                }
+                teacherToolState.groupMembers = {};
+                groupRows.forEach(function (group) {
+                    teacherToolState.groupMembers[String(group.id)] = mockGroupMemberRows(group.id);
+                });
+                renderTeacherWorkspace();
+                return Promise.resolve(groupRows);
+            }
             return api().getJson("/api/v1/assignments/" + encodeURIComponent(groupAssignment.value) + "/groups").then(function (payload) {
                 var rows = normalizeRows(payload);
-                qs("#extGroupList").innerHTML = rows.map(function (g) {
-                    return '<div class="list-item dashboard-list-item-vertical"><div class="dashboard-split-row"><strong>' + escapeHtml(g.name || ("第 " + g.groupNo + " 组")) + '</strong><span class="badge badge-active">' + escapeHtml(g.status) + '</span></div><div class="muted">ID: ' + escapeHtml(g.id) + ' · 成员：' + escapeHtml(g._count && g._count.members || 0) + '</div></div>';
-                }).join("") || '<div class="dashboard-empty-state"><strong>暂无小组</strong><p>当前项目还没有小组。</p></div>';
+                teacherToolState.groups = rows;
+                if (!rows.some(function (group) { return String(group.id) === String(teacherToolState.selectedGroupId || ""); })) {
+                    teacherToolState.selectedGroupId = rows[0] ? String(rows[0].id) : "";
+                }
+                return Promise.all(rows.map(function (group) {
+                    return api().getJson("/api/v1/groups/" + encodeURIComponent(group.id) + "/members").then(function (membersPayload) {
+                        teacherToolState.groupMembers[String(group.id)] = normalizeRows(membersPayload);
+                    }).catch(function () {
+                        teacherToolState.groupMembers[String(group.id)] = [];
+                    });
+                })).then(function () {
+                    renderTeacherWorkspace();
+                });
+            }).catch(function (err) {
+                if (!enableTeacherMockMode()) throw err;
+                return refreshGroups();
             });
         }
         if (groupCourse) {
-            loadCourseOptions(groupCourse, refreshGroupAssignments);
-            groupCourse.onchange = refreshGroupAssignments;
-            groupAssignment.onchange = refreshGroups;
-            qs("#extGroupReload").onclick = refreshGroups;
+            groupCourse.onchange = function () {
+                if (courseContext) courseContext.value = groupCourse.value;
+                syncCourseSelection(groupCourse.value);
+                refreshTeacherWorkspace().catch(function (err) {
+                    reportTeacherLoadError(err, "小组刷新失败");
+                });
+            };
+            groupAssignment.onchange = function () {
+                refreshGroups().catch(function (err) {
+                    reportTeacherLoadError(err, "小组加载失败");
+                });
+            };
         }
-        qs("#extGroupCreate").onclick = function () {
-            var body = { name: qs("#extGroupName").value.trim() || undefined };
-            if (qs("#extGroupNo").value) body.groupNo = Number(qs("#extGroupNo").value);
-            api().postJson("/api/v1/assignments/" + encodeURIComponent(groupAssignment.value) + "/groups", body).then(function (payload) {
-                setResult(groupResult, "创建成功", "小组 ID：" + ((payload.data && payload.data.id) || "--"), false);
-                return refreshGroups();
-            }).catch(function (err) {
-                setResult(groupResult, "创建失败", err.message, true);
-            });
-        };
-        qs("#extGroupAddMember").onclick = function () {
-            api().postJson("/api/v1/groups/" + encodeURIComponent(qs("#extGroupId").value.trim()) + "/members", { userId: qs("#extGroupUserId").value.trim() }).then(function () {
-                setResult(groupResult, "加入成功", "成员已加入小组。", false);
-                return refreshGroups();
-            }).catch(function (err) {
-                setResult(groupResult, "加入失败", err.message, true);
-            });
-        };
-        qs("#extGroupRemoveMember").onclick = function () {
-            requestDelete("/api/v1/groups/" + encodeURIComponent(qs("#extGroupId").value.trim()) + "/members/" + encodeURIComponent(qs("#extGroupUserId").value.trim())).then(function () {
-                setResult(groupResult, "移出成功", "成员已移出小组。", false);
-                return refreshGroups();
-            }).catch(function (err) {
-                setResult(groupResult, "移出失败", err.message, true);
-            });
-        };
-
-        var assistantResult = qs("#extAssistantResult");
-        loadCourseOptions(qs("#extAssistantCourse"), refreshAssistants);
+        if (qs("#extTeacherGroupEditorOpen")) {
+            qs("#extTeacherGroupEditorOpen").onclick = function () {
+                openGroupEditorDialog();
+            };
+        }
+        if (qs("#extTeacherGroupEditorClose")) {
+            qs("#extTeacherGroupEditorClose").onclick = closeGroupEditorDialog;
+        }
+        if (qs("#extTeacherGroupEditorCancel")) {
+            qs("#extTeacherGroupEditorCancel").onclick = closeGroupEditorDialog;
+        }
+        if (qs("#extTeacherGroupEditorRefresh")) {
+            qs("#extTeacherGroupEditorRefresh").onclick = function () {
+                refreshTeacherWorkspace().then(function () {
+                    setResult(groupResult, "已刷新", "小组与未分组学生数据已更新。", false);
+                });
+            };
+        }
+        if (qs("#extTeacherManagedGroupSelect")) {
+            qs("#extTeacherManagedGroupSelect").onchange = function () {
+                teacherToolState.selectedGroupId = this.value || "";
+                closeTeacherGroupMoveDialog();
+                renderTeacherWorkspace();
+            };
+        }
+        if (qs("#extTeacherGroupCreate")) {
+            qs("#extTeacherGroupCreate").onclick = function () {
+                var body = { name: qs("#extTeacherGroupCreateName").value.trim() || undefined };
+                if (qs("#extTeacherGroupCreateNo").value) body.groupNo = Number(qs("#extTeacherGroupCreateNo").value);
+                var request = teacherToolState.mockMode
+                    ? mockCreateGroup(body)
+                    : api().postJson("/api/v1/assignments/" + encodeURIComponent(groupAssignment.value) + "/groups", body);
+                request.then(function (payload) {
+                    var createdId = payload && payload.data && payload.data.id ? String(payload.data.id) : "";
+                    if (createdId) teacherToolState.selectedGroupId = createdId;
+                    setResult(groupResult, "创建成功", "小组已创建，可继续在右侧维护成员。", false);
+                    return refreshGroups();
+                }).catch(function (err) {
+                    setResult(groupResult, "创建失败", err.message, true);
+                });
+            };
+        }
+        if (qs("#extTeacherGroupAutoCreate")) {
+            qs("#extTeacherGroupAutoCreate").onclick = function () {
+                var size = Number(qs("#extTeacherGroupAutoSize").value || 4);
+                var request = teacherToolState.mockMode
+                    ? mockAutoGroup(size)
+                    : api().postJson("/api/v1/assignments/" + encodeURIComponent(groupAssignment.value) + "/groups/auto", {
+                        groupSize: size
+                    });
+                request.then(function (payload) {
+                    var data = payload && payload.data ? payload.data : payload;
+                    setResult(groupResult, "自动分组完成", "已生成 " + String(data && data.createdGroups || 0) + " 个小组，覆盖 " + String(data && data.groupedStudents || 0) + " 名学生。", false);
+                    return refreshGroups();
+                }).catch(function (err) {
+                    setResult(groupResult, "自动分组失败", err.message, true);
+                });
+            };
+        }
+        if (qs("#extTeacherGroupActivate")) {
+            qs("#extTeacherGroupActivate").onclick = function () {
+                activateGroup(teacherToolState.selectedGroupId || "");
+            };
+        }
+        if (qs("#extTeacherGroupDelete")) {
+            qs("#extTeacherGroupDelete").onclick = function () {
+                var groupId = teacherToolState.selectedGroupId || "";
+                if (!groupId) return setResult(groupResult, "无法删除", "请先选择要删除的小组。", true);
+                var request = teacherToolState.mockMode
+                    ? mockDeleteGroup(groupId)
+                    : requestDelete("/api/v1/groups/" + encodeURIComponent(groupId));
+                request.then(function () {
+                    setResult(groupResult, "删除成功", "空小组已删除。", false);
+                    teacherToolState.selectedGroupId = "";
+                    return refreshGroups();
+                }).catch(function (err) {
+                    setResult(groupResult, "删除失败", err.message, true);
+                });
+            };
+        }
+        if (qs("#extTeacherGroupMemberAdd")) {
+            qs("#extTeacherGroupMemberAdd").onclick = function () {
+                var groupId = teacherToolState.selectedGroupId || "";
+                var userId = qs("#extTeacherGroupMemberAddInput").value.trim();
+                if (!groupId) return setResult(groupResult, "无法添加", "请先选择一个小组。", true);
+                if (!userId) return setResult(groupResult, "无法添加", "请先输入学生一卡通号。", true);
+                var request = teacherToolState.mockMode
+                    ? mockAddGroupMember(groupId, userId)
+                    : api().postJson("/api/v1/groups/" + encodeURIComponent(groupId) + "/members", { userId: userId });
+                request.then(function () {
+                    setResult(groupResult, "添加成功", "成员已加入当前小组。", false);
+                    qs("#extTeacherGroupMemberAddInput").value = "";
+                    return refreshGroups();
+                }).catch(function (err) {
+                    setResult(groupResult, "添加失败", err.message, true);
+                });
+            };
+        }
+        if (qs("#extTeacherGroupMoveConfirm")) {
+            qs("#extTeacherGroupMoveConfirm").onclick = function () {
+                var groupId = teacherToolState.selectedGroupId || "";
+                var userId = teacherToolState.pendingMoveUserId || "";
+                var targetGroupId = qs("#extTeacherGroupMoveTarget").value;
+                var moveResult = qs("#extTeacherGroupMoveResult");
+                if (!groupId) return setResult(moveResult, "无法转移", "请先选择源小组。", true);
+                if (!userId) return setResult(moveResult, "无法转移", "请先选择要换组的成员。", true);
+                if (!targetGroupId) return setResult(moveResult, "无法转移", "请选择目标小组。", true);
+                var request = teacherToolState.mockMode
+                    ? mockMoveGroupMember(groupId, userId, targetGroupId)
+                    : api().postJson("/api/v1/groups/" + encodeURIComponent(groupId) + "/members/" + encodeURIComponent(userId) + "/move", { targetGroupId: targetGroupId });
+                request.then(function () {
+                    closeTeacherGroupMoveDialog();
+                    setResult(groupResult, "转移成功", "成员已转移到目标小组。", false);
+                    return refreshGroups();
+                }).catch(function (err) {
+                    setResult(moveResult, "转移失败", err.message, true);
+                });
+            };
+        }
         function refreshAssistants() {
-            var courseId = qs("#extAssistantCourse").value;
-            if (!courseId) return Promise.resolve();
+            var courseId = assistantCourse.value;
+            if (!courseId) {
+                teacherToolState.assistants = [];
+                renderTeacherWorkspace();
+                return Promise.resolve();
+            }
+            if (teacherToolState.mockMode) {
+                teacherToolState.assistants = mockAssistantRows(courseId);
+                renderTeacherWorkspace();
+                return Promise.resolve(teacherToolState.assistants);
+            }
             return api().getJson("/api/v1/courses/" + encodeURIComponent(courseId) + "/assistants").then(function (payload) {
                 var rows = normalizeRows(payload);
-                qs("#extAssistantList").innerHTML = rows.map(function (row) {
-                    var name = row.assistant && row.assistant.profile && row.assistant.profile.realName;
-                    return '<div class="list-item dashboard-list-item-vertical"><strong>' + escapeHtml(name || row.assistantUserId) + '</strong><div class="muted">ID: ' + escapeHtml(row.assistantUserId) + '</div></div>';
-                }).join("") || '<div class="dashboard-empty-state"><strong>暂无助教</strong><p>当前课程还没有绑定助教。</p></div>';
+                teacherToolState.assistants = rows;
+                renderTeacherWorkspace();
+            }).catch(function (err) {
+                if (!enableTeacherMockMode()) throw err;
+                teacherToolState.assistants = mockAssistantRows(courseId);
+                renderTeacherWorkspace();
             });
         }
-        qs("#extAssistantCourse").onchange = refreshAssistants;
-        qs("#extAssistantCreate").onclick = function () {
-            var body = { id: qs("#extAssistantId").value.trim(), realName: qs("#extAssistantName").value.trim() };
-            if (qs("#extAssistantPassword").value.trim()) {
-                body.defaultPassword = qs("#extAssistantPassword").value.trim();
-            }
-            api().postJson("/api/v1/users/assistants", body).then(function (payload) {
-                setResult(assistantResult, "创建成功", "临时密码：" + ((payload.data && payload.data.temporaryPassword) || "已按输入设置"), false);
-            }).catch(function (err) {
-                setResult(assistantResult, "创建失败", err.message, true);
-            });
-        };
+        if (assistantCourse) {
+            assistantCourse.onchange = function () {
+                if (courseContext) courseContext.value = assistantCourse.value;
+                syncCourseSelection(assistantCourse.value);
+                refreshTeacherWorkspace().catch(function (err) {
+                    reportTeacherLoadError(err, "助教刷新失败");
+                });
+            };
+        }
+        if (qs("#extAssistantCreate")) {
+            qs("#extAssistantCreate").onclick = function () {
+                var body = { id: qs("#extAssistantId").value.trim(), realName: qs("#extAssistantName").value.trim() };
+                if (qs("#extAssistantPassword").value.trim()) {
+                    body.defaultPassword = qs("#extAssistantPassword").value.trim();
+                }
+                api().postJson("/api/v1/users/assistants", body).then(function (payload) {
+                    setResult(assistantResult, "创建成功", "临时密码：" + ((payload.data && payload.data.temporaryPassword) || "已按输入设置"), false);
+                    return loadOwnedAssistants();
+                }).catch(function (err) {
+                    setResult(assistantResult, "创建失败", err.message, true);
+                });
+            };
+        }
         qs("#extAssistantBind").onclick = function () {
-            api().postJson("/api/v1/courses/" + encodeURIComponent(qs("#extAssistantCourse").value) + "/assistants", { assistantUserId: qs("#extAssistantBindId").value.trim() }).then(function () {
+            var assistantUserId = assistantOwnedSelect && assistantOwnedSelect.value ? assistantOwnedSelect.value : qs("#extAssistantBindId").value.trim();
+            if (!assistantUserId) return setResult(assistantResult, "无法绑定", "请先从已有子账号中选择助教。", true);
+            api().postJson("/api/v1/courses/" + encodeURIComponent(assistantCourse.value) + "/assistants", { assistantUserId: assistantUserId }).then(function () {
                 setResult(assistantResult, "绑定成功", "助教已绑定课程。", false);
+                closeAssistantDialog();
                 return refreshAssistants();
             }).catch(function (err) {
                 setResult(assistantResult, "绑定失败", err.message, true);
             });
         };
-        qs("#extAssistantUnbind").onclick = function () {
-            requestDelete("/api/v1/courses/" + encodeURIComponent(qs("#extAssistantCourse").value) + "/assistants/" + encodeURIComponent(qs("#extAssistantBindId").value.trim())).then(function () {
-                setResult(assistantResult, "解绑成功", "助教已解绑。", false);
-                return refreshAssistants();
-            }).catch(function (err) {
-                setResult(assistantResult, "解绑失败", err.message, true);
+        if (qs("#extTeacherAssistantOpen")) {
+            qs("#extTeacherAssistantOpen").onclick = openAssistantDialog;
+        }
+        if (qs("#extTeacherAssistantClose")) {
+            qs("#extTeacherAssistantClose").onclick = closeAssistantDialog;
+        }
+        if (qs("#extTeacherAssistantCancel")) {
+            qs("#extTeacherAssistantCancel").onclick = closeAssistantDialog;
+        }
+
+        if (assignSelect) {
+            assignSelect.onchange = function () {
+                if (stageSelect) stageSelect.value = "";
+                if (stageSelectMirror) stageSelectMirror.value = "";
+                var selectedAssignment = teacherToolState.assignments.find(function (row) { return String(row.id) === String(assignSelect.value || ""); }) || null;
+                fillAssignmentForm(selectedAssignment);
+                syncAssignmentTargets();
+                Promise.all([
+                    refreshStages(),
+                    refreshGroups(),
+                ]).then(renderTeacherWorkspace);
+            };
+        }
+
+        if (stageSelectMirror) {
+            stageSelectMirror.onchange = function () {
+                if (stageSelect) {
+                    stageSelect.value = stageSelectMirror.value;
+                    if (typeof stageSelect.onchange === "function") stageSelect.onchange();
+                }
+            };
+        }
+
+        if (qs("#extTeacherStageEditToggle")) {
+            qs("#extTeacherStageEditToggle").onclick = openStageEditorDialog;
+        }
+        if (qs("#extTeacherAssignmentCreateOpen")) {
+            qs("#extTeacherAssignmentCreateOpen").onclick = openAssignmentCreateDialog;
+        }
+        if (qs("#extTeacherStageEditorClose")) {
+            qs("#extTeacherStageEditorClose").onclick = closeStageEditorDialog;
+        }
+        if (qs("#extTeacherAssignmentCreateClose")) qs("#extTeacherAssignmentCreateClose").onclick = closeAssignmentCreateDialog;
+        if (qs("#extTeacherAssignmentCreateCancel")) qs("#extTeacherAssignmentCreateCancel").onclick = closeAssignmentCreateDialog;
+        if (qs("#extTeacherAssignmentCreateSubmit")) qs("#extTeacherAssignmentCreateSubmit").onclick = submitAssignmentCreate;
+        if (qs("#extTeacherAssignmentManageClose")) qs("#extTeacherAssignmentManageClose").onclick = closeAssignmentManageDialog;
+        if (qs("#extTeacherAssignmentManageCancel")) qs("#extTeacherAssignmentManageCancel").onclick = closeAssignmentManageDialog;
+        if (qs("#extTeacherAssignmentManageSave")) qs("#extTeacherAssignmentManageSave").onclick = submitAssignmentManageSave;
+        if (qs("#extTeacherAssignmentDelete")) qs("#extTeacherAssignmentDelete").onclick = submitAssignmentDelete;
+        if (qs("#extTeacherAssignmentStageCreate")) qs("#extTeacherAssignmentStageCreate").onclick = submitAssignmentStageCreate;
+        if (qs("#extTeacherStageManageClose")) qs("#extTeacherStageManageClose").onclick = closeStageManageDialog;
+        if (qs("#extTeacherStageManageCancel")) qs("#extTeacherStageManageCancel").onclick = closeStageManageDialog;
+        if (qs("#extTeacherStageManageSave")) qs("#extTeacherStageManageSave").onclick = submitStageManageSave;
+        if (qs("#extTeacherStageDelete")) qs("#extTeacherStageDelete").onclick = submitStageDelete;
+        if (stageEditorDialog) {
+            stageEditorDialog.addEventListener("click", function (event) {
+                if (event.target === stageEditorDialog) {
+                    closeStageEditorDialog();
+                }
             });
-        };
+        }
+        [assignmentCreateDialog, assignmentManageDialog, stageManageDialog].forEach(function (dialog) {
+            if (!dialog) return;
+            dialog.addEventListener("click", function (event) {
+                if (event.target === dialog) {
+                    closeDialog(dialog);
+                }
+            });
+        });
+
+        if (qs("#panel-course-manage")) {
+            qs("#panel-course-manage").addEventListener("click", function (event) {
+                var editTargetPick = event.target && event.target.closest ? event.target.closest("[data-edit-target]") : null;
+                if (editTargetPick) {
+                    setEditTarget(editTargetPick.getAttribute("data-edit-target") || "assignment");
+                    renderTeacherWorkspace();
+                    return;
+                }
+                var assignmentToggle = event.target && event.target.closest ? event.target.closest("[data-assignment-toggle]") : null;
+                if (assignmentToggle) {
+                    var toggleId = assignmentToggle.getAttribute("data-assignment-toggle") || "";
+                    teacherToolState.collapsedAssignments[String(toggleId)] = !teacherToolState.collapsedAssignments[String(toggleId)];
+                    renderTeacherCourseTree();
+                    return;
+                }
+                var assignmentPick = event.target && event.target.closest ? event.target.closest("[data-assignment-pick]") : null;
+                if (assignmentPick && assignSelect) {
+                    assignSelect.value = assignmentPick.getAttribute("data-assignment-pick") || "";
+                    syncAssignmentTargets();
+                    setEditTarget("assignment");
+                    Promise.all([refreshStages(), refreshGroups()]).then(function () {
+                        if (stageSelect) stageSelect.value = "";
+                        if (stageSelectMirror) stageSelectMirror.value = "";
+                        renderTeacherWorkspace();
+                    });
+                    return;
+                }
+                var stagePick = event.target && event.target.closest ? event.target.closest("[data-stage-pick]") : null;
+                if (stagePick && stageSelect) {
+                    var pickedStageId = stagePick.getAttribute("data-stage-pick") || "";
+                    var pickedStage = teacherToolState.stages.find(function (row) {
+                        return String(row.id) === String(pickedStageId);
+                    }) || null;
+                    if (pickedStage && assignSelect) {
+                        assignSelect.value = String(pickedStage.assignmentId || "");
+                        syncAssignmentTargets();
+                        Promise.all([refreshStages(), refreshGroups()]).then(function () {
+                            stageSelect.value = pickedStageId;
+                            if (stageSelectMirror) stageSelectMirror.value = pickedStageId;
+                            setEditTarget("stage");
+                            if (typeof stageSelect.onchange === "function") stageSelect.onchange();
+                        });
+                    } else {
+                        stageSelect.value = pickedStageId;
+                        setEditTarget("stage");
+                        if (typeof stageSelect.onchange === "function") stageSelect.onchange();
+                    }
+                    return;
+                }
+                var groupEdit = event.target && event.target.closest ? event.target.closest("[data-group-edit]") : null;
+                if (groupEdit) {
+                    openGroupEditorDialog(groupEdit.getAttribute("data-group-edit") || "");
+                    return;
+                }
+                var groupPick = event.target && event.target.closest ? event.target.closest("[data-group-pick]") : null;
+                if (groupPick) {
+                    teacherToolState.selectedGroupId = groupPick.getAttribute("data-group-pick") || "";
+                    renderTeacherWorkspace();
+                    return;
+                }
+                var ungroupedAdd = event.target && event.target.closest ? event.target.closest("[data-ungrouped-add]") : null;
+                if (ungroupedAdd) {
+                    var pickedUserId = ungroupedAdd.getAttribute("data-ungrouped-add") || "";
+                    var currentGroupId = teacherToolState.selectedGroupId || "";
+                    if (!currentGroupId || !pickedUserId) return;
+                    var addRequest = teacherToolState.mockMode
+                        ? mockAddGroupMember(currentGroupId, pickedUserId)
+                        : api().postJson("/api/v1/groups/" + encodeURIComponent(currentGroupId) + "/members", { userId: pickedUserId });
+                    addRequest.then(function () {
+                        setResult(groupResult, "添加成功", "未分组学生已加入当前小组。", false);
+                        return refreshGroups();
+                    }).catch(function (err) {
+                        setResult(groupResult, "添加失败", err.message, true);
+                    });
+                    return;
+                }
+                var memberRemove = event.target && event.target.closest ? event.target.closest("[data-member-remove]") : null;
+                if (memberRemove) {
+                    var removeUserId = memberRemove.getAttribute("data-member-remove") || "";
+                    var removeGroupId = teacherToolState.selectedGroupId || "";
+                    if (!removeGroupId || !removeUserId) return;
+                    var removeRequest = teacherToolState.mockMode
+                        ? mockRemoveGroupMember(removeGroupId, removeUserId)
+                        : requestDelete("/api/v1/groups/" + encodeURIComponent(removeGroupId) + "/members/" + encodeURIComponent(removeUserId));
+                    removeRequest.then(function () {
+                        setResult(groupResult, "移出成功", "成员已移出当前小组。", false);
+                        return refreshGroups();
+                    }).catch(function (err) {
+                        setResult(groupResult, "移出失败", err.message, true);
+                    });
+                    return;
+                }
+                var memberMove = event.target && event.target.closest ? event.target.closest("[data-member-move]") : null;
+                if (memberMove) {
+                    openTeacherGroupMoveDialog(memberMove.getAttribute("data-member-move") || "");
+                    return;
+                }
+            });
+        }
+        if (assistantDialog) {
+            assistantDialog.addEventListener("click", function (event) {
+                if (event.target === assistantDialog) {
+                    closeAssistantDialog();
+                }
+            });
+        }
+        if (groupEditorDialog) {
+            groupEditorDialog.addEventListener("click", function (event) {
+                if (event.target === groupEditorDialog) {
+                    closeGroupEditorDialog();
+                }
+            });
+        }
+        if (groupMoveDialog) {
+            groupMoveDialog.addEventListener("click", function (event) {
+                if (event.target === groupMoveDialog) {
+                    closeTeacherGroupMoveDialog();
+                }
+            });
+        }
+        if (qs("#extTeacherGroupMoveClose")) {
+            qs("#extTeacherGroupMoveClose").onclick = closeTeacherGroupMoveDialog;
+        }
+        if (qs("#extTeacherGroupMoveCancel")) {
+            qs("#extTeacherGroupMoveCancel").onclick = closeTeacherGroupMoveDialog;
+        }
+
+        loadOwnedAssistants().catch(function (err) {
+            reportTeacherLoadError(err, "助教账号加载失败");
+        });
     }
 
     function bindStudentPanels() {

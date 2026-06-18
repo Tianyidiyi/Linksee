@@ -27,6 +27,8 @@ import {
   withCourseMaterialUrls,
   type PublicStoredFileMetadata,
 } from "./course-material-storage.js";
+import { archiveAssignmentGroups } from "../groups/group-lifecycle.js";
+import { publishCourseSystemAnnouncement } from "./assignment-notifications.js";
 
 export const assignmentsRouter = Router();
 
@@ -288,6 +290,18 @@ assignmentsRouter.patch("/assignments/:assignmentId", requireAuth, async (req: R
     },
   });
 
+  if (hasStatus && assignment.status !== AssignmentStatus.archived && updated.status === AssignmentStatus.archived) {
+    await archiveAssignmentGroups(assignmentId, req.user!.id);
+  }
+
+  if (hasStatus && assignment.status !== AssignmentStatus.active && updated.status === AssignmentStatus.active) {
+    await publishCourseSystemAnnouncement({
+      courseId: updated.courseId,
+      senderId: req.user!.id,
+      content: `系统通知：项目 ${updated.title} 已开启，请相关同学及时查看要求并开始协作。`,
+    });
+  }
+
   res.json({ ok: true, data: serializeAssignmentRecord(updated) });
 });
 
@@ -361,6 +375,18 @@ assignmentsRouter.post("/assignments/:assignmentId/status", requireAuth, async (
       updatedAt: true,
     },
   });
+
+  if (assignment.status !== AssignmentStatus.archived && updated.status === AssignmentStatus.archived) {
+    await archiveAssignmentGroups(assignmentId, req.user!.id);
+  }
+
+  if (assignment.status !== AssignmentStatus.active && updated.status === AssignmentStatus.active) {
+    await publishCourseSystemAnnouncement({
+      courseId: updated.courseId,
+      senderId: req.user!.id,
+      content: `系统通知：项目 ${updated.title} 已开启，请相关同学及时查看要求并开始协作。`,
+    });
+  }
 
   return ok(res, serializeAssignmentRecord(updated));
 });

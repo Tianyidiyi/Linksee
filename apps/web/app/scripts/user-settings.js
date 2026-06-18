@@ -27,6 +27,8 @@
         dateTimeDraft: null,
         teacherAssistants: [],
         teacherAssistantsLoading: false,
+        teacherAssistantsExpanded: false,
+        editingAssistantId: "",
     };
 
     function escapeHtml(value) {
@@ -304,27 +306,36 @@
         if (role !== "teacher" || state.forceMode) {
             return "";
         }
+        var expanded = Boolean(state.teacherAssistantsExpanded);
         var loadingHtml = state.teacherAssistantsLoading
             ? '<div class="user-settings-assistant-empty">正在加载子账号...</div>'
             : "";
         var listHtml = !state.teacherAssistantsLoading && state.teacherAssistants.length
             ? state.teacherAssistants.map(function (row) {
+                var actionAssistantId = row.assistantUserId || row.id || "";
+                var displayAccountNo = row.accountNo || actionAssistantId || "--";
                 var activeLabel = row.isActive ? "启用中" : "已停用";
+                var isEditing = state.editingAssistantId === actionAssistantId;
                 return [
-                    '<article class="user-settings-assistant-item" data-assistant-id="' + escapeHtml(row.assistantUserId || row.id) + '">',
-                    '<div class="user-settings-assistant-item-head">',
-                    '<div><strong>' + escapeHtml(row.realName || "未命名助教") + '</strong><span class="user-settings-assistant-meta">账号 ' + escapeHtml(row.id || row.assistantUserId || "--") + ' · 已绑课程 ' + escapeHtml(String(row.boundCourseCount || 0)) + ' 门</span></div>',
-                    '<span class="user-settings-assistant-state' + (row.isActive ? " is-active" : " is-inactive") + '">' + escapeHtml(activeLabel) + '</span>',
+                    '<div class="user-settings-assistant-table-row" data-assistant-id="' + escapeHtml(actionAssistantId) + '">',
+                    '<div class="user-settings-assistant-cell user-settings-assistant-cell-name">',
+                    isEditing
+                        ? '<input class="user-settings-assistant-inline-input" data-assistant-edit-name="' + escapeHtml(actionAssistantId) + '" value="' + escapeHtml(row.realName || "") + '" placeholder="输入助教姓名" />'
+                        : '<strong>' + escapeHtml(row.realName || "未命名助教") + '</strong>',
                     '</div>',
-                    '<div class="user-settings-assistant-row">',
-                    '<label class="user-settings-field"><span>姓名</span><input data-assistant-edit-name="' + escapeHtml(row.id || row.assistantUserId || "") + '" value="' + escapeHtml(row.realName || "") + '" placeholder="输入助教姓名" /></label>',
-                    '<div class="user-settings-assistant-actions">',
-                    '<button class="btn btn-secondary" type="button" data-action="save-assistant" data-assistant-id="' + escapeHtml(row.id || row.assistantUserId || "") + '">保存</button>',
-                    '<button class="btn btn-secondary" type="button" data-action="reset-assistant-password" data-assistant-id="' + escapeHtml(row.id || row.assistantUserId || "") + '">重置密码</button>',
-                    '<button class="btn btn-ghost" type="button" data-action="toggle-assistant-active" data-assistant-id="' + escapeHtml(row.id || row.assistantUserId || "") + '" data-next-active="' + escapeHtml(row.isActive ? "false" : "true") + '">' + escapeHtml(row.isActive ? "停用" : "启用") + '</button>',
+                    '<div class="user-settings-assistant-cell user-settings-assistant-cell-id">' + escapeHtml(displayAccountNo) + '</div>',
+                    '<div class="user-settings-assistant-cell user-settings-assistant-cell-courses">' + escapeHtml(String(row.boundCourseCount || 0)) + '</div>',
+                    '<div class="user-settings-assistant-cell"><span class="user-settings-assistant-state' + (row.isActive ? " is-active" : " is-inactive") + '">' + escapeHtml(activeLabel) + '</span></div>',
+                    '<div class="user-settings-assistant-cell user-settings-assistant-cell-actions">',
+                    isEditing
+                        ? '<button class="user-settings-assistant-link" type="button" data-action="save-assistant" data-assistant-id="' + escapeHtml(actionAssistantId) + '">保存</button><button class="user-settings-assistant-link" type="button" data-action="cancel-assistant-edit" data-assistant-id="' + escapeHtml(actionAssistantId) + '">取消</button>'
+                        : '<button class="user-settings-assistant-link" type="button" data-action="edit-assistant" data-assistant-id="' + escapeHtml(actionAssistantId) + '">编辑</button>',
+                    row.isActive
+                        ? '<button class="user-settings-assistant-link" type="button" data-action="reset-assistant-password" data-assistant-id="' + escapeHtml(actionAssistantId) + '">重置临时密码</button>'
+                        : '<button class="user-settings-assistant-link is-disabled" type="button" data-action="reset-assistant-password-disabled" aria-disabled="true">重置临时密码</button>',
+                    '<button class="user-settings-assistant-link user-settings-assistant-link-danger" type="button" data-action="toggle-assistant-active" data-assistant-id="' + escapeHtml(actionAssistantId) + '" data-next-active="' + escapeHtml(row.isActive ? "false" : "true") + '">' + escapeHtml(row.isActive ? "停用" : "启用") + '</button>',
                     '</div>',
                     '</div>',
-                    '</article>',
                 ].join("");
             }).join("")
             : "";
@@ -333,19 +344,33 @@
             : "";
         return [
             '<section class="settings-section user-settings-assistant-section">',
-            '<div class="settings-section-head"><h3>助教 / 子账号管理</h3><p>仅教师可见，可创建并管理自己名下的助教账号。</p></div>',
+            '<button class="user-settings-assistant-toggle' + (expanded ? ' is-open' : '') + '" type="button" data-action="toggle-assistant-section" aria-expanded="' + (expanded ? "true" : "false") + '">',
+            '<span class="user-settings-assistant-toggle-copy"><strong>子账号管理</strong></span>',
+            '<span class="user-settings-assistant-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></span>',
+            '</button>',
+            '<div class="user-settings-assistant-panel' + (expanded ? ' is-open' : '') + '"' + (expanded ? "" : ' hidden') + '>',
             '<div class="user-settings-assistant-grid">',
             '<div class="user-settings-assistant-create">',
-            '<label class="user-settings-field"><span>账号</span><input data-field="assistantId" maxlength="10" placeholder="留空自动生成 10 位账号" /></label>',
+            '<div class="user-settings-assistant-create-head"><strong>新建子账号</strong></div>',
+            '<div class="user-settings-assistant-create-fields">',
             '<label class="user-settings-field"><span>姓名</span><input data-field="assistantName" placeholder="输入助教姓名" /></label>',
+            '<label class="user-settings-field"><span>账号</span><input data-field="assistantId" maxlength="10" placeholder="留空自动生成 10 位账号" /></label>',
             '<label class="user-settings-field"><span>初始密码</span><input data-field="assistantPassword" type="password" autocomplete="new-password" placeholder="留空自动生成" /></label>',
-            '<div class="dashboard-soft-note">默认建议：账号留空自动生成；如学院有统一编号规则，也可由教师手动指定 10 位账号。</div>',
-            '<button class="btn btn-primary" type="button" data-action="create-assistant">新建子账号</button>',
+            '</div>',
+            '<div class="user-settings-assistant-create-actions"><button class="user-settings-assistant-create-button" type="button" data-action="create-assistant">创建子账号</button></div>',
             '</div>',
             '<div class="user-settings-assistant-list">',
+            '<div class="user-settings-assistant-table-head">',
+            '<span>姓名</span>',
+            '<span>账号</span>',
+            '<span>课程</span>',
+            '<span>启用</span>',
+            '<span></span>',
+            '</div>',
             loadingHtml,
             listHtml,
             emptyHtml,
+            '</div>',
             '</div>',
             '</div>',
             '</section>',
@@ -414,7 +439,6 @@
             "</div>",
             "</div>",
             "</section>",
-            renderTeacherAssistantSection(role),
             '<section class="settings-section user-settings-theme">',
             '<div class="settings-section-head"><h3>主题颜色</h3><p>选择你偏好的界面风格</p></div>',
             '<div class="settings-theme-strip">',
@@ -455,12 +479,14 @@
             forceBanner,
             '<div class="user-settings-body settings-main-body">',
             profileSection,
-            '<section class="settings-section"><div class="settings-section-head"><h3>密码修改</h3><p>用于账号安全验证</p></div><div class="user-settings-field"><div class="single-window-form">',
+            '<section class="settings-section user-settings-password-section"><div class="settings-section-head user-settings-password-head"><h3>密码修改</h3></div><div class="user-settings-password-layout">',
+            '<div class="dashboard-soft-note user-settings-password-policy password-policy-note' + (policyErrorActive ? ' is-error' : '') + '">' + escapeHtml(policyText) + '</div>',
+            '<div class="user-settings-password-form">',
             '<div class="password-input-row"><input data-field="newPassword" type="password" autocomplete="new-password" placeholder="新密码" value="' + escapeHtml(state.newPasswordDraft) + '" /></div>',
             '<div class="password-input-row"><input data-field="confirmPassword" type="password" autocomplete="new-password" placeholder="确认新密码" value="' + escapeHtml(state.confirmPasswordDraft) + '" /></div>',
-            '<div class="dashboard-soft-note password-policy-note' + (policyErrorActive ? ' is-error' : '') + '">' + escapeHtml(policyText) + '</div>',
-            (state.forceMode ? "" : '<button class="btn btn-secondary" type="button" data-action="change-password">更新密码</button>'),
+            (state.forceMode ? "" : '<div class="user-settings-password-actions"><button class="user-settings-password-submit" type="button" data-action="change-password">更新密码</button></div>'),
             '</div></div></section>',
+            renderTeacherAssistantSection(role),
             '</div>',
             '<div class="dashboard-soft-note' + (state.messageType === "error" ? ' user-settings-message is-error' : state.message ? ' user-settings-message is-success' : ' user-settings-message') + '">' + escapeHtml(policyErrorActive ? "" : state.message) + '</div>',
             footerActions,
@@ -582,11 +608,28 @@
                 if (action === "save-assistant") {
                     saveAssistant(btn.getAttribute("data-assistant-id"));
                 }
+                if (action === "edit-assistant") {
+                    state.editingAssistantId = btn.getAttribute("data-assistant-id") || "";
+                    render();
+                }
+                if (action === "cancel-assistant-edit") {
+                    state.editingAssistantId = "";
+                    render();
+                }
                 if (action === "reset-assistant-password") {
                     resetAssistantPassword(btn.getAttribute("data-assistant-id"));
                 }
+                if (action === "reset-assistant-password-disabled") {
+                    state.message = "已停用账号不能重置临时密码，请先启用。";
+                    state.messageType = "error";
+                    render();
+                }
                 if (action === "toggle-assistant-active") {
                     toggleAssistantActive(btn.getAttribute("data-assistant-id"), btn.getAttribute("data-next-active") === "true");
+                }
+                if (action === "toggle-assistant-section") {
+                    state.teacherAssistantsExpanded = !state.teacherAssistantsExpanded;
+                    render();
                 }
             });
         });

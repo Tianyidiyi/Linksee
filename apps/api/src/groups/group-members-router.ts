@@ -8,6 +8,7 @@ import { ensureCourseMemberActive, ensureGroupManageable, getGroupAccess } from 
 import { createEventEnvelope } from "../events/event-builder.js";
 import { pushSocketEvent } from "../events/realtime-publisher.js";
 import { parseBigIntBodyValue, parseOptionalString } from "./group-utils.js";
+import { publishGroupSystemAnnouncement } from "./group-lifecycle.js";
 
 export const groupMembersRouter = Router();
 
@@ -125,16 +126,78 @@ groupMembersRouter.delete("/groups/:groupId/members/:userId", requireAuth, async
   const group = await ensureGroupManageable(groupId, req.user!.id, req.user!.role as Role, res);
   if (!group) return;
 
+  const groupRecord = await prisma.group.findUnique({
+    where: { id: groupId },
+    select: {
+      id: true,
+      assignmentId: true,
+      groupNo: true,
+      name: true,
+      createdBy: true,
+      status: true,
+      assignment: { select: { courseId: true } },
+    },
+  });
+  if (!groupRecord) {
+    return fail(res, 404, "NOT_FOUND", "Group not found");
+  }
+
   const existing = await prisma.groupMember.findFirst({
     where: { groupId, userId: targetUserId },
-    select: { id: true },
+    select: {
+      id: true,
+      role: true,
+      user: {
+        select: {
+          profile: {
+            select: { realName: true },
+          },
+        },
+      },
+    },
   });
   if (!existing) {
     return fail(res, 404, "NOT_FOUND", "Group member not found");
   }
 
-  await prisma.groupMember.delete({
-    where: { id: existing.id },
+  const reassignment = await prisma.$transaction(async (tx) => {
+    await tx.groupMember.delete({
+      where: { id: existing.id },
+    });
+
+    if (existing.role !== GroupMemberRole.leader) {
+      return null;
+    }
+
+    const nextLeader = await tx.groupMember.findFirst({
+      where: { groupId },
+      orderBy: [{ joinedAt: "asc" }],
+      select: {
+        id: true,
+        userId: true,
+        user: {
+          select: {
+            profile: {
+              select: { realName: true },
+            },
+          },
+        },
+      },
+    });
+    if (!nextLeader) {
+      return { reassigned: false as const };
+    }
+
+    await tx.groupMember.update({
+      where: { id: nextLeader.id },
+      data: { role: GroupMemberRole.leader },
+    });
+
+    return {
+      reassigned: true as const,
+      userId: nextLeader.userId,
+      realName: nextLeader.user.profile?.realName?.trim() || null,
+    };
   });
 
   const event = createEventEnvelope("group.member.updated", {
@@ -147,6 +210,28 @@ groupMembersRouter.delete("/groups/:groupId/members/:userId", requireAuth, async
   });
   await pushSocketEvent(`group:${groupId.toString()}`, event);
   await pushSocketEvent(`course:${group.courseId.toString()}`, event);
+
+  if (existing.role === GroupMemberRole.leader) {
+    const removedLeaderName = existing.user.profile?.realName?.trim() || targetUserId;
+    const content =
+      reassignment && "reassigned" in reassignment && reassignment.reassigned
+        ? `系统通知：组长 ${removedLeaderName} 已移出，${reassignment.realName || reassignment.userId} 已自动设为新组长`
+        : `系统通知：组长 ${removedLeaderName} 已移出，当前小组暂未分配新组长`;
+    await publishGroupSystemAnnouncement({
+      group: {
+        id: groupRecord.id,
+        assignmentId: groupRecord.assignmentId,
+        courseId: groupRecord.assignment.courseId,
+        groupNo: groupRecord.groupNo,
+        name: groupRecord.name,
+        createdBy: groupRecord.createdBy,
+        status: groupRecord.status,
+      },
+      operatorId: req.user!.id,
+      content,
+      subType: "group_member",
+    });
+  }
 
   res.json({ ok: true });
 });

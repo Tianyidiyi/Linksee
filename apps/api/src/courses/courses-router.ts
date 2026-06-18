@@ -5,6 +5,7 @@ import { requireAuth } from "../infra/jwt-middleware.js";
 import { fail, ok } from "../infra/http-response.js";
 import { createEventEnvelope } from "../events/event-builder.js";
 import { pushSocketEvent } from "../events/realtime-publisher.js";
+import { archiveCourseGroups } from "../groups/group-lifecycle.js";
 import {
   ensureCourseExists as ensureCourseExistsShared,
   ensureCourseReadable as ensureCourseReadableShared,
@@ -117,32 +118,32 @@ async function ensureCourseConversationActivated(
     where: { scopeType_scopeId: { scopeType: "course", scopeId: courseId } },
     select: { id: true },
   });
+
+  await prisma.chatConversation.upsert({
+    where: { scopeType_scopeId: { scopeType: "course", scopeId: courseId } },
+    update: { status: "active" },
+    create: {
+      scopeType: "course",
+      scopeId: courseId,
+      roomKey: `course:${courseId.toString()}`,
+      createdBy: null,
+      status: "active",
+    },
+  });
+
   if (existingConversation) {
     return null;
   }
 
-  const created = await prisma.$transaction(async (tx) => {
-    const conversation = await tx.chatConversation.create({
-      data: {
-        scopeType: "course",
-        scopeId: courseId,
-        roomKey: `course:${courseId.toString()}`,
-        createdBy: null,
-      },
-      select: { id: true, roomKey: true },
-    });
-    return {
-      roomKey: conversation.roomKey,
-      outboundEvent: createEventEnvelope("course.conversation.activated", {
-        courseId: courseId.toString(),
-        senderId: operatorId,
-        content: `课程《${courseName}》群聊已启用`,
-        messageType: "announcement",
-      }),
-    };
-  });
-
-  return created;
+  return {
+    roomKey: `course:${courseId.toString()}`,
+    outboundEvent: createEventEnvelope("course.conversation.activated", {
+      courseId: courseId.toString(),
+      senderId: operatorId,
+      content: `课程《${courseName}》群聊已启用`,
+      messageType: "announcement",
+    }),
+  };
 }
 
 async function createCourseLifecycleAnnouncement(input: {
@@ -506,6 +507,11 @@ coursesRouter.patch("/:id", requireAuth, async (req: Request, res: Response) => 
         operatorId: req.user!.id,
         content: `系统通知：课程《${String(updated.name || existing.name)}》已结束`,
       });
+      await prisma.chatConversation.updateMany({
+        where: { scopeType: "course", scopeId: courseId },
+        data: { status: "archived" },
+      });
+      await archiveCourseGroups(courseId, req.user!.id);
     }
   }
 

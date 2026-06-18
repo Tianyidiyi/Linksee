@@ -35,6 +35,13 @@ function parseOptionalGroupNo(value: unknown): number | null {
   return value;
 }
 
+function parsePositiveGroupSize(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 2) {
+    return null;
+  }
+  return value;
+}
+
 
 async function getAssignmentContext(assignmentId: bigint): Promise<AssignmentContext | null> {
   return prisma.assignment.findUnique({
@@ -270,6 +277,104 @@ groupsRouter.post("/assignments/:assignmentId/groups", requireAuth, async (req: 
     assignmentId: assignmentId.toString(),
     groupNo: created.groupNo,
     name,
+  }, 201);
+});
+
+groupsRouter.post("/assignments/:assignmentId/groups/auto", requireAuth, async (req: Request, res: Response) => {
+  const assignmentId = parseBigIntParam(req.params.assignmentId, "assignmentId", res);
+  if (assignmentId === null) return;
+
+  const role = req.user!.role as Role;
+  const userId = req.user!.id;
+  if (isStudent(role)) {
+    return fail(res, 403, "FORBIDDEN", "Only course staff can auto-group students");
+  }
+
+  const assignment = await getAssignmentContext(assignmentId);
+  if (!assignment) {
+    return fail(res, 404, "NOT_FOUND", "Assignment not found");
+  }
+
+  const manageable = await ensureAssignmentManageable(assignmentId, userId, role, res);
+  if (!manageable) return;
+
+  const groupSize = parsePositiveGroupSize(req.body?.groupSize);
+  if (groupSize === null) {
+    return validationFailed(res, "groupSize must be an integer greater than or equal to 2");
+  }
+
+  const maxSize = assignment.groupConfig?.groupMaxSize ?? 6;
+  if (groupSize > maxSize) {
+    return validationFailed(res, `groupSize must be less than or equal to ${maxSize}`);
+  }
+
+  const existingMembers = await prisma.groupMember.findMany({
+    where: { assignmentId },
+    select: { userId: true },
+  });
+  const occupiedIds = existingMembers.map((row) => row.userId);
+
+  const ungroupedStudents = await prisma.courseMember.findMany({
+    where: {
+      courseId: assignment.courseId,
+      status: "active",
+      userId: occupiedIds.length ? { notIn: occupiedIds } : undefined,
+      user: { role: Role.student },
+    },
+    orderBy: [{ joinedAt: "asc" }, { userId: "asc" }],
+    select: { userId: true },
+  });
+
+  if (!ungroupedStudents.length) {
+    return ok(res, {
+      assignmentId: assignmentId.toString(),
+      createdGroups: 0,
+      groupedStudents: 0,
+    });
+  }
+
+  const maxGroup = await prisma.group.aggregate({
+    where: { assignmentId },
+    _max: { groupNo: true },
+  });
+  let nextGroupNo = (maxGroup._max.groupNo ?? 0) + 1;
+
+  let createdGroups = 0;
+  let groupedStudents = 0;
+
+  for (let index = 0; index < ungroupedStudents.length; index += groupSize) {
+    const chunk = ungroupedStudents.slice(index, index + groupSize);
+    const groupNo = nextGroupNo++;
+    await prisma.$transaction(async (tx) => {
+      const group = await tx.group.create({
+        data: {
+          assignmentId,
+          groupNo,
+          name: `第 ${groupNo} 组`,
+          status: GroupStatus.forming,
+          createdBy: userId,
+        },
+        select: { id: true },
+      });
+
+      await tx.groupMember.createMany({
+        data: chunk.map((student, memberIndex) => ({
+          groupId: group.id,
+          assignmentId,
+          userId: student.userId,
+          role: memberIndex === 0 ? GroupMemberRole.leader : GroupMemberRole.member,
+        })),
+      });
+    });
+    createdGroups += 1;
+    groupedStudents += chunk.length;
+  }
+
+  return ok(res, {
+    assignmentId: assignmentId.toString(),
+    createdGroups,
+    groupedStudents,
+    groupSize,
   }, 201);
 });
 

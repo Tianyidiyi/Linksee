@@ -47,11 +47,6 @@ export async function ensureCourseReadable(
     return course;
   }
 
-  if (course.status === CourseStatus.draft) {
-    courseForbidden(res, "Course is still in draft and not available yet");
-    return null;
-  }
-
   if (role === Role.teacher || role === Role.assistant) {
     const isTeacher = await prisma.courseTeacher.findUnique({
       where: { courseId_userId: { courseId, userId } },
@@ -68,6 +63,11 @@ export async function ensureCourseReadable(
       return null;
     }
     return course;
+  }
+
+  if (course.status === CourseStatus.draft) {
+    courseForbidden(res, "Course is still in draft and not available yet");
+    return null;
   }
 
   const membership = await prisma.courseMember.findUnique({

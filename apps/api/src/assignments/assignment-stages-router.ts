@@ -27,6 +27,7 @@ import {
   withCourseMaterialUrls,
   type PublicStoredFileMetadata,
 } from "./course-material-storage.js";
+import { publishCourseSystemAnnouncement } from "./assignment-notifications.js";
 
 export const assignmentStagesRouter = Router();
 
@@ -198,6 +199,14 @@ assignmentStagesRouter.post("/assignments/:assignmentId/stages", requireAuth, as
     },
   });
 
+  if (stage.status === StageStatus.open) {
+    await publishCourseSystemAnnouncement({
+      courseId: assignment.courseId,
+      senderId: req.user!.id,
+      content: `系统通知：${assignment.title} 的阶段 ${stage.stageNo} ${stage.title} 已开放，请同学们按时完成本阶段任务。`,
+    });
+  }
+
   res.status(201).json({ ok: true, data: serializeStageRecord(stage) });
 });
 
@@ -329,6 +338,14 @@ assignmentStagesRouter.patch("/stages/:stageId", requireAuth, async (req: Reques
       updatedAt: true,
     },
   });
+
+  if (stage.status !== StageStatus.open && updated.status === StageStatus.open) {
+    await publishCourseSystemAnnouncement({
+      courseId: stage.assignment.courseId,
+      senderId: req.user!.id,
+      content: `系统通知：阶段 ${updated.stageNo} ${updated.title} 已开放，请同学们按时完成本阶段任务。`,
+    });
+  }
 
   res.json({ ok: true, data: serializeStageRecord(updated) });
 });

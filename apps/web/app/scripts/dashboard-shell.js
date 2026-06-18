@@ -18,9 +18,7 @@
             "panel-user-maintenance",
         ],
         teacher: [
-            "panel-course-design",
-            "panel-group-manage",
-            "panel-teacher-settings",
+            "panel-course-manage",
             "panel-review-workbench",
         ],
         assistant: [
