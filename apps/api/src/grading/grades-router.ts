@@ -43,15 +43,6 @@ function parseGradeIds(raw: unknown, res: Response): bigint[] | null {
   return unique;
 }
 
-function csvEscape(value: unknown): string {
-  if (value === null || value === undefined) return "";
-  const text = String(value);
-  if (/[",\n]/.test(text)) {
-    return `"${text.replace(/"/g, "\"\"")}"`;
-  }
-  return text;
-}
-
 async function resolveSubmissionContext(submissionId: bigint) {
   return prisma.submission.findUnique({
     where: { id: submissionId },
@@ -98,6 +89,9 @@ gradesRouter.post("/submissions/:submissionId/grade-drafts", requireAuth, async 
     where: { submissionId },
     select: { id: true, score: true, status: true },
   });
+  if (existing?.status === GradeStatus.published) {
+    return conflict(res, "Published grade must be adjusted via /grades/:gradeId");
+  }
 
   const grade = await prisma.$transaction(async (tx) => {
     const upserted = await tx.stageGrade.upsert({
@@ -305,144 +299,6 @@ gradesRouter.post("/grades/:gradeId/publish", requireAuth, async (req: Request, 
   return ok(res, serializeBigInt(updated));
 });
 
-gradesRouter.post("/courses/:courseId/grades/publish-batch", requireAuth, async (req: Request, res: Response) => {
-  const courseId = parseBigIntParam(req.params.courseId, "courseId", res);
-  if (courseId === null) return;
-
-  const role = req.user!.role as Role;
-  if (role !== Role.teacher) {
-    return forbidden(res, "Only teacher can publish grades");
-  }
-
-  const course = await ensureCourseReadable(courseId, req.user!.id, role, res);
-  if (!course) return;
-
-  const gradeIds = parseGradeIds(req.body?.gradeIds, res);
-  if (!gradeIds) return;
-  const strict = req.body?.strict === true;
-
-  const grades = await prisma.stageGrade.findMany({
-    where: { id: { in: gradeIds }, courseId },
-    select: {
-      id: true,
-      score: true,
-      status: true,
-      submissionId: true,
-      groupId: true,
-      stageId: true,
-      courseId: true,
-      submission: { select: { status: true } },
-    },
-  });
-
-  const rowById = new Map(grades.map((row) => [row.id.toString(), row]));
-  const blocked: Array<{ gradeId: string; reason: string }> = [];
-  const publishable: Array<(typeof grades)[number]> = [];
-
-  for (const gradeId of gradeIds) {
-    const key = gradeId.toString();
-    const row = rowById.get(key);
-    if (!row) {
-      blocked.push({ gradeId: key, reason: "not_found_in_course" });
-      continue;
-    }
-    if (row.status === GradeStatus.published) {
-      blocked.push({ gradeId: key, reason: "already_published" });
-      continue;
-    }
-    if (row.submission.status !== SubmissionStatus.approved && row.submission.status !== SubmissionStatus.reviewed) {
-      blocked.push({ gradeId: key, reason: `submission_status_${row.submission.status}` });
-      continue;
-    }
-    publishable.push(row);
-  }
-
-  if (strict && blocked.length > 0) {
-    return conflict(res, `Batch publish blocked by ${blocked.length} grade(s)`);
-  }
-
-  const publishedAt = new Date();
-  const updated = publishable.length === 0 ? [] : await prisma.$transaction(async (tx) => {
-    const publishedRows: Array<{
-      id: bigint;
-      submissionId: bigint;
-      groupId: bigint;
-      stageId: bigint;
-      courseId: bigint;
-      score: Prisma.Decimal | null;
-      status: GradeStatus;
-      graderId: string;
-      publishedBy: string | null;
-      publishedAt: Date | null;
-      sourceReviewId: bigint | null;
-      createdAt: Date;
-      updatedAt: Date;
-    }> = [];
-
-    for (const row of publishable) {
-      const next = await tx.stageGrade.update({
-        where: { id: row.id },
-        data: {
-          status: GradeStatus.published,
-          publishedBy: req.user!.id,
-          publishedAt,
-        },
-        select: {
-          id: true,
-          submissionId: true,
-          groupId: true,
-          stageId: true,
-          courseId: true,
-          score: true,
-          status: true,
-          graderId: true,
-          publishedBy: true,
-          publishedAt: true,
-          sourceReviewId: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      });
-      publishedRows.push(next);
-    }
-
-    await tx.stageGradeLog.createMany({
-      data: publishable.map((row) => ({
-        stageGradeId: row.id,
-        action: GradeAction.published,
-        beforeScore: row.score,
-        afterScore: row.score,
-        operatorId: req.user!.id,
-        reason: null,
-      })),
-    });
-
-    return publishedRows;
-  });
-
-  for (const row of updated) {
-    const event = createEventEnvelope("grade.published", {
-      gradeId: row.id.toString(),
-      submissionId: row.submissionId.toString(),
-      groupId: row.groupId.toString(),
-      stageId: row.stageId.toString(),
-      courseId: row.courseId.toString(),
-      score: row.score ? Number(row.score) : null,
-    });
-    await pushSocketEvent(`group:${row.groupId.toString()}`, event);
-    await pushSocketEvent(`course:${row.courseId.toString()}`, event);
-  }
-
-  return ok(res, serializeBigInt({
-    strict,
-    requestedCount: gradeIds.length,
-    publishedCount: updated.length,
-    blockedCount: blocked.length,
-    blocked,
-    published: updated,
-  }));
-});
-
 gradesRouter.patch("/grades/:gradeId", requireAuth, async (req: Request, res: Response) => {
   const gradeId = parseBigIntParam(req.params.gradeId, "gradeId", res);
   if (gradeId === null) return;
@@ -603,88 +459,6 @@ gradesRouter.get("/courses/:courseId/grades", requireAuth, async (req: Request, 
   });
 });
 
-gradesRouter.get("/courses/:courseId/grades/export", requireAuth, async (req: Request, res: Response) => {
-  const courseId = parseBigIntParam(req.params.courseId, "courseId", res);
-  if (courseId === null) return;
-
-  const role = req.user!.role as Role;
-  if (role === Role.student) {
-    return forbidden(res, "Only course staff can export grades");
-  }
-  const course = await ensureCourseReadable(courseId, req.user!.id, role, res);
-  if (!course) return;
-
-  const stageId = req.query.stageId !== undefined
-    ? parseBigIntParam(req.query.stageId as string | string[] | undefined, "stageId", res)
-    : null;
-  if (req.query.stageId !== undefined && stageId === null) return;
-  const groupId = req.query.groupId !== undefined
-    ? parseBigIntParam(req.query.groupId as string | string[] | undefined, "groupId", res)
-    : null;
-  if (req.query.groupId !== undefined && groupId === null) return;
-  const statusRaw = typeof req.query.status === "string" ? req.query.status : null;
-  const status = statusRaw === "draft" || statusRaw === "published" ? statusRaw : null;
-  if (req.query.status !== undefined && status === null) {
-    return validationFailed(res, "status must be draft or published");
-  }
-
-  const where: Prisma.StageGradeWhereInput = {
-    courseId,
-    ...(stageId ? { stageId } : {}),
-    ...(groupId ? { groupId } : {}),
-    ...(status ? { status: status === "draft" ? GradeStatus.draft : GradeStatus.published } : {}),
-  };
-  const rows = await prisma.stageGrade.findMany({
-    where,
-    orderBy: [{ stageId: "asc" }, { groupId: "asc" }, { id: "asc" }],
-    select: {
-      id: true,
-      score: true,
-      status: true,
-      graderId: true,
-      publishedBy: true,
-      publishedAt: true,
-      submissionId: true,
-      groupId: true,
-      stageId: true,
-      group: { select: { name: true, groupNo: true } },
-      stage: { select: { title: true, stageNo: true } },
-      submission: { select: { status: true, attemptNo: true, submittedAt: true } },
-    },
-  });
-
-  const header = [
-    "gradeId", "courseId", "stageId", "stageNo", "stageTitle", "groupId", "groupNo", "groupName",
-    "submissionId", "attemptNo", "submissionStatus", "score", "gradeStatus", "graderId",
-    "publishedBy", "publishedAt", "submittedAt",
-  ];
-  const lines = [header.join(",")];
-  for (const row of rows) {
-    lines.push([
-      row.id.toString(),
-      courseId.toString(),
-      row.stageId.toString(),
-      row.stage.stageNo,
-      csvEscape(row.stage.title),
-      row.groupId.toString(),
-      row.group.groupNo,
-      csvEscape(row.group.name ?? ""),
-      row.submissionId.toString(),
-      row.submission.attemptNo,
-      row.submission.status,
-      row.score ? Number(row.score) : "",
-      row.status,
-      row.graderId,
-      row.publishedBy ?? "",
-      row.publishedAt ? row.publishedAt.toISOString() : "",
-      row.submission.submittedAt ? row.submission.submittedAt.toISOString() : "",
-    ].map(csvEscape).join(","));
-  }
-
-  res.setHeader("Content-Type", "text/csv; charset=utf-8");
-  res.setHeader("Content-Disposition", `attachment; filename="course-${courseId.toString()}-grades.csv"`);
-  res.send(lines.join("\n"));
-});
 
 gradesRouter.get("/courses/:courseId/grade-drafts", requireAuth, async (req: Request, res: Response) => {
   const courseId = parseBigIntParam(req.params.courseId, "courseId", res);

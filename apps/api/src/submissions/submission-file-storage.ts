@@ -5,6 +5,8 @@ import path from "node:path";
 import { env } from "../infra/env.js";
 import { minioClient } from "../infra/minio.js";
 
+const SUBMISSION_FILE_PRESIGN_TTL_SECONDS = 60 * 10;
+
 export type SubmissionFileMetadata = {
   name: string;
   objectKey: string;
@@ -99,4 +101,12 @@ export async function uploadSubmissionFile(input: UploadSubmissionFileInput): Pr
 
 export async function removeSubmissionFileObject(objectKey: string): Promise<void> {
   await minioClient.removeObject(env.minioBucketSubmissionFiles, objectKey).catch(() => {});
+}
+
+export async function presignSubmissionDownload(objectKey: string): Promise<string> {
+  return minioClient.presignedGetObject(
+    env.minioBucketSubmissionFiles,
+    objectKey,
+    SUBMISSION_FILE_PRESIGN_TTL_SECONDS,
+  );
 }

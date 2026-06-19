@@ -20,15 +20,6 @@ type RubricItem = {
   maxScore: number;
 };
 
-function csvEscape(value: unknown): string {
-  if (value === null || value === undefined) return "";
-  const text = String(value);
-  if (/[",\n]/.test(text)) {
-    return `"${text.replace(/"/g, "\"\"")}"`;
-  }
-  return text;
-}
-
 function parseRubricScores(value: unknown, res: Response): RubricItem[] | undefined {
   if (value === undefined) return undefined;
   if (!Array.isArray(value)) {
@@ -315,9 +306,23 @@ reviewsRouter.get("/courses/:courseId/pending-reviews", requireAuth, async (req:
   if (req.query.reviewerId !== undefined && !reviewerId) {
     return validationFailed(res, "reviewerId must be a non-empty string");
   }
+  const scopeRaw = typeof req.query.scope === "string" ? req.query.scope.trim() : "";
+  if (req.query.scope !== undefined && scopeRaw !== "pending" && scopeRaw !== "workbench") {
+    return validationFailed(res, "scope must be pending or workbench");
+  }
+  const statusFilter = scopeRaw === "workbench"
+    ? [
+        SubmissionStatus.submitted,
+        SubmissionStatus.under_review,
+        SubmissionStatus.approved,
+        SubmissionStatus.reviewed,
+        SubmissionStatus.needs_changes,
+        SubmissionStatus.rejected,
+      ]
+    : [SubmissionStatus.submitted, SubmissionStatus.under_review];
 
   const where: Prisma.SubmissionWhereInput = {
-    status: { in: [SubmissionStatus.submitted, SubmissionStatus.under_review] },
+    status: { in: statusFilter },
     ...(stageId ? { stageId } : {}),
     ...(groupId ? { groupId } : {}),
     ...(reviewerId ? { NOT: { reviews: { some: { reviewerId } } } } : {}),
@@ -548,102 +553,3 @@ reviewsRouter.post("/submissions/:submissionId/mark-reviewed", requireAuth, asyn
   return ok(res, { submissionId: submissionId.toString(), status: REVIEWED_STATUS });
 });
 
-reviewsRouter.get("/courses/:courseId/reviews/export", requireAuth, async (req: Request, res: Response) => {
-  const courseId = parseBigIntParam(req.params.courseId, "courseId", res);
-  if (courseId === null) return;
-
-  const role = req.user!.role as Role;
-  if (role === Role.student) {
-    return forbidden(res, "Only course staff can export reviews");
-  }
-  const course = await ensureCourseReadable(courseId, req.user!.id, role, res);
-  if (!course) return;
-
-  const stageId = req.query.stageId !== undefined
-    ? parseBigIntParam(req.query.stageId as string | string[] | undefined, "stageId", res)
-    : null;
-  if (req.query.stageId !== undefined && stageId === null) return;
-  const groupId = req.query.groupId !== undefined
-    ? parseBigIntParam(req.query.groupId as string | string[] | undefined, "groupId", res)
-    : null;
-  if (req.query.groupId !== undefined && groupId === null) return;
-  const reviewerId = typeof req.query.reviewerId === "string" && req.query.reviewerId.trim()
-    ? req.query.reviewerId.trim()
-    : null;
-  if (req.query.reviewerId !== undefined && !reviewerId) {
-    return validationFailed(res, "reviewerId must be a non-empty string");
-  }
-
-  const where: Prisma.ReviewWhereInput = {
-    ...(reviewerId ? { reviewerId } : {}),
-    submission: {
-      stage: {
-        assignment: { courseId },
-      },
-      ...(stageId ? { stageId } : {}),
-      ...(groupId ? { groupId } : {}),
-    },
-  };
-
-  const rows = await prisma.review.findMany({
-    where,
-    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-    select: {
-      id: true,
-      submissionId: true,
-      reviewerId: true,
-      status: true,
-      decision: true,
-      score: true,
-      comment: true,
-      submittedAt: true,
-      createdAt: true,
-      updatedAt: true,
-      submission: {
-        select: {
-          groupId: true,
-          stageId: true,
-          attemptNo: true,
-          status: true,
-          group: { select: { name: true, groupNo: true } },
-          stage: { select: { title: true, stageNo: true } },
-        },
-      },
-    },
-  });
-
-  const header = [
-    "reviewId", "courseId", "submissionId", "stageId", "stageNo", "stageTitle", "groupId", "groupNo",
-    "groupName", "attemptNo", "submissionStatus", "reviewerId", "reviewStatus", "decision", "score",
-    "comment", "submittedAt", "createdAt", "updatedAt",
-  ];
-  const lines = [header.join(",")];
-
-  for (const row of rows) {
-    lines.push([
-      row.id.toString(),
-      courseId.toString(),
-      row.submissionId.toString(),
-      row.submission.stageId.toString(),
-      row.submission.stage.stageNo,
-      csvEscape(row.submission.stage.title),
-      row.submission.groupId.toString(),
-      row.submission.group.groupNo,
-      csvEscape(row.submission.group.name ?? ""),
-      row.submission.attemptNo,
-      row.submission.status,
-      row.reviewerId,
-      row.status,
-      row.decision ?? "",
-      row.score ? Number(row.score) : "",
-      csvEscape(row.comment ?? ""),
-      row.submittedAt ? row.submittedAt.toISOString() : "",
-      row.createdAt.toISOString(),
-      row.updatedAt.toISOString(),
-    ].map(csvEscape).join(","));
-  }
-
-  res.setHeader("Content-Type", "text/csv; charset=utf-8");
-  res.setHeader("Content-Disposition", `attachment; filename="course-${courseId.toString()}-reviews.csv"`);
-  res.send(lines.join("\n"));
-});

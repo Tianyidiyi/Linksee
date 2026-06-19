@@ -110,6 +110,18 @@ describe("course-access", () => {
     expect(c2.state.status).toBe(403);
   });
 
+  it("ensureCourseReadable: student cannot read draft course", async () => {
+    jest.spyOn(prisma.course, "findUnique").mockResolvedValue({ id: 1n, status: "draft" } as any);
+    const memberSpy = jest.spyOn(prisma.courseMember, "findUnique");
+    const { res, state } = createRes();
+
+    const result = await ensureCourseReadable(1n, "s1", "student" as any, res);
+
+    expect(result).toBeNull();
+    expect(state.status).toBe(403);
+    expect(memberSpy).not.toHaveBeenCalled();
+  });
+
   it("ensureCourseManageable: role and teacher-record checks", async () => {
     const courseSpy = jest.spyOn(prisma.course, "findUnique");
     courseSpy.mockResolvedValueOnce(null as any);

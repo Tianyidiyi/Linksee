@@ -8,7 +8,12 @@ import { parseBigIntParam, parseSingleString, serializeBigInt, validationFailed,
 import { getGroupAccess } from "../groups/group-access.js";
 import { createEventEnvelope } from "../events/event-builder.js";
 import { pushSocketEvent } from "../events/realtime-publisher.js";
-import { parseSubmissionFileUpload, uploadSubmissionFile, removeSubmissionFileObject } from "./submission-file-storage.js";
+import {
+  parseSubmissionFileUpload,
+  uploadSubmissionFile,
+  removeSubmissionFileObject,
+  presignSubmissionDownload,
+} from "./submission-file-storage.js";
 import { canCreateSubmissionAttempt } from "./submission-status.js";
 import { getIdempotentResponse, saveIdempotentResponse } from "../infra/idempotency-store.js";
 import { ensureGroupConversation, getConversationId } from "../collaboration/chat-helpers.js";
@@ -484,9 +489,74 @@ submissionsRouter.get(
         submittedBy: true,
         createdAt: true,
         updatedAt: true,
+        files: {
+          orderBy: { uploadedAt: "asc" },
+          select: {
+            id: true,
+            name: true,
+            size: true,
+            mimeType: true,
+            uploadedAt: true,
+          },
+        },
       },
     });
 
-    return ok(res, serializeBigInt(submissions));
+    const normalized = submissions.map((submission) => ({
+      ...submission,
+      files: submission.files.map((file) => ({
+        ...file,
+        downloadPath: `/api/v1/submission-files/${file.id.toString()}/download-url`,
+      })),
+    }));
+
+    return ok(res, serializeBigInt(normalized));
+  },
+);
+
+submissionsRouter.get(
+  "/submission-files/:fileId/download-url",
+  requireAuth,
+  async (req: Request, res: Response) => {
+    const fileId = parseBigIntParam(req.params.fileId, "fileId", res);
+    if (fileId === null) return;
+
+    const file = await prisma.submissionFile.findUnique({
+      where: { id: fileId },
+      select: {
+        id: true,
+        name: true,
+        size: true,
+        mimeType: true,
+        uploadedAt: true,
+        objectKey: true,
+        submission: {
+          select: {
+            groupId: true,
+          },
+        },
+      },
+    });
+
+    if (!file) {
+      return fail(res, 404, "NOT_FOUND", "Submission file not found");
+    }
+
+    const role = req.user!.role as Role;
+    const group = await getGroupAccess(file.submission.groupId, req.user!.id, role, res);
+    if (!group) return;
+
+    const downloadUrl = await presignSubmissionDownload(file.objectKey);
+    return ok(
+      res,
+      serializeBigInt({
+        id: file.id,
+        name: file.name,
+        size: file.size,
+        mimeType: file.mimeType,
+        uploadedAt: file.uploadedAt,
+        downloadUrl,
+      }),
+    );
   },
 );

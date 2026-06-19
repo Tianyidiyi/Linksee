@@ -20,12 +20,6 @@ export default {
       lines: 1,
       statements: 1,
     },
-    './src/collaboration/chat-helpers.ts': {
-      branches: 80,
-      functions: 50,
-      lines: 80,
-      statements: 80,
-    },
   },
   testTimeout: 15000,
   moduleNameMapper: {

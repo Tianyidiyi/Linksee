@@ -345,52 +345,6 @@ assignmentsRouter.delete("/assignments/:assignmentId", requireAuth, async (req: 
   res.json({ ok: true });
 });
 
-assignmentsRouter.post("/assignments/:assignmentId/status", requireAuth, async (req: Request, res: Response) => {
-  const assignmentId = parseBigIntParam(req.params.assignmentId, "assignmentId", res);
-  if (assignmentId === null) return;
-
-  const assignment = await getAssignmentWriteAccess(assignmentId, req.user!.id, req.user!.role as Role, res);
-  if (!assignment) return;
-
-  const nextStatus = parseAssignmentStatus(req.body?.status);
-  if (!nextStatus) {
-    return validationFailed(res, "status must be draft, active or archived");
-  }
-  if (!(await validateAssignmentStatusChange(assignment.status, nextStatus, assignmentId, res))) {
-    return;
-  }
-
-  const updated = await prisma.assignment.update({
-    where: { id: assignmentId },
-    data: { status: nextStatus },
-    select: {
-      id: true,
-      courseId: true,
-      title: true,
-      description: true,
-      descriptionFiles: true,
-      status: true,
-      createdBy: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  });
-
-  if (assignment.status !== AssignmentStatus.archived && updated.status === AssignmentStatus.archived) {
-    await archiveAssignmentGroups(assignmentId, req.user!.id);
-  }
-
-  if (assignment.status !== AssignmentStatus.active && updated.status === AssignmentStatus.active) {
-    await publishCourseSystemAnnouncement({
-      courseId: updated.courseId,
-      senderId: req.user!.id,
-      content: `系统通知：项目 ${updated.title} 已开启，请相关同学及时查看要求并开始协作。`,
-    });
-  }
-
-  return ok(res, serializeAssignmentRecord(updated));
-});
-
 assignmentsRouter.post(
   "/assignments/:assignmentId/materials",
   requireAuth,

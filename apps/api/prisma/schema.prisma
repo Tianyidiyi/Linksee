@@ -1,6 +1,6 @@
 // ============================================================
 // Linksee — Prisma Schema（Auth 组，v2）
-// 对应设计文档：docs/api/auth/auth-tables-design-v2.md
+// 对应设计文档：docs/api/auth/认证表结构设计.md
 //
 // 表：users / user_profiles / student_profiles /
 //     teacher_profiles / teacher_assistants / assistant_bindings
@@ -240,7 +240,7 @@ model AssistantBinding {
 
 // ============================================================
 // PHASE 1 — courses / course_teachers / course_members
-// 设计文档：docs/api/courses/course-tables-design-v1.md
+// 历史设计草案：docs/归档/设计草案/课程表结构设计-v1.md
 // ============================================================
 
 enum CourseStatus {

@@ -4,6 +4,7 @@ import request from "supertest";
 import { minioClient } from "../../../apps/api/src/infra/minio.js";
 import {
   parseSubmissionFileUpload,
+  presignSubmissionDownload,
   removeSubmissionFileObject,
   uploadSubmissionFile,
 } from "../../../apps/api/src/submissions/submission-file-storage.js";
@@ -99,5 +100,12 @@ describe("submissions/submission-file-storage", () => {
   it("removeSubmissionFileObject should swallow remove failures", async () => {
     jest.spyOn(minioClient, "removeObject").mockRejectedValue(new Error("boom"));
     await expect(removeSubmissionFileObject("k1")).resolves.toBeUndefined();
+  });
+
+  it("presignSubmissionDownload should delegate to minio client", async () => {
+    const presignSpy = jest.spyOn(minioClient, "presignedGetObject").mockResolvedValue("https://example.test/file" as any);
+
+    await expect(presignSubmissionDownload("k2")).resolves.toBe("https://example.test/file");
+    expect(presignSpy).toHaveBeenCalledTimes(1);
   });
 });

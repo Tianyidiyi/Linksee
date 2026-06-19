@@ -5,7 +5,6 @@ import { prisma } from "../infra/prisma.js";
 import { parseBigIntParam, serializeBigInt, validationFailed, conflict } from "../assignments/assignment-access.js";
 import { fail, ok } from "../infra/http-response.js";
 import { ensureAssignmentManageable, ensureGroupManageable } from "./group-access.js";
-import { parseBigIntBodyValue } from "./group-utils.js";
 import { ensureGroupConversation } from "../collaboration/chat-helpers.js";
 import { syncSingleGroupLifecycle } from "./group-lifecycle.js";
 
@@ -23,97 +22,6 @@ function canTransitionGroupStatus(from: GroupStatus, to: GroupStatus): boolean {
   if (from === GroupStatus.active && to === GroupStatus.archived) return true;
   return false;
 }
-
-groupAdminRouter.post("/groups/:groupId/merge", requireAuth, async (req: Request, res: Response) => {
-  const sourceGroupId = parseBigIntParam(req.params.groupId, "groupId", res);
-  if (sourceGroupId === null) return;
-
-  const targetGroupId = parseBigIntParam(parseBigIntBodyValue(req.body?.targetGroupId), "targetGroupId", res);
-  if (targetGroupId === null) return;
-  if (targetGroupId === sourceGroupId) {
-    return conflict(res, "targetGroupId must be different from groupId");
-  }
-
-  const sourceGroup = await ensureGroupManageable(sourceGroupId, req.user!.id, req.user!.role as Role, res);
-  if (!sourceGroup) return;
-  const targetGroup = await ensureGroupManageable(targetGroupId, req.user!.id, req.user!.role as Role, res);
-  if (!targetGroup) return;
-  if (sourceGroup.assignmentId !== targetGroup.assignmentId) {
-    return conflict(res, "Groups must belong to the same assignment");
-  }
-
-  const result = await prisma.$transaction(async (tx) => {
-    const source = await tx.group.findUnique({
-      where: { id: sourceGroupId },
-      select: {
-        id: true,
-        status: true,
-        _count: { select: { members: true, joinRequests: true, leaderTransferRequests: true } },
-      },
-    });
-    const target = await tx.group.findUnique({
-      where: { id: targetGroupId },
-      select: {
-        id: true,
-        status: true,
-        _count: { select: { members: true } },
-      },
-    });
-    if (!source || !target) return { ok: false as const, code: "NOT_FOUND" as const };
-    if (source.status === GroupStatus.archived || target.status === GroupStatus.archived) {
-      return { ok: false as const, code: "ARCHIVED" as const };
-    }
-    if (source._count.members === 0) {
-      return { ok: false as const, code: "EMPTY" as const };
-    }
-
-    const members = await tx.groupMember.findMany({
-      where: { groupId: sourceGroupId },
-      select: { id: true, userId: true, role: true },
-    });
-
-    for (const member of members) {
-      await tx.groupMember.update({
-        where: { id: member.id },
-        data: {
-          groupId: targetGroupId,
-          role: "member",
-        },
-      });
-    }
-
-    await tx.groupJoinRequest.updateMany({
-      where: { groupId: sourceGroupId, status: "pending" },
-      data: { status: "cancelled" },
-    });
-    await tx.groupLeaderTransferRequest.updateMany({
-      where: { groupId: sourceGroupId, status: "pending" },
-      data: { status: "cancelled" },
-    });
-    await tx.group.update({
-      where: { id: sourceGroupId },
-      data: { status: GroupStatus.archived },
-    });
-
-    return { ok: true as const, movedMembers: members.map((member) => member.userId) };
-  });
-
-  if (!result.ok) {
-    if (result.code === "EMPTY") {
-      return conflict(res, "Source group is empty");
-    }
-    if (result.code === "ARCHIVED") {
-      return conflict(res, "Archived groups cannot be merged");
-    }
-    return fail(res, 404, "NOT_FOUND", "Group not found");
-  }
-
-  return ok(res, {
-    sourceGroupId: sourceGroupId.toString(),
-    targetGroupId: targetGroupId.toString(),
-    movedMembers: result.movedMembers.length,
-  });
-});
 
 // ──────────────────────────────────────────────────────────────
 // POST /api/v1/assignments/:assignmentId/groups/conversations

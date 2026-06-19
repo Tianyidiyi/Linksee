@@ -6,6 +6,9 @@ import { env } from "../../../apps/api/src/infra/env.js";
 import { prisma } from "../../../apps/api/src/infra/prisma.js";
 import { assignmentsRouter } from "../../../apps/api/src/assignments/assignments-router.js";
 import * as assignmentAccess from "../../../apps/api/src/assignments/assignment-access.js";
+import * as assignmentNotifications from "../../../apps/api/src/assignments/assignment-notifications.js";
+import * as groupLifecycle from "../../../apps/api/src/groups/group-lifecycle.js";
+import * as materialStorage from "../../../apps/api/src/assignments/course-material-storage.js";
 
 const AssignmentStatus = {
   draft: "draft",
@@ -111,6 +114,7 @@ describe("assignments-router integration", () => {
       updatedAt: new Date(),
     } as any);
     jest.spyOn(prisma.assignmentStage, "count").mockResolvedValue(1);
+    jest.spyOn(assignmentNotifications, "publishCourseSystemAnnouncement").mockResolvedValue();
     jest.spyOn(prisma.assignment, "update").mockResolvedValue({
       id: 3n,
       courseId: 10n,
@@ -131,5 +135,80 @@ describe("assignments-router integration", () => {
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);
     expect(res.body.data.status).toBe("active");
+    expect(assignmentNotifications.publishCourseSystemAnnouncement).toHaveBeenCalledTimes(1);
+  });
+
+  it("PATCH /assignments/:assignmentId should archive linked groups when assignment archive succeeds", async () => {
+    const app = createApp();
+    jest.spyOn(assignmentAccess, "getAssignmentWriteAccess").mockResolvedValue({
+      id: 4n,
+      courseId: 10n,
+      title: "Project Delta",
+      description: null,
+      descriptionFiles: [],
+      status: AssignmentStatus.active,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as any);
+    jest.spyOn(prisma.assignmentStage, "count").mockResolvedValue(0);
+    jest.spyOn(prisma.assignment, "update").mockResolvedValue({
+      id: 4n,
+      courseId: 10n,
+      title: "Project Delta",
+      description: null,
+      descriptionFiles: [],
+      status: AssignmentStatus.archived,
+      createdBy: "t1",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as any);
+    const archiveSpy = jest.spyOn(groupLifecycle, "archiveAssignmentGroups").mockResolvedValue(2);
+
+    const res = await request(app)
+      .patch("/api/v1/assignments/4")
+      .set("authorization", authHeader("t1", "teacher"))
+      .send({ status: "archived" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(res.body.data.status).toBe("archived");
+    expect(archiveSpy).toHaveBeenCalledWith(4n, "t1");
+  });
+
+  it("DELETE /assignments/:assignmentId/materials should remove existing assignment material", async () => {
+    const app = createApp();
+    jest.spyOn(assignmentAccess, "getAssignmentWriteAccess").mockResolvedValue({
+      id: 5n,
+      courseId: 10n,
+      title: "Project Epsilon",
+      description: null,
+      descriptionFiles: [
+        {
+          objectKey: "course/10/assignment/5/spec.docx",
+          name: "spec.docx",
+          size: 1024,
+          mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          uploadedAt: new Date().toISOString(),
+        },
+      ],
+      status: AssignmentStatus.draft,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as any);
+    const updateSpy = jest.spyOn(prisma.assignment, "update").mockResolvedValue({
+      id: 5n,
+      descriptionFiles: [],
+    } as any);
+    const removeSpy = jest.spyOn(materialStorage, "removeCourseMaterialObject").mockResolvedValue();
+
+    const res = await request(app)
+      .delete("/api/v1/assignments/5/materials")
+      .set("authorization", authHeader("t1", "teacher"))
+      .send({ objectKey: "course/10/assignment/5/spec.docx" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    expect(removeSpy).toHaveBeenCalledWith("course/10/assignment/5/spec.docx");
   });
 });

@@ -76,6 +76,55 @@ describe("reviews-router integration", () => {
     expect(res.body.code).toBe("VALIDATION_FAILED");
   });
 
+  it("POST /submissions/:id/reviews should create review, update submission status and publish events", async () => {
+    const app = createApp();
+    jest.spyOn(prisma.submission, "findUnique").mockResolvedValue({
+      id: 1n,
+      status: "under_review",
+      stageId: 20n,
+      groupId: 10n,
+      stage: { assignment: { courseId: 30n } },
+    } as any);
+    jest.spyOn(courseAccess, "ensureCourseReadable").mockResolvedValue({ id: 30n } as any);
+    jest.spyOn(prisma.review, "findUnique").mockResolvedValue(null);
+    jest.spyOn(prisma, "$transaction").mockImplementation(async (callback: any) => callback({
+      review: {
+        create: async () => ({
+          id: 5n,
+          submissionId: 1n,
+          decision: "approved",
+          score: "18",
+          reviewerId: "a1",
+          createdAt: new Date(),
+        }),
+      },
+      submission: {
+        update: async () => ({ id: 1n }),
+      },
+    }));
+    const pushSpy = jest.spyOn(realtimePublisher, "pushSocketEvent").mockResolvedValue();
+
+    const res = await request(app)
+      .post("/api/v1/submissions/1/reviews")
+      .set("authorization", authHeader("a1", "assistant"))
+      .send({
+        status: "approved",
+        comment: "通过，进入评分阶段",
+        rubricScores: [
+          { item: "完整性", score: 10, maxScore: 10 },
+          { item: "规范性", score: 8, maxScore: 10 },
+        ],
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(res.body.data.submissionId).toBe("1");
+    expect(res.body.data.status).toBe("approved");
+    expect(res.body.data.score).toBe(18);
+    expect(res.body.data.reviewerId).toBe("a1");
+    expect(pushSpy).toHaveBeenCalledTimes(3);
+  });
+
   it("POST /submissions/:id/reviews/start should reject invalid status transition", async () => {
     const app = createApp();
     jest.spyOn(prisma.submission, "findUnique").mockResolvedValue({
@@ -180,27 +229,4 @@ describe("reviews-router integration", () => {
     expect(res.body.code).toBe("CONFLICT");
   });
 
-  it("GET /courses/:id/reviews/export should validate reviewerId", async () => {
-    const app = createApp();
-    jest.spyOn(courseAccess, "ensureCourseReadable").mockResolvedValue({ id: 30n } as any);
-
-    const res = await request(app)
-      .get("/api/v1/courses/30/reviews/export?reviewerId=   ")
-      .set("authorization", authHeader("t1", "teacher"));
-
-    expect(res.status).toBe(400);
-    expect(res.body.code).toBe("VALIDATION_FAILED");
-  });
-
-  it("GET /courses/:id/reviews/export should validate stageId", async () => {
-    const app = createApp();
-    jest.spyOn(courseAccess, "ensureCourseReadable").mockResolvedValue({ id: 30n } as any);
-
-    const res = await request(app)
-      .get("/api/v1/courses/30/reviews/export?stageId=bad")
-      .set("authorization", authHeader("t1", "teacher"));
-
-    expect(res.status).toBe(400);
-    expect(res.body.code).toBe("VALIDATION_FAILED");
-  });
 });

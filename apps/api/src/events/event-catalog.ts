@@ -9,6 +9,10 @@ export const eventCatalog: Record<EventName, { channel: "socket" | "worker"; des
     channel: "socket",
     description: "阶段要求创建后推送给相关小组",
   },
+  "course.conversation.activated": {
+    channel: "socket",
+    description: "课程激活并建立课程会话后推送给课程成员",
+  },
   "course.message.created": {
     channel: "socket",
     description: "课程群消息新增后推送给课程成员",

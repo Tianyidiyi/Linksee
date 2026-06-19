@@ -9,6 +9,7 @@ export type HttpErrorCode =
 export type EventName =
   | "assignment.created"
   | "stage.created"
+  | "course.conversation.activated"
   | "course.message.created"
   | "course.message.updated"
   | "course.message.deleted"

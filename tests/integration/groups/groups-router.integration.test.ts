@@ -3,7 +3,9 @@ import jwt from "jsonwebtoken";
 import request from "supertest";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { env } from "../../../apps/api/src/infra/env.js";
+import { prisma } from "../../../apps/api/src/infra/prisma.js";
 import { groupsRouter } from "../../../apps/api/src/groups/groups-router.js";
+import * as groupAccess from "../../../apps/api/src/groups/group-access.js";
 
 function createApp() {
   const app = express();
@@ -39,6 +41,92 @@ describe("groups-router integration", () => {
       .send({ name: "G1" });
     expect(res.status).toBe(400);
     expect(res.body.code).toBe("VALIDATION_FAILED");
+  });
+
+  it("POST /api/v1/assignments/:assignmentId/groups/auto should create forming groups for ungrouped students", async () => {
+    const app = createApp();
+    jest.spyOn(prisma.assignment, "findUnique").mockResolvedValue({
+      id: 12n,
+      courseId: 22n,
+      groupConfig: {
+        groupFormEnd: null,
+        groupMaxSize: 6,
+      },
+    } as any);
+    jest.spyOn(groupAccess, "ensureAssignmentManageable").mockResolvedValue({
+      id: 12n,
+      courseId: 22n,
+    } as any);
+    jest.spyOn(prisma.groupMember, "findMany").mockResolvedValue([]);
+    jest.spyOn(prisma.courseMember, "findMany").mockResolvedValue([
+      { userId: "2026010041" },
+      { userId: "2026010042" },
+      { userId: "2026010043" },
+      { userId: "2026010044" },
+      { userId: "2026010045" },
+    ] as any);
+    jest.spyOn(prisma.group, "aggregate").mockResolvedValue({
+      _max: { groupNo: 2 },
+    } as any);
+
+    const groupCreate: any = jest.fn();
+    groupCreate
+      .mockResolvedValueOnce({ id: 101n })
+      .mockResolvedValueOnce({ id: 102n });
+    const memberCreateMany: any = jest.fn();
+    memberCreateMany
+      .mockResolvedValueOnce({ count: 4 })
+      .mockResolvedValueOnce({ count: 1 });
+    jest.spyOn(prisma, "$transaction").mockImplementation(async (callback: any) =>
+      callback({
+        group: { create: groupCreate },
+        groupMember: { createMany: memberCreateMany },
+      }),
+    );
+
+    const res = await request(app)
+      .post("/api/v1/assignments/12/groups/auto")
+      .set("authorization", authHeader("t1", "teacher"))
+      .send({ groupSize: 4 });
+
+    expect(res.status).toBe(201);
+    expect(res.body.ok).toBe(true);
+    expect(res.body.data.assignmentId).toBe("12");
+    expect(res.body.data.createdGroups).toBe(2);
+    expect(res.body.data.groupedStudents).toBe(5);
+    expect(res.body.data.groupSize).toBe(4);
+    expect(groupCreate).toHaveBeenCalledTimes(2);
+    expect(groupCreate).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      data: expect.objectContaining({
+        assignmentId: 12n,
+        groupNo: 3,
+        name: "第 3 组",
+        status: "forming",
+        createdBy: "t1",
+      }),
+    }));
+    expect(groupCreate).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      data: expect.objectContaining({
+        assignmentId: 12n,
+        groupNo: 4,
+        name: "第 4 组",
+        status: "forming",
+        createdBy: "t1",
+      }),
+    }));
+    expect(memberCreateMany).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      data: [
+        { groupId: 101n, assignmentId: 12n, userId: "2026010041", role: "leader" },
+        { groupId: 101n, assignmentId: 12n, userId: "2026010042", role: "member" },
+        { groupId: 101n, assignmentId: 12n, userId: "2026010043", role: "member" },
+        { groupId: 101n, assignmentId: 12n, userId: "2026010044", role: "member" },
+      ],
+    }));
+    expect(memberCreateMany).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      data: [
+        { groupId: 102n, assignmentId: 12n, userId: "2026010045", role: "leader" },
+      ],
+    }));
   });
 });
 

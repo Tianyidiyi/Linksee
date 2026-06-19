@@ -79,12 +79,6 @@ export const mvpRoutes: HttpRoute[] = [
     module: "assignment",
   },
   {
-    method: "POST",
-    path: "/api/v1/assignments/:assignmentId/status",
-    authRequired: true,
-    module: "assignment",
-  },
-  {
     method: "DELETE",
     path: "/api/v1/assignments/:assignmentId",
     authRequired: true,
@@ -343,12 +337,6 @@ export const mvpRoutes: HttpRoute[] = [
     module: "group",
   },
   {
-    method: "POST",
-    path: "/api/v1/groups/:groupId/merge",
-    authRequired: true,
-    module: "group",
-  },
-  {
     method: "DELETE",
     path: "/api/v1/groups/:groupId",
     authRequired: true,
@@ -463,12 +451,6 @@ export const mvpRoutes: HttpRoute[] = [
     module: "grading",
   },
   {
-    method: "POST",
-    path: "/api/v1/courses/:courseId/grades/publish-batch",
-    authRequired: true,
-    module: "grading",
-  },
-  {
     method: "PATCH",
     path: "/api/v1/grades/:gradeId",
     authRequired: true,
@@ -488,19 +470,7 @@ export const mvpRoutes: HttpRoute[] = [
   },
   {
     method: "GET",
-    path: "/api/v1/courses/:courseId/grades/export",
-    authRequired: true,
-    module: "grading",
-  },
-  {
-    method: "GET",
     path: "/api/v1/courses/:courseId/grade-drafts",
-    authRequired: true,
-    module: "grading",
-  },
-  {
-    method: "GET",
-    path: "/api/v1/courses/:courseId/reviews/export",
     authRequired: true,
     module: "grading",
   },

@@ -12,7 +12,7 @@ function forbidden(res: Response, message = "Insufficient permissions"): void {
   res.status(403).json({ ok: false, code: "FORBIDDEN", message });
 }
 
-function buildTaskEventJsonFilter(): Prisma.JsonFilter {
+function buildTaskEventJsonFilter(): Record<string, unknown> {
   return {
     path: "$.subType",
     equals: "task_event",

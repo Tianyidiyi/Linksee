@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
 import argon2 from "argon2";
 import { Router, type Request, type Response } from "express";
 import * as XLSX from "xlsx";
@@ -168,6 +168,10 @@ const USER_DIRECTORY_SELECT = {
     },
   },
 } as const;
+
+type UserDirectoryRow = Prisma.UserGetPayload<{
+  select: typeof USER_DIRECTORY_SELECT;
+}>;
 
 function buildDirectoryWhere(query: Request["query"]) {
   const role = typeof query.role === "string" ? query.role : "";
@@ -686,17 +690,17 @@ adminRouter.get("/export", requireAuth, async (req: Request, res: Response) => {
       ? ["助教账号", "姓名", "所属教师", "已绑课程数"]
       : ["一卡通号", "姓名", "年级", "专业", "行政班", "届次"];
 
-  const body = rows.map((row) => {
-    const profile = row.profile || {};
-    const studentProfile = row.studentProfile || {};
-    const teacherProfile = row.teacherProfile || {};
+  const body = (rows as UserDirectoryRow[]).map((row) => {
+    const profile = row.profile;
+    const studentProfile = row.studentProfile;
+    const teacherProfile = row.teacherProfile;
     const ownerBinding = Array.isArray(row.teacherAssistantsAsAssistant) ? row.teacherAssistantsAsAssistant[0] : null;
     const ownerName = ownerBinding?.teacher?.profile?.realName || ownerBinding?.teacherUserId || "";
     return role === "teacher"
-      ? [teacherProfile.teacherNo || row.id, profile.realName || "", teacherProfile.college || "", teacherProfile.title || "", profile.accountNo || row.id]
+      ? [teacherProfile?.teacherNo || row.id, profile?.realName || "", teacherProfile?.college || "", teacherProfile?.title || "", profile?.accountNo || row.id]
       : role === "assistant"
-        ? [profile.accountNo || row.id, profile.realName || "", ownerName, row._count?.assistantBindingsAsAssistant || 0]
-        : [profile.accountNo || row.id, profile.realName || "", studentProfile.grade || "", studentProfile.major || "", studentProfile.adminClass || "", studentProfile.cohort || ""];
+        ? [profile?.accountNo || row.id, profile?.realName || "", ownerName, row._count?.assistantBindingsAsAssistant || 0]
+        : [profile?.accountNo || row.id, profile?.realName || "", studentProfile?.grade || "", studentProfile?.major || "", studentProfile?.adminClass || "", studentProfile?.cohort || ""];
   });
 
   const worksheet = XLSX.utils.aoa_to_sheet([header, ...body]);
