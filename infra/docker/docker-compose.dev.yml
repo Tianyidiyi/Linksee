@@ -8,7 +8,7 @@
 #   docker compose -f infra/docker/docker-compose.dev.yml --env-file infra/docker/.env up -d
 #
 # 阶段二（API 容器化）时在此文件追加 api / worker service，参考：
-#   docs/architecture/engineering-flow-mvp.md §7
+#   docs/architecture/工程流程与构建说明.md
 # ─────────────────────────────────────────────────────────────────────────────
 
 services:

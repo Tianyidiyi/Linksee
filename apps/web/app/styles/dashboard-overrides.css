@@ -5259,22 +5259,25 @@
 }
 
 .teacher-review-workbench-card .dashboard-card-body {
-    overflow: hidden;
+    overflow: visible;
 }
 
 .teacher-review-workbench {
     display: grid;
     grid-template-columns: minmax(280px, 0.95fr) minmax(0, 1.55fr);
     gap: var(--space-5);
-    min-height: 0;
-    height: 100%;
+    min-height: auto;
+    height: auto;
+    align-items: start;
 }
 
 .teacher-review-queue {
-    grid-template-rows: auto minmax(0, 1fr) auto;
-    align-content: stretch;
-    min-height: 0;
-    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: auto;
+    height: auto;
+    overflow: visible;
+    align-self: start;
 }
 
 .teacher-review-queue .dashboard-toolbar-row {
@@ -5296,8 +5299,11 @@
 
 .teacher-review-queue #teacherReviewList {
     margin-top: 0;
-    min-height: 0;
-    overflow: auto;
+    flex: 0 0 auto;
+    min-height: auto;
+    max-height: none !important;
+    overflow: visible !important;
+    height: auto !important;
 }
 
 .teacher-review-queue .dashboard-filter-bar {
@@ -5309,7 +5315,14 @@
     gap: var(--space-4);
     align-content: start;
     min-height: 0;
-    overflow: auto;
+    overflow: visible;
+}
+
+.teacher-review-editor-top {
+    display: grid;
+    grid-template-rows: auto auto;
+    gap: 16px;
+    height: auto;
 }
 
 .teacher-review-editor .dashboard-panel-actions .academic-btn-block {
@@ -5322,27 +5335,33 @@
 }
 
 .assistant-review-workbench-card .dashboard-card-body {
-    overflow: hidden;
+    overflow: visible;
 }
 
 .assistant-review-workbench {
     display: grid;
-    grid-template-columns: minmax(300px, 0.9fr) minmax(0, 1.6fr);
-    gap: var(--space-5);
-    min-height: 0;
-    height: 100%;
+    grid-template-columns: 308px minmax(0, 1fr);
+    gap: 18px;
+    min-height: auto;
+    height: auto;
+    align-items: start;
 }
 
 .assistant-review-queue {
-    grid-template-rows: auto minmax(0, 1fr) auto auto;
-    align-content: stretch;
-    min-height: 0;
-    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: auto;
+    height: auto;
+    overflow: visible;
+    align-self: start;
 }
 
 .assistant-review-queue #assistantSubmissionList {
-    min-height: 0;
-    overflow: auto;
+    flex: 0 0 auto;
+    min-height: auto;
+    max-height: none !important;
+    overflow: visible !important;
+    height: auto !important;
 }
 
 .assistant-review-queue .dashboard-filter-bar {
@@ -5354,7 +5373,14 @@
     gap: var(--space-4);
     align-content: start;
     min-height: 0;
-    overflow: auto;
+    overflow: visible;
+}
+
+.assistant-review-editor-top {
+    display: grid;
+    grid-template-rows: auto auto;
+    gap: 16px;
+    height: auto;
 }
 
 .assistant-review-editor .dashboard-panel-actions .academic-btn-block {
@@ -5364,6 +5390,1101 @@
 
 .assistant-review-editor .dashboard-inline-grid {
     align-items: start;
+}
+
+.assistant-review-unified-card .dashboard-card-body {
+    padding-top: 0;
+}
+
+.academic-shell .assistant-review-unified-card,
+.academic-shell .teacher-review-unified-card {
+    background: #ffffff;
+    border: 1px solid #dbe5ee;
+    box-shadow: 0 24px 56px rgba(19, 39, 61, 0.1);
+}
+
+.assistant-review-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(620px, 68%);
+    align-items: center;
+    gap: 20px;
+}
+
+.assistant-review-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(150px, 1fr)) auto;
+    gap: 12px;
+    align-items: center;
+    margin-left: auto;
+}
+
+.assistant-review-refresh-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: #5c6d7f;
+    box-shadow: none;
+}
+
+.assistant-review-refresh-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.assistant-review-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.assistant-review-panel-metrics {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #607085;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.academic-shell .assistant-review-queue.dashboard-subcard {
+    display: flex;
+    flex-direction: column;
+    padding: 18px;
+    background: #ffffff;
+    border: 1px solid #d9e3ec;
+    box-shadow: 0 18px 42px rgba(22, 41, 64, 0.1);
+    border-radius: 24px;
+}
+
+.assistant-review-panel-head {
+    padding-bottom: 14px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid rgba(222, 230, 238, 0.92);
+}
+
+.assistant-review-panel-head .dashboard-filter-tag,
+.assistant-review-selected-head .badge {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.assistant-review-queue .dashboard-scroll-region {
+    display: grid;
+    gap: 0;
+    flex: 1 1 auto;
+    min-height: auto;
+    min-width: 0;
+    overflow: hidden;
+    background: transparent;
+    border-radius: 0;
+}
+
+.assistant-review-queue-item {
+    display: grid;
+    grid-template-columns: 84px minmax(0, 0.9fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 18px;
+    padding: 16px 6px;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    border-radius: 0;
+    border: 0;
+    border-bottom: 1px solid rgba(229, 235, 241, 0.92);
+    background: #fff;
+}
+
+.assistant-review-queue-item:last-child {
+    border-bottom: 0;
+}
+
+.assistant-review-queue-group {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    padding: 0 12px;
+    border-radius: 11px;
+    color: #355066;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.assistant-review-queue-group.tone-1 {
+    background: #eef8f1;
+    border: 1px solid #d4eadc;
+    color: #4e7b5e;
+}
+
+.assistant-review-queue-group.tone-2 {
+    background: #eef4ff;
+    border: 1px solid #dbe5fb;
+    color: #4c6d9a;
+}
+
+.assistant-review-queue-group.tone-3 {
+    background: #fff4e8;
+    border: 1px solid #f3dfc7;
+    color: #9a6a31;
+}
+
+.assistant-review-queue-group.tone-4 {
+    background: #f4efff;
+    border: 1px solid #e4dafd;
+    color: #7657a0;
+}
+
+.assistant-review-queue-status,
+.assistant-review-queue-leader {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+}
+
+.assistant-review-queue-status strong,
+.assistant-review-queue-leader strong {
+    display: block;
+    color: #2a3d50;
+    font-size: 13px;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.assistant-review-queue-status span,
+.assistant-review-queue-leader span {
+    display: block;
+    color: #7b8b9d;
+    font-size: 11px;
+    line-height: 1.5;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.assistant-review-queue-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid rgba(229, 235, 241, 0.92);
+}
+
+.assistant-review-queue-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100%;
+    background: transparent;
+    color: #78889b;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.assistant-review-page-btn {
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: #5d7185;
+    font-size: 18px;
+    line-height: 1;
+}
+
+.assistant-review-page-btn:disabled {
+    opacity: 0.35;
+}
+
+.assistant-review-page-indicator,
+.assistant-review-page-size {
+    color: #6d7d90;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.assistant-review-queue-item.dashboard-list-item-selected {
+    position: relative;
+    background: linear-gradient(180deg, rgba(239, 247, 242, 0.92), rgba(255, 255, 255, 1));
+    border-bottom-color: rgba(193, 216, 202, 0.95);
+    box-shadow: inset 0 0 0 1px rgba(176, 205, 186, 0.65);
+    border-radius: 16px;
+    padding-inline: 10px;
+}
+
+.assistant-review-queue-item.dashboard-list-item-selected::before {
+    content: "";
+    position: absolute;
+    left: -2px;
+    top: 12px;
+    bottom: 12px;
+    width: 4px;
+    border-radius: 999px;
+    background: #7da88c;
+}
+
+.assistant-review-selected-card,
+.assistant-review-detail-card,
+.assistant-review-action-card,
+.assistant-review-history-card {
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.academic-shell .assistant-review-selected-card.dashboard-subcard,
+.academic-shell .assistant-review-detail-card.dashboard-subcard,
+.academic-shell .assistant-review-action-card.dashboard-subcard,
+.academic-shell .assistant-review-history-card.dashboard-subcard,
+.academic-shell .teacher-review-selected-card.dashboard-subcard,
+.academic-shell .teacher-review-detail-card.dashboard-subcard,
+.academic-shell .teacher-review-action-card.dashboard-subcard,
+.academic-shell .teacher-review-history-card.dashboard-subcard {
+    background: #ffffff;
+    border: 1px solid #dbe5ee;
+    box-shadow: 0 16px 40px rgba(19, 39, 61, 0.08);
+    border-radius: 22px;
+    padding: 20px 22px;
+}
+
+.assistant-review-selected-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 12px;
+    min-width: 0;
+}
+
+.assistant-review-selected-head strong {
+    display: block;
+    font-size: 28px;
+    line-height: 1.2;
+    color: #223142;
+}
+
+.assistant-review-selected-path {
+    margin-top: 8px;
+    color: #708196;
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.assistant-review-inline-meta {
+    margin-top: 12px;
+    color: #556476;
+    font-size: 15px;
+    line-height: 1.6;
+    word-break: break-word;
+}
+
+.assistant-review-detail-card .dashboard-subcard-title,
+.teacher-review-detail-card .dashboard-subcard-title,
+.assistant-review-action-card .dashboard-subcard-title,
+.teacher-review-action-card .dashboard-subcard-title,
+.assistant-review-history-card .dashboard-subcard-title,
+.teacher-review-history-card .dashboard-subcard-title {
+    margin-bottom: 14px;
+}
+
+.assistant-review-detail-card,
+.teacher-review-detail-card {
+    height: auto;
+}
+
+.assistant-review-detail-list {
+    display: block;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+}
+
+.assistant-review-detail-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.9fr) minmax(250px, 0.82fr);
+    gap: 22px;
+    min-height: auto;
+}
+
+.assistant-review-detail-main {
+    display: grid;
+    gap: 0;
+}
+
+.assistant-review-detail-item {
+    display: grid;
+    grid-template-columns: 132px minmax(0, 1fr);
+    align-items: start;
+    gap: 22px;
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(214, 224, 235, 0.96);
+}
+
+.assistant-review-detail-item:first-child {
+    padding-top: 0;
+}
+
+.assistant-review-detail-item:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+}
+
+.assistant-review-detail-label {
+    color: #7c8a9e;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.7;
+}
+
+.assistant-review-richtext {
+    color: #314355;
+    font-size: 15px;
+    line-height: 1.75;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.assistant-review-link-list {
+    display: grid;
+    gap: 6px;
+}
+
+.assistant-review-empty-text,
+.teacher-review-empty-text {
+    color: #95a2b2;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.assistant-review-file-card {
+    padding: 0;
+    border-radius: 18px;
+    background: #ffffff;
+    border: 1px solid rgba(220, 228, 236, 0.92);
+    min-height: auto;
+    overflow: hidden;
+}
+
+.assistant-review-file-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 15px 16px;
+    border-bottom: 1px solid rgba(225, 232, 239, 0.9);
+    color: #405568;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.assistant-review-file-list {
+    display: grid;
+    gap: 0;
+    max-height: none;
+    overflow: visible;
+}
+
+.assistant-review-file-row {
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr) 64px auto;
+    gap: 10px;
+    align-items: center;
+    padding: 11px 16px;
+    border-bottom: 1px solid rgba(225, 232, 239, 0.88);
+}
+
+.assistant-review-file-row:last-child {
+    border-bottom: 0;
+}
+
+.assistant-review-file-icon {
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: rgba(243, 247, 251, 0.98);
+}
+
+.assistant-review-file-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.assistant-review-file-copy {
+    display: grid;
+    gap: 1px;
+    min-width: 0;
+}
+
+.assistant-review-file-copy strong {
+    color: #2d4052;
+    font-size: 14px;
+    line-height: 1.35;
+    font-weight: 700;
+    word-break: break-word;
+}
+
+.assistant-review-file-size,
+.teacher-review-file-size {
+    color: #77889c;
+    font-size: 12px;
+    line-height: 1.3;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.assistant-review-file-type,
+.teacher-review-file-type {
+    color: #4e6478;
+    font-size: 11px;
+    line-height: 1.4;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.assistant-review-file-meta,
+.teacher-review-file-meta,
+.assistant-review-file-copy span,
+.assistant-review-file-empty {
+    color: #7e8ea1;
+    font-size: 14px;
+    line-height: 1.55;
+}
+
+.assistant-review-file-empty {
+    padding: 18px 14px;
+}
+
+.assistant-review-file-download {
+    border: 0;
+    background: transparent;
+    color: #6c8d73;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.assistant-review-file-download:disabled,
+.teacher-review-file-download:disabled {
+    color: #b5c0cd;
+    cursor: default;
+}
+
+.assistant-review-file-download:not(:disabled):hover {
+    color: #4f7356;
+}
+
+.assistant-review-lower-grid {
+    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+    align-items: stretch;
+}
+
+.assistant-review-action-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.assistant-review-action-card .dashboard-select,
+.assistant-review-action-card .dashboard-textarea,
+.assistant-review-action-card .btn,
+.assistant-review-history-card .dashboard-filter-tag,
+.assistant-review-selected-card .badge {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.assistant-review-action-card .btn {
+    padding-inline: 14px;
+    min-height: 46px;
+}
+
+.assistant-review-action-card .dashboard-textarea,
+.teacher-review-action-card .dashboard-textarea {
+    min-height: 160px;
+    resize: vertical;
+}
+
+.assistant-review-attempt-list {
+    display: block;
+}
+
+.assistant-review-attempt-table {
+    display: grid;
+    gap: 0;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(220, 228, 236, 0.9);
+}
+
+.assistant-review-attempt-head,
+.assistant-review-attempt-item {
+    display: grid;
+    grid-template-columns: 72px 130px 84px minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+    padding: 11px 14px;
+}
+
+.assistant-review-attempt-head {
+    background: rgba(246, 249, 252, 0.96);
+    color: #7b8a9d;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.assistant-review-attempt-item {
+    color: #334455;
+    font-size: 12px;
+    background: #fff;
+    border-top: 1px solid rgba(225, 232, 239, 0.85);
+}
+
+.assistant-review-attempt-item.is-current {
+    background: linear-gradient(135deg, rgba(236, 247, 241, 0.92), rgba(249, 252, 250, 0.98));
+}
+
+.assistant-review-attempt-status {
+    color: #5d856d;
+    font-weight: 700;
+}
+
+.assistant-review-placeholder {
+    color: #7b899b;
+    font-size: 14px;
+    line-height: 1.8;
+}
+
+.teacher-review-unified-card .dashboard-card-body {
+    padding-top: 0;
+}
+
+.teacher-review-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(620px, 68%);
+    align-items: center;
+    gap: 20px;
+}
+
+.teacher-review-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(150px, 1fr)) auto;
+    gap: 12px;
+    align-items: center;
+    margin-left: auto;
+}
+
+.teacher-review-refresh-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: #5c6d7f;
+    box-shadow: none;
+}
+
+.teacher-review-refresh-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.teacher-review-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.teacher-review-panel-metrics {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #607085;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.academic-shell .teacher-review-queue.dashboard-subcard {
+    display: flex;
+    flex-direction: column;
+    padding: 18px;
+    background: #ffffff;
+    border: 1px solid #d9e3ec;
+    box-shadow: 0 18px 42px rgba(22, 41, 64, 0.1);
+    border-radius: 24px;
+}
+
+.teacher-review-panel-head {
+    padding-bottom: 14px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid rgba(222, 230, 238, 0.92);
+}
+
+.teacher-review-panel-head .dashboard-filter-tag,
+.teacher-review-selected-head .badge {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.teacher-review-queue #teacherReviewList {
+    display: grid;
+    gap: 0;
+    flex: 1 1 auto;
+    min-height: auto;
+    min-width: 0;
+    overflow: hidden;
+    background: transparent;
+    border-radius: 0;
+}
+
+.teacher-review-queue-item {
+    display: grid;
+    grid-template-columns: 84px minmax(0, 0.9fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 18px;
+    padding: 16px 6px;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    border-radius: 0;
+    border: 0;
+    border-bottom: 1px solid rgba(229, 235, 241, 0.92);
+    background: #fff;
+}
+
+.teacher-review-queue-item:last-child {
+    border-bottom: 0;
+}
+
+.teacher-review-queue-group {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    padding: 0 12px;
+    border-radius: 11px;
+    color: #355066;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.teacher-review-queue-group.tone-1 {
+    background: #eef8f1;
+    border: 1px solid #d4eadc;
+    color: #4e7b5e;
+}
+
+.teacher-review-queue-group.tone-2 {
+    background: #eef4ff;
+    border: 1px solid #dbe5fb;
+    color: #4c6d9a;
+}
+
+.teacher-review-queue-group.tone-3 {
+    background: #fff4e8;
+    border: 1px solid #f3dfc7;
+    color: #9a6a31;
+}
+
+.teacher-review-queue-group.tone-4 {
+    background: #f4efff;
+    border: 1px solid #e4dafd;
+    color: #7657a0;
+}
+
+.teacher-review-queue-status,
+.teacher-review-queue-leader {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+}
+
+.teacher-review-queue-status strong,
+.teacher-review-queue-leader strong {
+    display: block;
+    color: #2a3d50;
+    font-size: 13px;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.teacher-review-queue-status span,
+.teacher-review-queue-leader span {
+    display: block;
+    color: #7b8b9d;
+    font-size: 11px;
+    line-height: 1.5;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.teacher-review-queue-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid rgba(229, 235, 241, 0.92);
+}
+
+.teacher-review-queue-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100%;
+    background: transparent;
+    color: #78889b;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.teacher-review-page-btn {
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: #5d7185;
+    font-size: 18px;
+    line-height: 1;
+}
+
+.teacher-review-page-btn:disabled {
+    opacity: 0.35;
+}
+
+.teacher-review-page-indicator,
+.teacher-review-page-size {
+    color: #6d7d90;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.teacher-review-queue-item.dashboard-list-item-selected {
+    position: relative;
+    background: linear-gradient(180deg, rgba(239, 247, 242, 0.92), rgba(255, 255, 255, 1));
+    border-bottom-color: rgba(193, 216, 202, 0.95);
+    box-shadow: inset 0 0 0 1px rgba(176, 205, 186, 0.65);
+    border-radius: 16px;
+    padding-inline: 10px;
+}
+
+.teacher-review-queue-item.dashboard-list-item-selected::before {
+    content: "";
+    position: absolute;
+    left: -2px;
+    top: 12px;
+    bottom: 12px;
+    width: 4px;
+    border-radius: 999px;
+    background: #7da88c;
+}
+
+.teacher-review-selected-card,
+.teacher-review-detail-card,
+.teacher-review-action-card,
+.teacher-review-history-card {
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.teacher-review-selected-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 12px;
+    min-width: 0;
+}
+
+.teacher-review-selected-head strong {
+    display: block;
+    font-size: 28px;
+    line-height: 1.2;
+    color: #223142;
+}
+
+.teacher-review-selected-path {
+    margin-top: 8px;
+    color: #708196;
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.teacher-review-inline-meta {
+    margin-top: 12px;
+    color: #556476;
+    font-size: 15px;
+    line-height: 1.6;
+    word-break: break-word;
+}
+
+.teacher-review-detail-list {
+    display: block;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+}
+
+.teacher-review-detail-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.9fr) minmax(250px, 0.82fr);
+    gap: 22px;
+    min-height: auto;
+}
+
+.teacher-review-detail-main {
+    display: grid;
+    gap: 0;
+}
+
+.teacher-review-detail-item {
+    display: grid;
+    grid-template-columns: 132px minmax(0, 1fr);
+    align-items: start;
+    gap: 22px;
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(214, 224, 235, 0.96);
+}
+
+.teacher-review-detail-item:first-child {
+    padding-top: 0;
+}
+
+.teacher-review-detail-item:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+}
+
+.teacher-review-detail-label {
+    color: #7c8a9e;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.teacher-review-richtext {
+    color: #314355;
+    font-size: 15px;
+    line-height: 1.75;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.teacher-review-link-list {
+    display: grid;
+    gap: 6px;
+}
+
+.teacher-review-file-card {
+    padding: 0;
+    border-radius: 18px;
+    background: #ffffff;
+    border: 1px solid rgba(220, 228, 236, 0.92);
+    min-height: auto;
+    overflow: hidden;
+}
+
+.teacher-review-file-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 15px 16px;
+    border-bottom: 1px solid rgba(225, 232, 239, 0.9);
+    color: #405568;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.teacher-review-file-list {
+    display: grid;
+    gap: 0;
+    max-height: none;
+    overflow: visible;
+}
+
+.teacher-review-file-row {
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr) 64px auto;
+    gap: 10px;
+    align-items: center;
+    padding: 11px 16px;
+    border-bottom: 1px solid rgba(225, 232, 239, 0.88);
+}
+
+.teacher-review-file-row:last-child {
+    border-bottom: 0;
+}
+
+.teacher-review-file-icon {
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: rgba(243, 247, 251, 0.98);
+}
+
+.teacher-review-file-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.teacher-review-file-copy {
+    display: grid;
+    gap: 1px;
+    min-width: 0;
+}
+
+.teacher-review-file-copy strong {
+    color: #2d4052;
+    font-size: 14px;
+    line-height: 1.35;
+    font-weight: 700;
+    word-break: break-word;
+}
+
+.teacher-review-file-copy span,
+.teacher-review-file-empty {
+    color: #7e8ea1;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.teacher-review-file-empty {
+    padding: 18px 14px;
+}
+
+.teacher-review-file-download {
+    border: 0;
+    background: transparent;
+    color: #6c8d73;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.teacher-review-file-download:not(:disabled):hover {
+    color: #4f7356;
+}
+
+.teacher-review-lower-grid {
+    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+    align-items: stretch;
+}
+
+.teacher-review-action-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.teacher-review-action-card .dashboard-select,
+.teacher-review-action-card .dashboard-textarea,
+.teacher-review-action-card .btn,
+.teacher-review-history-card .dashboard-filter-tag,
+.teacher-review-selected-card .badge {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.teacher-review-action-card .btn {
+    padding-inline: 14px;
+    min-height: 46px;
+}
+
+.teacher-review-attempt-list {
+    display: block;
+}
+
+.teacher-review-attempt-table {
+    display: grid;
+    gap: 0;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(220, 228, 236, 0.9);
+}
+
+.teacher-review-attempt-head,
+.teacher-review-attempt-item {
+    display: grid;
+    grid-template-columns: 72px 130px 84px minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+    padding: 11px 14px;
+}
+
+.teacher-review-attempt-head {
+    background: rgba(246, 249, 252, 0.96);
+    color: #7b8a9d;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.teacher-review-attempt-item {
+    color: #334455;
+    font-size: 12px;
+    background: #fff;
+    border-top: 1px solid rgba(225, 232, 239, 0.85);
+}
+
+.teacher-review-attempt-item.is-current {
+    background: linear-gradient(135deg, rgba(236, 247, 241, 0.92), rgba(249, 252, 250, 0.98));
+}
+
+.teacher-review-attempt-status {
+    color: #5d856d;
+    font-weight: 700;
+}
+
+.teacher-review-placeholder {
+    color: #7b899b;
+    font-size: 14px;
+    line-height: 1.8;
+}
+
+@media (max-width: 1180px) {
+    .assistant-review-filter-grid,
+    .assistant-review-detail-layout,
+    .assistant-review-lower-grid,
+    .assistant-review-action-row,
+    .teacher-review-filter-grid,
+    .teacher-review-detail-layout,
+    .teacher-review-lower-grid,
+    .teacher-review-action-row {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .assistant-review-detail-item,
+    .teacher-review-detail-item,
+    .assistant-review-attempt-head,
+    .assistant-review-attempt-item,
+    .teacher-review-attempt-head,
+    .teacher-review-attempt-item {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
 
 .student-todo-widget {

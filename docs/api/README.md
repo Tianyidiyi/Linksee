@@ -1,22 +1,34 @@
-# docs/api 文档导航
+# 接口文档
 
-## 1. 核心文档
-- [课程后端接口总览 v1](./course-backend-endpoints-overview-v1.md)
-- [OpenAPI（v1）](./openapi/linksee-v1.yaml)
-- [课程表结构设计 v1](./courses/course-tables-design-v1.md)
-- [课程表结构设计 v2（当前实现）](./courses/course-tables-design-v2.md)
+本文档只保留当前仍应维护的接口与数据文档入口。历史联调与阶段性清单已迁入 `docs/归档/`。
 
-## 2. 认证与用户
-- [认证设计 v2](./auth/auth-design-v2.md)
-- [认证相关表结构 v2](./auth/auth-tables-design-v2.md)
-- [Users API v1](./auth/users-api-v1.md)
+## 一、核心接口文档
 
-## 3. 协作与通信
-- [通信契约（HTTP + Socket + Worker）](./contracts/communication-contract-v1.md)
-- [协作消息接口说明 v1](./collaboration/chat-messages-v1.md)
-- [前后端联调对齐说明](./前后端联调对齐说明.md)
-- [前后端联调记录模板](./前后端联调记录模板.md)
+- [课程后端接口总览](./课程后端接口总览.md)
+- [OpenAPI 规范](./openapi/linksee-v1.yaml)
+- [课程域表结构设计](./courses/课程域表结构设计.md)
+- [历史表结构草案](../归档/设计草案/课程表结构设计-v1.md)
 
-## 4. 说明
-- v1 文档保留为原始版本，v2 文档用于表达“当前代码真实状态”。
-- 具体接口字段与示例以 OpenAPI 为最终准绳。
+## 二、认证与用户
+
+- [认证设计](./auth/认证设计.md)
+- [认证表结构设计](./auth/认证表结构设计.md)
+- [用户接口说明](./auth/用户接口说明.md)
+
+## 三、协作与通信
+
+- [通信契约](./contracts/通信契约.md)
+- [协作消息接口说明](./collaboration/协作消息接口说明.md)
+
+## 四、归档与历史
+
+以下文档不再作为正式接口事实来源，仅保留历史记录：
+
+- [联调文档归档](../归档/联调文档/)
+- [测试与联调归档](../归档/测试与联调/)
+
+## 五、维护规则
+
+1. 路由、字段、错误码以 OpenAPI 和运行代码为准。
+2. 概览文档负责帮助阅读，不替代 OpenAPI。
+3. 新增或删除接口时，必须同步更新 OpenAPI、接口总览和 `apps/api/src/http/routes.ts`。

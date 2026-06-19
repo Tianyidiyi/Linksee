@@ -4,7 +4,7 @@ info:
   version: 1.0.0
   description: >
     Linksee 教学项目协作与过程评价平台的 P0 API schema。
-    本文件与 docs/api/contracts/communication-contract-v1.md 保持一致，
+    本文件与 docs/api/contracts/通信契约.md 保持一致，
     优先覆盖课程项目、阶段要求、小组讨论、阶段提交、教师反馈和课程看板。
 servers:
   - url: /api/v1
@@ -1526,9 +1526,47 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Submission"
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Submission"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /submission-files/{fileId}/download-url:
+    get:
+      tags:
+        - Submissions
+      summary: 获取提交附件下载地址
+      operationId: getSubmissionFileDownloadUrl
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 获取附件下载地址成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    $ref: "#/components/schemas/SubmissionFileDownload"
         "401":
           $ref: "#/components/responses/Unauthenticated"
         "403":
@@ -3458,6 +3496,59 @@ components:
         updatedAt:
           type: string
           format: date-time
+        files:
+          type: array
+          items:
+            $ref: "#/components/schemas/SubmissionFile"
+
+    SubmissionFile:
+      type: object
+      required:
+        - id
+        - name
+        - size
+        - mimeType
+        - uploadedAt
+        - downloadPath
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        size:
+          type: string
+        mimeType:
+          type: string
+        uploadedAt:
+          type: string
+          format: date-time
+        downloadPath:
+          type: string
+
+    SubmissionFileDownload:
+      type: object
+      required:
+        - id
+        - name
+        - size
+        - mimeType
+        - uploadedAt
+        - downloadUrl
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        size:
+          type: string
+        mimeType:
+          type: string
+        uploadedAt:
+          type: string
+          format: date-time
+        downloadUrl:
+          type: string
+          format: uri
 
     CreateReviewRequest:
       type: object

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
@@ -15,35 +15,35 @@
             <span class="sidebar-brand-text">Linksee</span>
         </div>
         <nav class="side-nav" aria-label="助教功能导航">
-            <button class="nav-item is-active" data-target="panel-review" type="button" title="检查">
+            <button class="nav-item is-active" data-target="panel-review" type="button" title="批阅">
                 <span class="nav-item-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 21h16"></path>
+                        <path d="M7 17V9"></path>
+                        <path d="M12 17V5"></path>
+                        <path d="M17 17v-3"></path>
+                    </svg>
                 </span>
-                <span class="nav-item-label">检查</span>
-            </button>
-            <button class="nav-item" data-target="panel-history" type="button" title="记录">
-                <span class="nav-item-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"></path><path d="M3.1 13a9 9 0 1 0 2.1-5.7L3 8"></path><path d="M12 7v5l3 2"></path></svg>
-                </span>
-                <span class="nav-item-label">记录</span>
-            </button>
-            <button class="nav-item" data-target="panel-courses" type="button" title="课程">
-                <span class="nav-item-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6.5l9-4 9 4-9 4-9-4z"></path><path d="M21 10.5v7l-9 4-9-4v-7"></path><path d="M12 10.5v11"></path></svg>
-                </span>
-                <span class="nav-item-label">课程</span>
+                <span class="nav-item-label">批阅</span>
             </button>
         </nav>
         <div class="sidebar-actions">
             <button id="userSettingsBtn" class="nav-item nav-item-ghost" data-action="open-settings" type="button" title="设置">
                 <span class="nav-item-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c1.8-3.6 5-5.4 8-5.4S18.2 16.4 20 20"></path></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="8" r="4"></circle>
+                        <path d="M4 20c1.8-3.6 5-5.4 8-5.4S18.2 16.4 20 20"></path>
+                    </svg>
                 </span>
                 <span class="nav-item-label">设置</span>
             </button>
             <button id="logoutBtn" class="nav-item nav-item-logout" type="button" title="退出登录">
                 <span class="nav-item-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 17l5-5-5-5"></path><path d="M20 12H9"></path><path d="M11 20H6a2 2 0 01-2-2V6a2 2 0 012-2h5"></path></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M15 17l5-5-5-5"></path>
+                        <path d="M20 12H9"></path>
+                        <path d="M11 20H6a2 2 0 01-2-2V6a2 2 0 012-2h5"></path>
+                    </svg>
                 </span>
                 <span class="nav-item-label">退出</span>
             </button>
@@ -76,65 +76,88 @@
                 </div>
             </div>
         </header>
+
         <div class="content-container">
             <div class="page-panel is-active" id="panel-review">
-                <section class="card assistant-review-workbench-card">
-                    <div class="dashboard-section-intro">
-                        <h2 class="card-title">检查工作台</h2>
-                    </div>
-                    <div class="dashboard-card-body">
-                        <div class="meta" id="metaInfo">正在加载登录信息...</div>
-                        <div class="dashboard-inline-grid">
-                            <div class="dashboard-subcard">
-                                <h3 class="dashboard-subcard-title">工作概览</h3>
-                                <div class="stat-grid">
-                                    <div class="stat"><strong id="assistantCourseCount">0</strong><span>绑定课程</span></div>
-                                    <div class="stat"><strong id="assistantNeedCheckCount">0</strong><span>待检查提交</span></div>
-                                </div>
-                            </div>
-                            <div class="dashboard-subcard">
-                                <h3 class="dashboard-subcard-title">当前课程</h3>
-                                <select class="dashboard-select" id="assistantCourseSelect"></select>
-                            </div>
+                <section class="card assistant-review-workbench-card assistant-review-unified-card">
+                    <div class="dashboard-toolbar-row assistant-review-toolbar">
+                        <div class="dashboard-section-intro">
+                            <h2 class="card-title dashboard-title-reset">批阅工作台</h2>
                         </div>
+                        <div class="assistant-review-filter-grid">
+                            <select class="dashboard-select" id="assistantCourseSelect">
+                                <option value="">加载课程中...</option>
+                            </select>
+                            <select class="dashboard-select" id="assistantAssignmentSelect">
+                                <option value="">选择项目</option>
+                            </select>
+                            <select class="dashboard-select" id="assistantStageSelect">
+                                <option value="">全部阶段</option>
+                            </select>
+                            <button id="assistantReloadBtn" class="assistant-review-refresh-btn" type="button" aria-label="刷新" title="刷新">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M20 11a8 8 0 1 0 2.2 5.5"></path>
+                                    <path d="M20 4v7h-7"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
 
+                    <div class="dashboard-card-body">
                         <div class="assistant-review-workbench">
                             <section class="dashboard-subcard assistant-review-queue">
-                                <div class="dashboard-split-row">
-                                    <h3 class="dashboard-subcard-title">待处理队列</h3>
-                                    <button id="assistantReloadBtn" class="btn btn-secondary" type="button">刷新</button>
-                                </div>
-                                <div class="list dashboard-scroll-region" id="assistantSubmissionList"></div>
-                                <div class="dashboard-empty-state" id="assistantSubmissionEmpty" hidden>
-                                    <strong>暂无待检查提交</strong>
-                                    <p>当前课程没有待处理提交。</p>
-                                </div>
-                                <div class="dashboard-filter-bar">
-                                    <div class="dashboard-filter-meta">
-                                        <span id="assistantPendingCount">当前待处理 0 条</span>
-                                        <span class="dashboard-filter-tag" id="assistantReviewCount">评审中: 0</span>
-                                        <span class="dashboard-filter-tag" id="assistantNewCount">新提交: 0</span>
+                                <div class="assistant-review-panel-head">
+                                    <h3 class="dashboard-subcard-title">提交队列</h3>
+                                    <div class="assistant-review-panel-metrics">
+                                        <span id="assistantPendingCount">待批阅</span>
                                     </div>
+                                </div>
+                                <div class="list" id="assistantSubmissionList"></div>
+                                <div class="assistant-review-queue-footer">
+                                    <button id="assistantQueuePrev" class="assistant-review-page-btn" type="button" aria-label="上一页">‹</button>
+                                    <span id="assistantQueuePage" class="assistant-review-page-indicator">1 / 1</span>
+                                    <button id="assistantQueueNext" class="assistant-review-page-btn" type="button" aria-label="下一页">›</button>
+                                    <span id="assistantQueueSize" class="assistant-review-page-size">6 组/页</span>
                                 </div>
                             </section>
 
                             <section class="assistant-review-editor">
-                                <div class="dashboard-subcard">
-                                    <h3 class="dashboard-subcard-title">当前提交</h3>
-                                    <div class="dashboard-empty-state" id="assistantReviewContext">请选择左侧提交</div>
-                                    <label class="user-settings-field">
-                                        <span>Submission ID</span>
-                                        <input id="assistantSubmissionId" class="dashboard-input" />
-                                    </label>
-                                    <label class="user-settings-field">
-                                        <span>Review ID</span>
-                                        <input id="assistantReviewId" class="dashboard-input" />
-                                    </label>
+                                <div class="assistant-review-editor-top">
+                                    <div class="dashboard-subcard assistant-review-selected-card">
+                                        <div class="assistant-review-selected-head">
+                                            <div>
+                                                <strong id="assistantSelectedTitle">提交内容</strong>
+                                                <div id="assistantSelectedPath" class="assistant-review-selected-path">课程 / 项目 / 阶段</div>
+                                            </div>
+                                        </div>
+                                        <div id="assistantReviewContext" class="assistant-review-inline-meta"></div>
+                                    </div>
+
+                                    <div class="dashboard-subcard assistant-review-detail-card">
+                                        <h3 class="dashboard-subcard-title">提交内容</h3>
+                                        <div id="assistantSubmissionDetail" class="assistant-review-detail-list">
+                                            <div class="assistant-review-detail-layout">
+                                                <div class="assistant-review-detail-main">
+                                                    <div class="assistant-review-detail-item"><span class="assistant-review-detail-label">提交标题</span><div class="assistant-review-richtext"><span class="assistant-review-empty-text">暂无信息</span></div></div>
+                                                    <div class="assistant-review-detail-item"><span class="assistant-review-detail-label">成果说明</span><div class="assistant-review-richtext"><span class="assistant-review-empty-text">暂无信息</span></div></div>
+                                                    <div class="assistant-review-detail-item"><span class="assistant-review-detail-label">贡献说明</span><div class="assistant-review-richtext"><span class="assistant-review-empty-text">暂无信息</span></div></div>
+                                                    <div class="assistant-review-detail-item"><span class="assistant-review-detail-label">仓库链接</span><div class="assistant-review-richtext"><span class="assistant-review-empty-text">暂无信息</span></div></div>
+                                                    <div class="assistant-review-detail-item"><span class="assistant-review-detail-label">参考链接</span><div class="assistant-review-richtext"><span class="assistant-review-empty-text">暂无信息</span></div></div>
+                                                </div>
+                                                <aside class="assistant-review-file-card">
+                                                    <div class="assistant-review-file-head"><span>附件列表</span><span>暂无附件</span></div>
+                                                    <div class="assistant-review-file-list">
+                                                        <div class="assistant-review-file-empty">文件类型：<span class="assistant-review-empty-text">暂无信息</span><br>文件名：<span class="assistant-review-empty-text">暂无信息</span></div>
+                                                    </div>
+                                                </aside>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <div class="dashboard-inline-grid dashboard-split-scroll-grid">
-                                    <div class="dashboard-subcard">
-                                        <h3 class="dashboard-subcard-title">复核意见</h3>
+                                <div class="dashboard-inline-grid assistant-review-lower-grid">
+                                    <div class="dashboard-subcard assistant-review-action-card">
+                                        <h3 class="dashboard-subcard-title">批阅</h3>
                                         <label class="user-settings-field">
                                             <span>结论</span>
                                             <select id="assistantReviewStatus" class="dashboard-select">
@@ -144,68 +167,29 @@
                                             </select>
                                         </label>
                                         <label class="user-settings-field">
-                                            <span>意见</span>
-                                            <textarea id="assistantCommentInput" class="dashboard-textarea" placeholder="请输入复核意见"></textarea>
+                                            <span>批阅意见</span>
+                                            <textarea id="assistantCommentInput" class="dashboard-textarea" placeholder="输入批阅意见"></textarea>
                                         </label>
+                                        <div class="dashboard-panel-actions assistant-review-action-row">
+                                            <button id="assistantStartBtn" class="btn btn-secondary academic-btn-block" type="button" disabled>开始评审</button>
+                                            <button id="assistantReviewSaveBtn" class="btn btn-primary academic-btn-block" type="button" disabled>提交批阅</button>
+                                        </div>
                                     </div>
 
-                                    <div class="dashboard-subcard">
-                                        <h3 class="dashboard-subcard-title">成绩草稿</h3>
-                                        <label class="user-settings-field">
-                                            <span>分数 (0-100)</span>
-                                            <input id="assistantScoreInput" class="dashboard-input" type="number" min="0" max="100" placeholder="输入分数" />
-                                        </label>
-                                        <div class="dashboard-panel-actions">
-                                            <button id="assistantStartBtn" class="btn btn-secondary academic-btn-block" type="button" disabled>开始检查</button>
-                                            <button id="assistantReviewSaveBtn" class="btn btn-primary academic-btn-block" type="button" disabled>提交复核</button>
-                                            <button id="assistantReviewUpdateBtn" class="btn btn-secondary academic-btn-block" type="button">更新复核</button>
-                                            <button id="assistantDraftSaveBtn" class="btn btn-secondary academic-btn-block" type="button" disabled>保存成绩草稿</button>
-                                            <button id="assistantMarkReviewedBtn" class="btn btn-secondary academic-btn-block" type="button">标记已阅</button>
+                                    <div class="dashboard-subcard assistant-review-history-card">
+                                        <div class="assistant-review-panel-head">
+                                            <h3 class="dashboard-subcard-title">历次提交</h3>
+                                            <span class="dashboard-filter-tag" id="assistantAttemptCount">0 次</span>
+                                        </div>
+                                        <div id="assistantAttemptList" class="assistant-review-attempt-list">
+                                            <div class="assistant-review-placeholder">暂无记录</div>
                                         </div>
                                     </div>
                                 </div>
+
                                 <div class="dashboard-empty-state" id="assistantActionResult" hidden></div>
                             </section>
                         </div>
-                    </div>
-                </section>
-            </div>
-
-            <div class="page-panel" id="panel-history">
-                <section class="card">
-                    <div class="dashboard-section-intro">
-                        <h2 class="card-title">处理记录</h2>
-                    </div>
-                    <div class="dashboard-card-body">
-                        <div class="dashboard-inline-grid dashboard-split-scroll-grid">
-                            <div class="dashboard-subcard">
-                                <h3 class="dashboard-subcard-title">导出</h3>
-                                <select id="assistantExportCourse" class="dashboard-select"></select>
-                                <div class="dashboard-panel-actions">
-                                    <button id="assistantExportReviews" class="btn btn-primary academic-btn-block" type="button">导出批改记录</button>
-                                    <button id="assistantExportGrades" class="btn btn-secondary academic-btn-block" type="button">导出成绩</button>
-                                </div>
-                            </div>
-                            <div class="dashboard-subcard">
-                                <h3 class="dashboard-subcard-title">最近成绩记录</h3>
-                                <div class="list dashboard-scroll-region" id="assistantHistoryList"></div>
-                                <div class="dashboard-empty-state" id="assistantHistoryEmpty" hidden>
-                                    <strong>暂无处理记录</strong>
-                                    <p>保存成绩草稿或教师发布成绩后会显示在这里。</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-            </div>
-
-            <div class="page-panel" id="panel-courses">
-                <section class="card">
-                    <div class="dashboard-section-intro">
-                        <h2 class="card-title">负责课程</h2>
-                    </div>
-                    <div class="dashboard-card-body">
-                        <div class="list dashboard-scroll-region" id="assistantCourseList"></div>
                     </div>
                 </section>
             </div>
@@ -217,7 +201,7 @@
     <script src="./scripts/dashboard-shell.js?v=20260603w"></script>
     <script src="./scripts/user-settings.js?v=20260602b"></script>
     <script src="./scripts/leaf-pile.js?v=20260602b"></script>
-    <script src="./scripts/assistant-dashboard.js?v=20260602b"></script>
+    <script src="./scripts/assistant-dashboard.js?v=20260618b"></script>
     <script>
         if (!linkseePage.requireAuth()) { throw new Error("auth required"); }
         initDashboardShell({ avatarStorageKey: "assistant_avatar_data_url" });

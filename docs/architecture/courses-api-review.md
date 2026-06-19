@@ -1,7 +1,7 @@
 # Courses API v1 审查报告
 
 > 审查时间：2026-05-07  
-> 对标文档：[docs/api/courses/course-tables-design-v1.md](../api/courses/course-tables-design-v1.md)  
+> 对标文档：[docs/归档/设计草案/课程表结构设计-v1.md](../归档/设计草案/课程表结构设计-v1.md)  
 > 实现文件：[apps/api/src/courses/courses-router.ts](../../apps/api/src/courses/courses-router.ts)
 
 ---
@@ -161,7 +161,7 @@ if (!record) {
 
 设计文档提到："老师被指派后，才可以在该课程下发布 Assignment、管理小组"
 
-**当前进展：** Assignment / Stage API 已落地，进度以 [docs/status/current-delivery-status.md](docs/status/current-delivery-status.md) 为准
+**当前进展：** Assignment / Stage API 已落地，进度以 [docs/status/当前交付状态.md](docs/status/当前交付状态.md) 为准
 
 **建议规划：**
 - [ ] Assignment 创建时检查 course_teachers 权限（只有 lead/co 可创建）
@@ -174,7 +174,7 @@ if (!record) {
 
 **未来考虑：**
 - assistant 是否应该有更受限的权限（如只读课程，不可修改）
-- 这取决于业务流程定义（见 socket-risks-and-errors.md 风险 3）
+- 这取决于业务流程定义（见 [实时通信风险说明](./实时通信风险说明.md) 的相关风险说明）
 
 ---
 

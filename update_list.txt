@@ -221,11 +221,9 @@
   - Review 创建时同步更新 submission.status，并推送 submission/review 事件
   - Submission 支持附件上传（MinIO），重交时事务内替换 submission_files
 
-2026-05-12 | zkx | fix(review+courses validation)+feat(grading export/pipeline): 增量修复与收口
+2026-05-12 | zkx | fix(review+courses validation)+feat(grading pipeline): 增量修复与收口
   [新增接口]
   - GET  /api/v1/courses/:courseId/pipeline-health           课程流水线健康检查（按阶段聚合未交/待评审/评分草稿/已发布）
-  - GET  /api/v1/courses/:courseId/grades/export             成绩 CSV 导出
-  - GET  /api/v1/courses/:courseId/reviews/export            评审 CSV 导出
 
   [接口增强]
   - POST /api/v1/courses/:courseId/grades/publish-batch      支持 blocked 明细返回与 strict 模式
@@ -242,5 +240,8 @@
   - 修复 admin 初始化缺失 profile 时的 realName 兜底校验，避免空名写入
 
   [文档]
-  - docs/api/course-backend-endpoints-overview-v1.md 增加“老师确认分组后建群”醒目说明与新增评分/导出接口列表
+  - docs/api/course-backend-endpoints-overview-v1.md 增加“老师确认分组后建群”醒目说明与新增评分接口列表
 
+2026-05-14 | zkx | 声明
+
+  - 不再维护此文档

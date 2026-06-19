@@ -73,77 +73,123 @@
         </header>
         <div class="content-container">
             <div class="page-panel is-active" id="panel-review-workbench">
-                <section class="card teacher-review-workbench-card">
-                    <div class="dashboard-toolbar-row">
+                <section class="card teacher-review-workbench-card teacher-review-unified-card">
+                    <div class="dashboard-toolbar-row teacher-review-toolbar">
                         <div class="dashboard-section-intro">
-                            <h2 class="card-title dashboard-title-reset">批阅队列 <span
-                                    class="badge badge-reviewing">批阅</span></h2>
+                            <h2 class="card-title dashboard-title-reset">批阅工作台</h2>
                         </div>
-                        <select class="dashboard-select" id="teacherCourseSelect">
-                            <option value="">加载课程中...</option>
-                        </select>
-                        <select class="dashboard-select" id="teacherQueueSort">
-                            <option value="oldest">按提交时间排序 (最早)</option>
-                            <option value="latest">按提交时间排序 (最新)</option>
-                        </select>
+                        <div class="teacher-review-filter-grid">
+                            <select class="dashboard-select" id="teacherCourseSelect">
+                                <option value="">加载课程中...</option>
+                            </select>
+                            <select class="dashboard-select" id="teacherAssignmentSelect">
+                                <option value="">选择项目</option>
+                            </select>
+                            <select class="dashboard-select" id="teacherStageSelect">
+                                <option value="">全部阶段</option>
+                            </select>
+                            <button id="teacherReloadBtn" class="teacher-review-refresh-btn" type="button" aria-label="刷新" title="刷新">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M20 11a8 8 0 1 0 2.2 5.5"></path>
+                                    <path d="M20 4v7h-7"></path>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
 
                     <div class="dashboard-card-body">
-                        <div class="list dashboard-list-offset" id="teacherReviewList"></div>
-                        <div class="dashboard-empty-state" id="teacherReviewEmpty" hidden>
-                            <strong>暂无待批改提交</strong>
-                            <p>当前课程没有待处理提交。</p>
-                        </div>
-                        <div class="dashboard-filter-bar">
-                            <div class="dashboard-filter-meta" id="teacherReviewMeta"><span>正在加载队列...</span></div>
-                            <span class="dashboard-soft-note">点击条目可切换下方批改上下文</span>
-                        </div>
-                    </div>
-                </section>
-            </div>
-
-            <div class="page-panel" id="panel-review-detail-source">
-                <section class="card">
-                    <div class="dashboard-section-intro">
-                        <h2 class="card-title">批阅详情</h2>
-                    </div>
-                    <div class="dashboard-card-body">
-                        <div class="dashboard-subcard">
-                            <div class="review-item dashboard-list-item-static">
-                                <div class="review-meta">
-                                    <strong>请选择待批改提交</strong>
-                                    <span class="muted">这里会展示当前评审上下文</span>
-                                    <a id="selectedReviewAttachment" class="dashboard-inline-link">查看完整附件
-                                        ↗</a>
+                        <div class="teacher-review-workbench">
+                            <section class="dashboard-subcard teacher-review-queue">
+                                <div class="teacher-review-panel-head">
+                                    <h3 class="dashboard-subcard-title">提交队列</h3>
+                                    <div class="teacher-review-panel-metrics">
+                                        <span id="teacherPendingCount">待批阅</span>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-
-                        <div class="dashboard-inline-grid dashboard-split-scroll-grid">
-                            <div class="dashboard-subcard">
-                                <h3 class="dashboard-subcard-title">批改输入</h3>
-                                <div class="nav-section dashboard-section-md">
-                                    <div class="nav-section-title dashboard-section-sm">打分 (0-100)</div>
-                                    <input id="gradeScoreInput" class="dashboard-input" type="number" placeholder="输入分数" min="0" max="100">
+                                <div class="list" id="teacherReviewList"></div>
+                                <div class="teacher-review-queue-footer">
+                                    <button id="teacherQueuePrev" class="teacher-review-page-btn" type="button" aria-label="上一页">‹</button>
+                                    <span id="teacherQueuePage" class="teacher-review-page-indicator">1 / 1</span>
+                                    <button id="teacherQueueNext" class="teacher-review-page-btn" type="button" aria-label="下一页">›</button>
+                                    <span id="teacherQueueSize" class="teacher-review-page-size">6 组/页</span>
                                 </div>
-                                <div class="nav-section dashboard-section-lg">
-                                    <div class="nav-section-title dashboard-section-sm">批改反馈意见</div>
-                                    <textarea id="gradeFeedbackInput" class="dashboard-textarea" placeholder="请输入建设性的反馈意见，指出优点与不足..."></textarea>
-                                </div>
-                            </div>
-                            <div class="dashboard-subcard">
-                                <h3 class="dashboard-subcard-title">当前待批改上下文</h3>
-                                <div class="list"><div id="selectedReviewContext" class="muted">请选择左侧提交。</div></div>
-                            </div>
-                        </div>
+                            </section>
 
-                        <div class="dashboard-panel-actions">
-                            <button id="startReviewBtn" class="btn btn-secondary academic-btn-block" type="button" disabled>开始评审</button>
-                            <button id="saveDraftBtn" class="btn btn-secondary academic-btn-block" type="button" disabled>保存草稿</button>
-                            <button id="saveReviewBtn" class="btn btn-primary academic-btn-block" type="button" disabled>确认通过 ✓</button>
-                            <button id="publishGradeBtn" class="btn btn-secondary academic-btn-block" type="button" disabled>发布成绩</button>
+                            <section class="teacher-review-editor">
+                                <div class="teacher-review-editor-top">
+                                    <div class="dashboard-subcard teacher-review-selected-card">
+                                        <div class="teacher-review-selected-head">
+                                            <div>
+                                                <strong id="teacherSelectedTitle">提交内容</strong>
+                                                <div id="teacherSelectedPath" class="teacher-review-selected-path">课程 / 项目 / 阶段</div>
+                                            </div>
+                                        </div>
+                                        <div id="selectedReviewContext" class="teacher-review-inline-meta"></div>
+                                    </div>
+
+                                    <div class="dashboard-subcard teacher-review-detail-card">
+                                        <h3 class="dashboard-subcard-title">提交内容</h3>
+                                        <div id="teacherSubmissionDetail" class="teacher-review-detail-list">
+                                            <div class="teacher-review-detail-layout">
+                                                <div class="teacher-review-detail-main">
+                                                    <div class="teacher-review-detail-item"><span class="teacher-review-detail-label">提交标题</span><div class="teacher-review-richtext"><span class="teacher-review-empty-text">暂无信息</span></div></div>
+                                                    <div class="teacher-review-detail-item"><span class="teacher-review-detail-label">成果说明</span><div class="teacher-review-richtext"><span class="teacher-review-empty-text">暂无信息</span></div></div>
+                                                    <div class="teacher-review-detail-item"><span class="teacher-review-detail-label">贡献说明</span><div class="teacher-review-richtext"><span class="teacher-review-empty-text">暂无信息</span></div></div>
+                                                    <div class="teacher-review-detail-item"><span class="teacher-review-detail-label">仓库链接</span><div class="teacher-review-richtext"><span class="teacher-review-empty-text">暂无信息</span></div></div>
+                                                    <div class="teacher-review-detail-item"><span class="teacher-review-detail-label">参考链接</span><div class="teacher-review-richtext"><span class="teacher-review-empty-text">暂无信息</span></div></div>
+                                                </div>
+                                                <aside class="teacher-review-file-card">
+                                                    <div class="teacher-review-file-head"><span>附件列表</span><span>暂无附件</span></div>
+                                                    <div class="teacher-review-file-list">
+                                                        <div class="teacher-review-file-empty">文件类型：<span class="teacher-review-empty-text">暂无信息</span><br>文件名：<span class="teacher-review-empty-text">暂无信息</span></div>
+                                                    </div>
+                                                </aside>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="dashboard-inline-grid teacher-review-lower-grid">
+                                    <div class="dashboard-subcard teacher-review-action-card">
+                                        <h3 class="dashboard-subcard-title">批阅与评分</h3>
+                                        <label class="user-settings-field">
+                                            <span>结论</span>
+                                            <select id="teacherReviewStatus" class="dashboard-select">
+                                                <option value="approved">通过</option>
+                                                <option value="needs_changes">退回修改</option>
+                                                <option value="rejected">拒绝</option>
+                                            </select>
+                                        </label>
+                                        <label class="user-settings-field">
+                                            <span>批阅意见</span>
+                                            <textarea id="gradeFeedbackInput" class="dashboard-textarea" placeholder="输入批阅意见"></textarea>
+                                        </label>
+                                        <label class="user-settings-field">
+                                            <span>分数 (0-100)</span>
+                                            <input id="gradeScoreInput" class="dashboard-input" type="number" placeholder="输入最终分数" min="0" max="100">
+                                        </label>
+                                        <div class="dashboard-panel-actions teacher-review-action-row">
+                                            <button id="startReviewBtn" class="btn btn-secondary academic-btn-block" type="button" disabled>开始评审</button>
+                                            <button id="saveReviewBtn" class="btn btn-secondary academic-btn-block" type="button" disabled>提交批阅</button>
+                                            <button id="saveDraftBtn" class="btn btn-secondary academic-btn-block" type="button" disabled>保存分数草稿</button>
+                                            <button id="publishGradeBtn" class="btn btn-primary academic-btn-block" type="button" disabled>确定并发布成绩</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="dashboard-subcard teacher-review-history-card">
+                                        <div class="teacher-review-panel-head">
+                                            <h3 class="dashboard-subcard-title">历次提交</h3>
+                                            <span class="dashboard-filter-tag" id="teacherAttemptCount">0 次</span>
+                                        </div>
+                                        <div id="teacherAttemptList" class="teacher-review-attempt-list">
+                                            <div class="teacher-review-placeholder">暂无记录</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="dashboard-empty-state" id="teacherActionResult" hidden></div>
+                            </section>
                         </div>
-                        <div class="dashboard-empty-state" id="teacherActionResult" hidden></div>
                     </div>
                 </section>
             </div>
@@ -156,7 +202,7 @@
     <script src="./scripts/dashboard-shell.js?v=20260603w"></script>
     <script src="./scripts/user-settings.js?v=20260602b"></script>
     <script src="./scripts/leaf-pile.js?v=20260602b"></script>
-    <script src="./scripts/teacher-dashboard.js?v=20260602b"></script>
+    <script src="./scripts/teacher-dashboard.js?v=20260618b"></script>
     <script>
         if (!linkseePage.requireAuth()) { throw new Error("auth required"); }
         initDashboardShell({

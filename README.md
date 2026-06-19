@@ -50,16 +50,17 @@ P0 不单独实现老师层 `Task` 实体。老师发布的阶段要求统一建
 
 ## 文档入口
 
-- [产品大纲](docs/product/teaching-collaboration-outline.md)
-- [课程场景与需求整理](docs/product/course-scenario-requirements-v2.md)
-- [MVP P0 任务与后续跟进任务](docs/product/mvp-p0-and-follow-up-tasks.md)
-- [五人两个月开发计划](docs/product/two-month-team-plan.md)
-- [当前架构状态](docs/architecture/current-architecture-status.md)
-- [通信架构基线](docs/architecture/communication-design-mvp.md)
-- [通信治理规范](docs/architecture/communication-governance.md)
-- [通信契约](docs/api/contracts/communication-contract-v1.md)
-- [工程流程](docs/architecture/engineering-flow-mvp.md)
-- [UI 设计参考](docs/UI设计参考/awesome-design-md/)
+- [文档导航](docs/文档导航.md)
+- [教学协作产品概述](docs/product/教学协作产品概述.md)
+- [课程场景与需求](docs/product/课程场景与需求.md)
+- [MVP任务与后续计划](docs/product/MVP任务与后续计划.md)
+- [两个月团队计划](docs/product/两个月团队计划.md)
+- [架构文档说明](docs/architecture/架构文档说明.md)
+- [通信架构设计](docs/architecture/通信架构设计.md)
+- [通信治理规范](docs/architecture/通信治理规范.md)
+- [通信契约](docs/api/contracts/通信契约.md)
+- [工程流程与构建说明](docs/architecture/工程流程与构建说明.md)
+- [参考资料目录](docs/参考资料/)
 
 ## 本地命令
 

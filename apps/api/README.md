@@ -22,7 +22,7 @@
 
 > **argon2 在容器化时的关键点**：不能把 Windows 本地的 `node_modules` 挂载进 Linux 容器，
 > 必须在容器内执行 `npm ci` 重新编译 native 模块。
-> 详见 `docs/architecture/engineering-flow-mvp.md §7`。
+> 详见 `docs/architecture/工程流程与构建说明.md`。
 
 ## 目录
 

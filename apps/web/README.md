@@ -39,8 +39,8 @@ npm run build
 
 ## 联调文档入口
 
-- 前后端联调规范：`docs/api/前后端联调对齐说明.md`
-- 当前交付状态：`docs/status/current-delivery-status.md`
+- 联调历史归档：`docs/归档/联调文档/`
+- 当前交付状态：`docs/status/当前交付状态.md`
 - OpenAPI：`docs/api/openapi/linksee-v1.yaml`
 
 ## 当前联调覆盖

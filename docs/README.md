@@ -1,28 +1,53 @@
-# docs
 
-- [协作与群聊规范](collaboration/README.md)
-- [课程场景与需求整理](product/course-scenario-requirements-v2.md)
-- [五人团队两个月开发分工与进度计划](product/two-month-team-plan.md)
-- [MVP P0 任务与后续跟进任务](product/mvp-p0-and-follow-up-tasks.md)
-- [当前架构状态与下一步落地建议](architecture/current-architecture-status.md)
-- [MVP 通信架构与 RAG 预留策略](architecture/communication-design-mvp.md)
-- [通信治理硬规则与 PR 审查清单](architecture/communication-governance.md)
-- [需求开发前通信决策表模板](architecture/communication-decision-template.md)
-- [客户端/服务端、本地测试、构建打包流程](architecture/engineering-flow-mvp.md)
-- [HTTP + Socket + Worker 通信契约](api/contracts/communication-contract-v1.md)
-- [通信需求的 skills 提问模板](architecture/skills-prompt-template-communication.md)
-- [新人首次安装与日常命令清单](architecture/首次安装步骤与日常命令清单.md)
 
-## 与 skills 库协同
+# 文档入口
 
-- [skills/architecture-review](../skills/architecture-review/) 与 [docs/architecture](architecture/) 对齐
-- [skills/api-contract-first](../skills/api-contract-first/) 与 [docs/api](api/) 对齐
-- [skills/release-readiness-checklist](../skills/release-readiness-checklist/) 与后续 Sprint 文档对齐
-- [skills/design-md-ui-workflow](../skills/design-md-ui-workflow/) 结合 [UI 设计参考](UI设计参考/awesome-design-md/) 统一 UI 落地方式
+文档用于说明 Linksee 当前仍需维护的正式文档、归档文档与参考资料位置。
 
-## 文档要求
+## 一、正式文档
 
-- 产品定位变更必须同步更新 README 与 product 文档
-- 文档与代码同 Sprint 演进
-- 需求变更必须更新 API 与架构说明
-- 每次发版补充变更说明与迁移指引
+### 1. 产品与范围
+
+- [教学协作产品概述](product/教学协作产品概述.md)
+- [课程场景与需求](product/课程场景与需求.md)
+- [MVP任务与后续计划](product/MVP任务与后续计划.md)
+- [两个月团队计划](product/两个月团队计划.md)
+
+### 2. 架构与工程
+
+- [架构文档说明](architecture/架构文档说明.md)
+- [通信架构设计](architecture/通信架构设计.md)
+- [通信治理规范](architecture/通信治理规范.md)
+- [工程流程与构建说明](architecture/工程流程与构建说明.md)
+- [数据库迁移规范](architecture/数据库迁移规范.md)
+- [实时通信风险说明](architecture/实时通信风险说明.md)
+- [首次安装步骤与日常命令清单](architecture/首次安装步骤与日常命令清单.md)
+
+### 3. 接口与数据
+
+- [接口文档](api/README.md)
+- [课程后端接口总览](api/课程后端接口总览.md)
+- [OpenAPI 规范](api/openapi/linksee-v1.yaml)
+
+### 4. 交付与验收
+
+- [当前交付状态](status/当前交付状态.md)
+
+## 二、归档文档
+
+以下内容属于历史联调、阶段性前端记录和旧验收资料，不再作为正式事实来源维护：
+
+- [归档目录](归档/)
+
+## 三、参考资料
+
+以下内容用于设计、课堂汇报和外部材料参考，不作为当前系统实现依据：
+
+- [参考资料目录](参考资料/)
+
+## 四、维护规则
+
+1. 正式文档必须与当前代码和真实流程同步。
+2. 过程性说明不再放入正式导航，应移入 `docs/归档/`。
+3. 外部案例、课堂汇报、UI 灵感资料不再放入正式导航，应移入 `docs/参考资料/`。
+4. 接口字段以 OpenAPI 和实际代码为准，概览文档负责帮助阅读，不负责替代实现。
