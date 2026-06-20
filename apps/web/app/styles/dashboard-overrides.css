@@ -1289,6 +1289,7 @@
     inset: 38px 48px;
     display: flex;
     flex-direction: column;
+    max-height: calc(100vh - 76px);
     border-radius: 28px;
     overflow: hidden;
     background: rgba(255, 255, 255, 0.98);
@@ -1332,6 +1333,8 @@
     grid-template-rows: auto auto auto minmax(0, 1fr) auto;
     gap: 14px;
     min-height: 0;
+    max-height: 100%;
+    overflow: hidden;
     padding: 22px 24px 18px;
 }
 
@@ -1464,7 +1467,10 @@
 
 .academic-shell .academic-member-table {
     min-height: 0;
-    overflow: auto;
+    height: clamp(360px, 48vh, 520px);
+    max-height: clamp(360px, 48vh, 520px);
+    overflow-x: auto;
+    overflow-y: auto;
     border-top: 1px solid rgba(226, 232, 240, 0.92);
 }
 
@@ -1541,7 +1547,10 @@
     align-items: center;
     justify-content: center;
     gap: 14px;
-    padding-top: 4px;
+    flex: 0 0 auto;
+    padding-top: 10px;
+    background: rgba(255, 255, 255, 0.98);
+    border-top: 1px solid rgba(226, 232, 240, 0.92);
 }
 
 .academic-shell .academic-course-pagination {
