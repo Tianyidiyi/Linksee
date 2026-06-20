@@ -41,8 +41,6 @@ P0 不单独实现老师层 `Task` 实体。老师发布的阶段要求统一建
 ## 仓库结构
 
 - [apps](apps/)：前端、后端、异步 Worker
-- [packages](packages/)：共享代码
-- [services](services/)：领域服务边界
 - [docs](docs/)：产品、架构、接口和计划文档
 - [tests](tests/)：测试分层
 - [infra](infra/)：Docker、CI/CD、部署相关配置
@@ -50,7 +48,7 @@ P0 不单独实现老师层 `Task` 实体。老师发布的阶段要求统一建
 
 ## 文档入口
 
-- [文档导航](docs/文档导航.md)
+- [文档导航](docs/README.md)
 - [教学协作产品概述](docs/product/教学协作产品概述.md)
 - [课程场景与需求](docs/product/课程场景与需求.md)
 - [MVP任务与后续计划](docs/product/MVP任务与后续计划.md)
@@ -67,7 +65,7 @@ P0 不单独实现老师层 `Task` 实体。老师发布的阶段要求统一建
 ```bash
 npm install
 npm run build
-npm run demo:start
+npm run start:auth -w @linksee/api
 ```
 
 Docker 依赖：

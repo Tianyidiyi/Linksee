@@ -123,6 +123,39 @@ describe("assignment-stages-router integration", () => {
     expect(announcementSpy).toHaveBeenCalledTimes(1);
   });
 
+  it("PATCH /stages/:stageId should reject closed to planned transition", async () => {
+    const app = createApp();
+    jest.spyOn(assignmentAccess, "getStageWriteAccess").mockResolvedValue({
+      id: 42n,
+      assignmentId: 11n,
+      stageNo: 2,
+      title: "Closed stage",
+      description: null,
+      startAt: null,
+      dueAt: new Date(Date.now() + 7200_000),
+      weight: null,
+      submissionDesc: null,
+      requirementFiles: [],
+      acceptCriteria: null,
+      status: "closed",
+      createdBy: "t1",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      assignment: { courseId: 21n },
+    } as any);
+    const updateSpy = jest.spyOn(prisma.assignmentStage, "update");
+
+    const res = await request(app)
+      .patch("/api/v1/stages/42")
+      .set("authorization", authHeader("t1", "teacher"))
+      .send({ status: "planned" });
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe("CONFLICT");
+    expect(res.body.message).toContain("Invalid stage status transition");
+    expect(updateSpy).not.toHaveBeenCalled();
+  });
+
   it("DELETE /stages/:stageId should archive a stage successfully", async () => {
     const app = createApp();
     jest.spyOn(assignmentAccess, "getStageWriteAccess").mockResolvedValue({

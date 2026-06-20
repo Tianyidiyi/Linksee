@@ -91,6 +91,7 @@ model User {
   chatConversations ChatConversation[]
   chatMessages      ChatMessage[]
   chatConversationReads ChatConversationRead[]
+  userNotifications UserNotification[]
 
   @@map("users")
 }
@@ -122,6 +123,33 @@ model UserProfile {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_profiles")
+}
+
+model UserNotification {
+  id             BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  userId         String    @db.VarChar(10)
+  type           String    @db.VarChar(64)
+  title          String    @db.VarChar(120)
+  content        String    @db.Text
+  scopeType      String?   @db.VarChar(32)
+  scopeId        BigInt?   @db.UnsignedBigInt
+  courseId       BigInt?   @db.UnsignedBigInt
+  assignmentId   BigInt?   @db.UnsignedBigInt
+  groupId        BigInt?   @db.UnsignedBigInt
+  miniTaskId     BigInt?   @db.UnsignedBigInt
+  relatedEventId String?   @db.VarChar(64)
+  payload        Json?
+  readAt         DateTime?
+  createdAt      DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, relatedEventId])
+  @@index([userId, readAt, createdAt])
+  @@index([scopeType, scopeId])
+  @@index([courseId])
+  @@index([groupId])
+  @@map("user_notifications")
 }
 
 // ────────────────────────────────────────────────────────────

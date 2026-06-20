@@ -19,6 +19,9 @@
 
 - [db-backup.ps1](db-backup.ps1)：备份 Docker 中 MySQL 数据库
 - [db-restore.ps1](db-restore.ps1)：从 SQL 备份文件恢复数据库
+- [验收/excel.mjs](验收/excel.mjs)：生成验收用 Excel/CSV 数据文件
+- [验收/seed-large.mjs](验收/seed-large.mjs)：写入正式验收大样本数据
+- [验收/seed-smoke.mjs](验收/seed-smoke.mjs)：写入快速冒烟小样本数据
 
 ## 使用前准备
 
@@ -55,3 +58,4 @@ pwsh -File scripts/db-restore.ps1 -BackupFile backups/mysql_collab_latest.sql -D
 - 恢复脚本会重建目标数据库，请先确认备份文件与目标库名称。
 - 不要在业务高峰期执行恢复操作。
 - 迁移前建议先执行一次备份，再做结构变更。
+- 验收写库脚本会清理并重建固定验收账号和课程号范围内的数据，运行前请确认目标数据库。

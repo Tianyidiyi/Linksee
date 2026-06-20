@@ -4,18 +4,18 @@
 
 ## 执行步骤
 
-1. 从 [docs/UI设计参考/awesome-design-md/design-md](../../../docs/UI设计参考/awesome-design-md/design-md/) 中选择 1 到 2 个风格作为基线。
+1. 从 [docs/参考资料/UI设计参考](../../../docs/参考资料/UI设计参考/) 中选择 1 到 2 个风格作为基线。
 2. 提取核心设计变量：色板、字体、间距、圆角、阴影、动效节奏。
-3. 将变量映射到项目可复用层：`packages/ui-kit` 或 [apps/web](../../../apps/web/) 的主题文件。
+3. 将变量映射到项目可复用层：[apps/web](../../../apps/web/) 的样式和组件文件。
 4. 按下方"页面优先级"顺序推进，与后端 API 开发节奏对齐（第 1 轮先做 P0-A 页面，可用 mock 数据）。
 5. 页面实现优先复用组件，不在业务页面硬编码样式。
 6. 在 PR 中附上设计来源与映射说明，便于复盘和迭代。
 
 ## 推荐起步风格
 
-- 首选组合：极简产品型 [Notion](../../../docs/UI设计参考/awesome-design-md/design-md/notion/README.md) + 技术工具型 [Vercel](../../../docs/UI设计参考/awesome-design-md/design-md/vercel/README.md)
-- 备选企业专业型：[IBM](../../../docs/UI设计参考/awesome-design-md/design-md/ibm/README.md)
-- 备选活力型：[Spotify](../../../docs/UI设计参考/awesome-design-md/design-md/spotify/README.md)
+- 首选组合：极简产品型 [Notion](../../../docs/参考资料/UI设计参考/DESIGN-notion.md) + 技术工具型 [Vercel](../../../docs/参考资料/UI设计参考/DESIGN-vercel.md)
+- 备选企业专业型：[IBM](../../../docs/参考资料/UI设计参考/DESIGN-ibm.md)
+- 备选活力型：[Spotify](../../../docs/参考资料/UI设计参考/DESIGN-spotify.md)
 
 ---
 

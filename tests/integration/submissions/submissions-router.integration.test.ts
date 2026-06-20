@@ -114,6 +114,27 @@ describe("submissions-router integration", () => {
     expect(res.body.message).toContain("Only group leader");
   });
 
+  it("POST /stages/:stageId/groups/:groupId/submissions should reject student outside the course", async () => {
+    const app = createApp();
+    jest.spyOn(groupAccess, "getGroupAccess").mockImplementation(async (_groupId, _userId, _role, res) => {
+      res.status(403).json({ ok: false, code: "FORBIDDEN", message: "User is not an active course member" });
+      return null;
+    });
+    const leaderSpy = jest.spyOn(prisma.groupMember, "findFirst");
+    const createSpy = jest.spyOn(prisma.submission, "create");
+
+    const res = await request(app)
+      .post("/api/v1/stages/11/groups/1/submissions")
+      .set("authorization", authHeader("outsider", "student"))
+      .send({ title: "Unauthorized submission" });
+
+    expect(res.status).toBe(403);
+    expect(res.body.code).toBe("FORBIDDEN");
+    expect(res.body.message).toContain("active course member");
+    expect(leaderSpy).not.toHaveBeenCalled();
+    expect(createSpy).not.toHaveBeenCalled();
+  });
+
   it("POST /stages/:stageId/groups/:groupId/submissions should reject when stage dueAt has passed", async () => {
     const app = createApp();
     jest.spyOn(groupAccess, "getGroupAccess").mockResolvedValue({

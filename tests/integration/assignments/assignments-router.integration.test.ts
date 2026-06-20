@@ -101,6 +101,33 @@ describe("assignments-router integration", () => {
     expect(updateSpy).not.toHaveBeenCalled();
   });
 
+  it("PATCH /assignments/:assignmentId should reject archived to active transition", async () => {
+    const app = createApp();
+    jest.spyOn(assignmentAccess, "getAssignmentWriteAccess").mockResolvedValue({
+      id: 22n,
+      courseId: 10n,
+      title: "Project Archived",
+      description: null,
+      descriptionFiles: [],
+      status: AssignmentStatus.archived,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as any);
+    const stageCountSpy = jest.spyOn(prisma.assignmentStage, "count");
+    const updateSpy = jest.spyOn(prisma.assignment, "update");
+
+    const res = await request(app)
+      .patch("/api/v1/assignments/22")
+      .set("authorization", authHeader("t1", "teacher"))
+      .send({ status: "active" });
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe("CONFLICT");
+    expect(res.body.message).toContain("Invalid assignment status transition");
+    expect(stageCountSpy).not.toHaveBeenCalled();
+    expect(updateSpy).not.toHaveBeenCalled();
+  });
+
   it("PATCH /assignments/:assignmentId should allow activating assignment when at least one stage exists", async () => {
     const app = createApp();
     jest.spyOn(assignmentAccess, "getAssignmentWriteAccess").mockResolvedValue({

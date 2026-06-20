@@ -29,6 +29,8 @@ tags:
     description: 教师或助教反馈
   - name: Dashboard
     description: 教师课程看板
+  - name: Notifications
+    description: 用户级系统通知中心
 
 paths:
   /courses:
@@ -1211,6 +1213,35 @@ paths:
           $ref: "#/components/responses/Conflict"
 
   /groups/{groupId}/messages:
+    get:
+      tags:
+        - Groups
+      summary: 获取小组消息列表
+      operationId: listGroupMessages
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupId"
+        - $ref: "#/components/parameters/Limit"
+        - name: beforeId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: afterId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 获取成功
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
     post:
       tags:
         - Groups
@@ -1541,39 +1572,6 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
-  /submission-files/{fileId}/download-url:
-    get:
-      tags:
-        - Submissions
-      summary: 获取提交附件下载地址
-      operationId: getSubmissionFileDownloadUrl
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: fileId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: 获取附件下载地址成功
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  ok:
-                    type: boolean
-                  data:
-                    $ref: "#/components/schemas/SubmissionFileDownload"
-        "401":
-          $ref: "#/components/responses/Unauthenticated"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
   /submissions/{submissionId}/reviews:
     post:
       tags:
@@ -1670,28 +1668,6 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "409":
-          $ref: "#/components/responses/Conflict"
-
-  /submissions/{submissionId}/mark-reviewed:
-    post:
-      tags:
-        - Reviews
-      summary: 教师/助教将未提交记录标记为已处理
-      operationId: markNotSubmittedReviewed
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/SubmissionId"
-      responses:
-        "200":
-          description: 标记成功
-        "401":
-          $ref: "#/components/responses/Unauthenticated"
-        "403":
-          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
         "409":
@@ -2147,12 +2123,12 @@ paths:
         "409":
           description: 用户ID或唯一字段冲突
 
-  /users/directory:
+  /users/export:
     get:
       tags:
         - Users
-      summary: 教务查询全校学生或教师目录
-      operationId: listUserDirectoryByAcademic
+      summary: 导出用户列表
+      operationId: exportUsers
       security:
         - bearerAuth: []
       parameters:
@@ -2487,6 +2463,30 @@ paths:
           $ref: "#/components/responses/Unauthenticated"
         "403":
           $ref: "#/components/responses/Forbidden"
+    delete:
+      tags:
+        - Users
+      summary: 教务删除指定账号
+      operationId: deleteUserByAcademic
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 删除成功
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -2881,6 +2881,582 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
 
+  /notifications:
+    get:
+      tags:
+        - Notifications
+      summary: 获取当前用户的系统通知列表
+      operationId: listNotifications
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: unreadOnly
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: 传 true 或 1 时只返回未读通知
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: 系统通知列表获取成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/UserNotification"
+                  paging:
+                    $ref: "#/components/schemas/Paging"
+                  unreadTotal:
+                    type: integer
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: 用户登录
+      operationId: login
+      responses:
+        "200": { description: 登录成功 }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: 刷新访问令牌
+      operationId: refreshToken
+      responses:
+        "200": { description: 刷新成功 }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: 用户登出
+      operationId: logout
+      responses:
+        "200": { description: 登出成功 }
+
+  /users/import-file:
+    post:
+      tags: [Users]
+      summary: 通过导入文件批量创建用户
+      operationId: importUsersFromFile
+      security:
+        - bearerAuth: []
+      responses:
+        "200": { description: 导入成功 }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /users/assistants/mine:
+    get:
+      tags: [Users]
+      summary: 获取当前老师创建的助教账号列表
+      operationId: listMyAssistants
+      security:
+        - bearerAuth: []
+      responses:
+        "200": { description: 获取成功 }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /users/assistants/{assistantUserId}:
+    patch:
+      tags: [Users]
+      summary: 修改助教账号状态或资料
+      operationId: updateAssistantUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: assistantUserId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: 更新成功 }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /students/dashboard:
+    get:
+      tags: [Dashboard]
+      summary: 获取学生端看板数据
+      operationId: getStudentDashboard
+      security:
+        - bearerAuth: []
+      responses:
+        "200": { description: 获取成功 }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+
+  /courses/{courseId}/messages:
+    get:
+      tags: [Courses]
+      summary: 获取课程消息列表
+      operationId: listCourseMessages
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+        - $ref: "#/components/parameters/Limit"
+        - name: beforeId
+          in: query
+          schema: { type: string }
+        - name: afterId
+          in: query
+          schema: { type: string }
+      responses:
+        "200": { description: 获取成功 }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [Courses]
+      summary: 创建课程消息
+      operationId: createCourseMessage
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+      responses:
+        "200": { description: 创建成功 }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /courses/{courseId}/grade-drafts:
+    get:
+      tags: [Reviews]
+      summary: 获取课程评分草稿列表
+      operationId: listCourseGradeDrafts
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200": { description: 获取成功 }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /courses/{courseId}/grades:
+    get:
+      tags: [Reviews]
+      summary: 获取课程最终成绩列表
+      operationId: listCourseGrades
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200": { description: 获取成功 }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /courses/{courseId}/pipeline-health:
+    get:
+      tags: [Dashboard]
+      summary: 获取课程处理流水线健康状态
+      operationId: getCoursePipelineHealth
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+      responses:
+        "200": { description: 获取成功 }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /assignments/{assignmentId}/groups:
+    get:
+      tags: [Groups]
+      summary: 获取项目下小组列表
+      operationId: listAssignmentGroups
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AssignmentId"
+      responses:
+        "200": { description: 获取成功 }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [Groups]
+      summary: 在项目下创建小组
+      operationId: createAssignmentGroup
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AssignmentId"
+      responses:
+        "201": { description: 创建成功 }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /assignments/{assignmentId}/groups/conversations:
+    post:
+      tags: [Groups]
+      summary: 为项目下小组同步创建或校正会话
+      operationId: syncAssignmentGroupConversations
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/AssignmentId"
+      responses:
+        "200": { description: 同步成功 }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /groups/{groupId}:
+    get:
+      tags: [Groups]
+      summary: 获取小组详情
+      operationId: getGroup
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupId"
+      responses:
+        "200": { description: 获取成功 }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [Groups]
+      summary: 删除空小组
+      operationId: deleteGroup
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupId"
+      responses:
+        "200": { description: 删除成功 }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /groups/{groupId}/members:
+    get:
+      tags: [Groups]
+      summary: 获取小组成员列表
+      operationId: listGroupMembers
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupId"
+      responses:
+        "200": { description: 获取成功 }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [Groups]
+      summary: 向小组添加成员
+      operationId: addGroupMember
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupId"
+      responses:
+        "200": { description: 添加成功 }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /groups/{groupId}/members/{userId}:
+    delete:
+      tags: [Groups]
+      summary: 从小组移除成员
+      operationId: removeGroupMember
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupId"
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: 移除成功 }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /groups/{groupId}/members/{userId}/move:
+    post:
+      tags: [Groups]
+      summary: 将成员转移到其他小组
+      operationId: moveGroupMember
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupId"
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: 转移成功 }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /groups/{groupId}/status:
+    patch:
+      tags: [Groups]
+      summary: 更新小组状态
+      operationId: updateGroupStatus
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupId"
+      responses:
+        "200": { description: 更新成功 }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /groups/{groupId}/minitasks:
+    get:
+      tags: [Groups]
+      summary: 获取小组 MiniTask 列表
+      operationId: listGroupMiniTasks
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupId"
+      responses:
+        "200": { description: 获取成功 }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [Groups]
+      summary: 创建小组 MiniTask
+      operationId: createGroupMiniTask
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/GroupId"
+      responses:
+        "201": { description: 创建成功 }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /minitasks/{taskId}/status:
+    patch:
+      tags: [Groups]
+      summary: 更新 MiniTask 状态
+      operationId: updateMiniTaskStatus
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: 更新成功 }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /grade-drafts/{gradeId}:
+    patch:
+      tags: [Reviews]
+      summary: 修改评分草稿
+      operationId: updateGradeDraft
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: gradeId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: 更新成功 }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /grades/{gradeId}:
+    patch:
+      tags: [Reviews]
+      summary: 修改已发布成绩
+      operationId: updatePublishedGrade
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: gradeId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: 更新成功 }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /grades/{gradeId}/publish:
+    post:
+      tags: [Reviews]
+      summary: 发布单条成绩
+      operationId: publishGrade
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: gradeId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: 发布成功 }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /submissions/{submissionId}/grade-drafts:
+    post:
+      tags: [Reviews]
+      summary: 创建或覆盖评分草稿
+      operationId: createOrReplaceGradeDraft
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/SubmissionId"
+      responses:
+        "200": { description: 保存成功 }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /submissions/{submissionId}/mark-reviewed:
+    post:
+      tags: [Reviews]
+      summary: 将未提交记录标记为已处理
+      operationId: markNotSubmittedReviewed
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/SubmissionId"
+      responses:
+        "200": { description: 标记成功 }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /stages/{stageId}/groups/{groupId}/grade:
+    get:
+      tags: [Reviews]
+      summary: 获取某阶段某小组最终成绩
+      operationId: getStageGroupGrade
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/StageId"
+        - $ref: "#/components/parameters/GroupId"
+      responses:
+        "200": { description: 获取成功 }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /notifications/{notificationId}/read:
+    post:
+      tags:
+        - Notifications
+      summary: 将单条系统通知标记为已读
+      operationId: markNotificationRead
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/NotificationId"
+      responses:
+        "200":
+          description: 标记成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    $ref: "#/components/schemas/UserNotification"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /notifications/read-all:
+    post:
+      tags:
+        - Notifications
+      summary: 批量将系统通知标记为已读
+      operationId: markNotificationsRead
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                scopeType:
+                  type: string
+                  nullable: true
+                scopeId:
+                  type: string
+                  nullable: true
+                  description: 仅接受数字字符串
+      responses:
+        "200":
+          description: 批量标记成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -2919,6 +3495,12 @@ components:
       description: Group ID。
     SubmissionId:
       name: submissionId
+      in: path
+      required: true
+      schema:
+        type: string
+    NotificationId:
+      name: notificationId
       in: path
       required: true
       schema:
@@ -3030,6 +3612,57 @@ components:
         requestId:
           type: string
           nullable: true
+
+    UserNotification:
+      type: object
+      required:
+        - id
+        - userId
+        - type
+        - title
+        - content
+        - createdAt
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        type:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        scopeType:
+          type: string
+          nullable: true
+        scopeId:
+          type: string
+          nullable: true
+        courseId:
+          type: string
+          nullable: true
+        assignmentId:
+          type: string
+          nullable: true
+        groupId:
+          type: string
+          nullable: true
+        miniTaskId:
+          type: string
+          nullable: true
+        relatedEventId:
+          type: string
+          nullable: true
+        payload:
+          nullable: true
+        readAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
 
     CreateAssignmentRequest:
       type: object

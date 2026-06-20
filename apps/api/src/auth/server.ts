@@ -27,6 +27,7 @@ import { groupChatRouter } from "../collaboration/group-chat-router.js";
 import { chatFilesRouter } from "../collaboration/chat-files-router.js";
 import { conversationsRouter } from "../collaboration/conversations-router.js";
 import { realtimeRouter } from "../collaboration/realtime-router.js";
+import { notificationsRouter } from "../notifications/notifications-router.js";
 import { optionalAuth, forceChangeGuard } from "../infra/jwt-middleware.js";
 import { ensureBuckets } from "../infra/minio.js";
 import { env } from "../infra/env.js";
@@ -79,6 +80,7 @@ export function createApp(): express.Express {
   app.use("/api/v1", chatFilesRouter);
   app.use("/api/v1", conversationsRouter);
   app.use("/api/v1", realtimeRouter);
+  app.use("/api/v1", notificationsRouter);
 
   app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     console.error("[http] unhandled error", err);

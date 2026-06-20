@@ -43,6 +43,82 @@ describe("groups-router integration", () => {
     expect(res.body.code).toBe("VALIDATION_FAILED");
   });
 
+  it("POST /api/v1/assignments/:assignmentId/groups should create group and return it from list query", async () => {
+    const app = createApp();
+    jest.spyOn(prisma.assignment, "findUnique").mockResolvedValue({
+      id: 12n,
+      courseId: 22n,
+      groupConfig: {
+        groupFormEnd: null,
+        groupMaxSize: 6,
+      },
+    } as any);
+    jest.spyOn(groupAccess, "ensureAssignmentManageable").mockResolvedValue({
+      id: 12n,
+      courseId: 22n,
+    } as any);
+    jest.spyOn(prisma.group, "aggregate").mockResolvedValue({
+      _max: { groupNo: 2 },
+    } as any);
+    jest.spyOn(prisma.group, "findUnique").mockResolvedValue(null);
+    jest.spyOn(prisma, "$transaction").mockImplementation(async (input: any) => {
+      if (typeof input === "function") {
+        return input({
+          group: {
+            create: async () => ({ id: 103n, groupNo: 3 }),
+          },
+          groupMember: {
+            create: async () => ({ id: 201n }),
+          },
+        });
+      }
+      return [
+        [
+          {
+            id: 103n,
+            assignmentId: 12n,
+            groupNo: 3,
+            name: "Acceptance Group",
+            status: "forming",
+            createdBy: "t1",
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            _count: { members: 0 },
+          },
+        ],
+        1,
+      ] as any;
+    });
+
+    const createRes = await request(app)
+      .post("/api/v1/assignments/12/groups")
+      .set("authorization", authHeader("t1", "teacher"))
+      .send({ name: "Acceptance Group" });
+
+    expect(createRes.status).toBe(201);
+    expect(createRes.body.ok).toBe(true);
+    expect(createRes.body.data.id).toBe("103");
+    expect(createRes.body.data.assignmentId).toBe("12");
+    expect(createRes.body.data.groupNo).toBe(3);
+    expect(createRes.body.data.name).toBe("Acceptance Group");
+
+    const listRes = await request(app)
+      .get("/api/v1/assignments/12/groups?limit=10&offset=0")
+      .set("authorization", authHeader("t1", "teacher"));
+
+    expect(listRes.status).toBe(200);
+    expect(listRes.body.ok).toBe(true);
+    expect(listRes.body.data).toHaveLength(1);
+    expect(listRes.body.data[0]).toEqual(expect.objectContaining({
+      id: "103",
+      assignmentId: "12",
+      groupNo: 3,
+      name: "Acceptance Group",
+      status: "forming",
+    }));
+    expect(listRes.body.paging).toEqual({ limit: 10, offset: 0, total: 1, hasMore: false });
+  });
+
   it("POST /api/v1/assignments/:assignmentId/groups/auto should create forming groups for ungrouped students", async () => {
     const app = createApp();
     jest.spyOn(prisma.assignment, "findUnique").mockResolvedValue({

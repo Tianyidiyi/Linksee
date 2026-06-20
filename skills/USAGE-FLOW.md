@@ -44,12 +44,12 @@
 - 联调后填写 [前后端联调记录模板](../docs/api/frontend-backend-integration-record-template.md)，记录成功路径、失败路径、字段偏差和权限验证结论。
 
 3. UI
-- 调用 [design-md-ui-workflow](design-md-ui-workflow/)，选定 [Notion](../docs/UI设计参考/awesome-design-md/design-md/notion/) 与 [Vercel](../docs/UI设计参考/awesome-design-md/design-md/vercel/) 作为参考。
-- 把颜色、间距、输入框状态映射到 [apps/web](../apps/web/) 或 `packages/ui-kit` 主题层。
+- 调用 [design-md-ui-workflow](design-md-ui-workflow/)，选定 [Notion](../docs/参考资料/UI设计参考/DESIGN-notion.md) 与 [Vercel](../docs/参考资料/UI设计参考/DESIGN-vercel.md) 作为参考。
+- 把颜色、间距、输入框状态映射到 [apps/web](../apps/web/) 的样式和组件层。
 
 4. 安全
 - 调用 [auth-permission-baseline](auth-permission-baseline/)，明确学生只能提交自己小组材料，老师和助教只能评价授权课程内的小组。
-- 对齐 [API 权限矩阵](../docs/api/contracts/communication-contract-v1.md#7-权限约定)，覆盖 teacher / assistant / student 的正反路径。
+- 对齐 [API 权限矩阵](../docs/api/contracts/通信契约.md#7-权限约定)，覆盖 teacher / assistant / student 的正反路径。
 
 5. 测试
 - 调用 [layered-testing-strategy](layered-testing-strategy/)，最小集合：

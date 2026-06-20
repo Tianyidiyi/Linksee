@@ -1,52 +1,62 @@
 # apps/web
 
-Web 端工程目录，当前用于承载前端静态页面、联调代码与构建产物。
+`@linksee/web` 存放 Linksee 前端静态资源。当前前端不是 Vue/React 工程，而是 HTML + CSS + 原生 JavaScript 的静态页面模式。
 
-## 目录结构
+## 当前开发模式
 
-- `app/`：主应用静态资源目录（由 API 服务以 `/app` 路径托管）
-- `demo/`：演示页面静态资源目录（由 API 服务以 `/demo` 路径托管）
-- `src/api/`：HTTP 请求封装与 API 调用逻辑
-- `src/realtime/`：Socket 客户端与事件处理
-- `src/state/`：前端状态与联调说明
-- `scripts/build.mjs`：构建脚本
-- `dist/`：构建产物目录（当前产出 `BUILD_INFO.json`）
+- `app/`：正式应用页面，由 API 服务托管到 `/app`。
+- `demo/`：演示页面，由 API 服务托管到 `/demo`。
+- `app/styles/`：全局样式、布局、组件和 dashboard 覆盖样式。
+- `app/scripts/`：页面级原生 JavaScript 逻辑。
+- `src/api/`：前端 API 调用封装。
+- `src/realtime/`：Socket 客户端和事件处理。
+- `src/state/`：前端状态组织说明。
 
-## 可用命令
+当前没有独立 Web dev server，也没有 Vite/Webpack 构建链。启动 `@linksee/api` 后，API 服务会静态托管页面。
 
-在仓库根目录执行：
+## 页面入口
+
+正式应用：
+
+- `/app/login.html`
+- `/app/academic-dashboard.html`
+- `/app/teacher-dashboard.html`
+- `/app/assistant-dashboard.html`
+- `/app/student-dashboard.html`
+- `/app/chat-hub.html`
+- `/app/submission-hub.html`
+
+演示页面：
+
+- `/demo/login.html`
+- `/demo/status.html`
+- `/demo/vue-review-workbench.html`
+
+## 运行命令
 
 ```bash
-npm run build --workspace @linksee/web
+npm run start:auth -w @linksee/api
+npm run build -w @linksee/web
+npm run test:e2e -w @linksee/web
 ```
 
-或在 `apps/web` 目录执行：
+说明：
 
-```bash
-npm run build
-```
+- `build` 当前只生成 `dist/BUILD_INFO.json`。
+- `test:e2e` 使用仓库级 Playwright 配置。
+- `demo/vue-review-workbench.html` 是 Vue 视觉原型，通过 CDN 引入 Vue 3，不代表当前正式前端已经迁移到 Vue。
 
-当前 `web` 包没有独立 `dev` 脚本；页面由 API 服务统一静态托管。
+## 维护建议
 
-## 运行与访问
+短期继续维护现有静态页面时，应优先：
 
-启动 API 服务后可访问：
+1. 保持页面入口清晰，不再新增旧式独立 demo server。
+2. 把复用逻辑放到 `app/scripts` 的共享模块或 `src` 下。
+3. 避免在 HTML 中继续堆叠大量业务逻辑。
+4. 新增复杂工作台时，优先考虑 Vue/Vite 试点，成熟后再迁移正式页面。
 
-- `/app`
-- `/demo`
+## 与后端关系
 
-说明：`apps/api/src/auth/server.ts` 已挂载上述两个静态目录。
-
-## 联调文档入口
-
-- 联调历史归档：`docs/归档/联调文档/`
-- 当前交付状态：`docs/status/当前交付状态.md`
-- OpenAPI：`docs/api/openapi/linksee-v1.yaml`
-
-## 当前联调覆盖
-
-1. Auth + Users
-2. Courses
-3. Assignments + Stages（含材料上传/删除）
-
-未完成主联调的模块：Group、Submission、Review、Socket/Worker 闭环业务事件。
+- 页面通过 `window.linkseeApi` 或 `src/api` 封装调用 `/api/v1/**`。
+- 实时能力通过 Socket.IO 客户端连接 API 服务。
+- 默认头像等静态资源可以走 `/demo/default-avatar-gray.svg` 或正式静态路径。

@@ -3,6 +3,7 @@ import { prisma } from "../infra/prisma.js";
 import { createEventEnvelope } from "../events/event-builder.js";
 import { pushSocketEvent } from "../events/realtime-publisher.js";
 import { getConversationId } from "../collaboration/chat-helpers.js";
+import { createUserNotifications } from "../notifications/notification-service.js";
 
 function normalizeAssigneeIds(assigneeId: string | null, assigneeIds: Prisma.JsonValue | null): string[] {
   const result = new Set<string>();
@@ -68,6 +69,28 @@ async function notifyTask(
   await pushSocketEvent(`group:${task.groupId.toString()}`, {
     ...event,
     payload: { ...event.payload, messageId: message.id.toString() },
+  });
+
+  await createUserNotifications({
+    userIds: mentions,
+    type,
+    title: prefix,
+    content,
+    scopeType: "group",
+    scopeId: task.groupId,
+    courseId: task.group.assignment.courseId,
+    assignmentId: task.group.assignmentId,
+    groupId: task.groupId,
+    miniTaskId: task.id,
+    relatedEventId: event.id,
+    payload: {
+      type,
+      dueAt: task.dueAt ? task.dueAt.toISOString() : null,
+      courseId: task.group.assignment.courseId.toString(),
+      assignmentId: task.group.assignmentId.toString(),
+      groupId: task.groupId.toString(),
+      miniTaskId: task.id.toString(),
+    },
   });
 }
 

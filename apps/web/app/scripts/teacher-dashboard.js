@@ -21,6 +21,7 @@
             currentStageId: "",
             currentQueuePage: 1,
             queuePageSize: 6,
+            expandedManageRows: {},
             mockMode: teacherReviewMockAllowed,
         };
 
@@ -281,11 +282,12 @@
             return [
                 {
                     id: asId(review && review.id || "mock-attempt-1"),
-                    attemptNo: 1,
+                    attemptNo: 2,
                     summary: title,
                     submittedAt: review && (review.submittedAt || review.createdAt) || new Date().toISOString(),
                     createdAt: review && (review.createdAt || review.submittedAt) || new Date().toISOString(),
                     status: status,
+                    reviewComment: review && review.reviewComment || (status === "approved" ? "成果材料完整，验收说明清晰，可以进入评分。" : ""),
                     payload: {
                         title: title,
                         description: "已完成阶段页面、提交记录、附件整理与批阅状态联调，成果包内容齐全，可直接进入批阅。",
@@ -303,11 +305,12 @@
                 },
                 {
                     id: asId(review && review.id || "mock-attempt-1") + "-prev",
-                    attemptNo: 0,
+                    attemptNo: 1,
                     summary: "上一版提交：缺少附件说明",
                     submittedAt: new Date(Date.now() - 1000 * 60 * 60 * 30).toISOString(),
                     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 30).toISOString(),
                     status: "needs_changes",
+                    reviewComment: "上一版提交缺少附件说明，请补充阶段成果说明和验收依据。",
                     payload: { title: "上一版阶段成果", description: "用于查看历次提交区域的 mock 记录。", links: [] },
                     files: [],
                 },
@@ -360,6 +363,19 @@
             return "badge-pending";
         }
 
+        function getReviewStateClass(status) {
+            if (status === "submitted") return "is-pending-review";
+            if (status === "under_review") return "is-pending-grade";
+            return "";
+        }
+
+        function getReviewStatusTone(status) {
+            if (status === "approved" || status === "reviewed") return "is-success";
+            if (status === "needs_changes" || status === "under_review") return "is-warning";
+            if (status === "rejected") return "is-danger";
+            return "is-muted";
+        }
+
         function canStartReview(status) {
             return status === "submitted";
         }
@@ -382,6 +398,18 @@
             if (!canSaveGradeDraft(selected.status)) return false;
             var grade = selected.grade || null;
             return !!(selected.gradeId || grade && grade.id);
+        }
+
+        function getPublishableManageRows() {
+            return getReviewManageRows().filter(canPublishGrade);
+        }
+
+        function renderReviewManageActions() {
+            var publishAllBtn = q("#teacherPublishAllGradesBtn");
+            if (!publishAllBtn) return;
+            var count = getPublishableManageRows().length;
+            publishAllBtn.disabled = count <= 0;
+            publishAllBtn.textContent = count > 0 ? "发布 (" + count + ")" : "发布";
         }
 
         function getQueueGroupTone(groupNo) {
@@ -534,6 +562,7 @@
             if (nextBtn) nextBtn.disabled = state.currentQueuePage >= totalPages;
             if (!state.pendingReviews.length) {
                 list.innerHTML = '<div class="teacher-review-queue-empty">暂无组别提交</div>';
+                renderReviewManageRows();
                 return;
             }
             list.innerHTML = pageRows.map(function (review) {
@@ -541,7 +570,7 @@
                 var leader = getLeaderMeta(review);
                 var selected = state.selected && asId(state.selected.id) === asId(review.id);
                 return [
-                    '<div class="list-item dashboard-list-item-interactive teacher-review-queue-item' + (selected ? ' dashboard-list-item-selected' : "") + '" data-review-id="' + escapeHtml(review.id) + '">',
+                    '<div class="list-item dashboard-list-item-interactive teacher-review-queue-item ' + getReviewStateClass(review.status) + (selected ? ' dashboard-list-item-selected' : "") + '" data-review-id="' + escapeHtml(review.id) + '">',
                     '<div class="teacher-review-queue-group ' + getQueueGroupTone(groupNo) + '">第 ' + escapeHtml(groupNo) + " 组</div>",
                     '<div class="teacher-review-queue-status"><strong>' + escapeHtml(getReviewStatusLabel(review.status)) + "</strong><span>" + escapeHtml(formatQueueTime(review.submittedAt || review.createdAt)) + "</span></div>",
                     '<div class="teacher-review-queue-leader"><strong>' + escapeHtml(leader.realName || "--") + "</strong><span>" + escapeHtml(leader.accountNo || "--") + "</span></div>",
@@ -553,130 +582,7 @@
                     selectReview(item.getAttribute("data-review-id"));
                 });
             });
-        }
-
-        function renderSelectedLegacy() {
-            var selected = state.selected;
-            var titleNode = q("#teacherSelectedTitle");
-            var pathNode = q("#teacherSelectedPath");
-            var statusNode = q("#teacherSelectedStatus");
-            var contextNode = q("#selectedReviewContext");
-            var detailNode = q("#teacherSubmissionDetail");
-            var attemptNode = q("#teacherAttemptList");
-            var scoreInput = q("#gradeScoreInput");
-            var feedbackInput = q("#gradeFeedbackInput");
-            var startBtn = q("#startReviewBtn");
-            var reviewBtn = q("#saveReviewBtn");
-            var draftBtn = q("#saveDraftBtn");
-            var publishBtn = q("#publishGradeBtn");
-
-            if (!selected) {
-                if (titleNode) titleNode.textContent = state.pendingReviews.length ? "请选择左侧提交" : "暂无组别提交";
-                if (pathNode) pathNode.textContent = "课程 / 项目 / 阶段";
-                if (statusNode) {
-                    statusNode.className = "badge badge-pending";
-                    statusNode.textContent = state.pendingReviews.length ? "待选择" : "暂无提交";
-                }
-                if (contextNode) contextNode.textContent = "";
-                if (detailNode) detailNode.innerHTML = buildSubmissionEmptyDetailHtml();
-                if (attemptNode) attemptNode.innerHTML = '<div class="teacher-review-placeholder">暂无记录</div>';
-                if (scoreInput) scoreInput.value = "";
-                if (feedbackInput) feedbackInput.value = "";
-                if (startBtn) startBtn.disabled = true;
-                if (reviewBtn) reviewBtn.disabled = true;
-                if (draftBtn) draftBtn.disabled = true;
-                if (publishBtn) publishBtn.disabled = true;
-                return;
-            }
-
-            var course = getCurrentCourse();
-            var assignment = getCurrentAssignment();
-            var stage = getCurrentStage() || (state.stages.find(function (row) { return asId(row.id) === asId(selected.stageId); }) || null);
-            var groupLabel = selected.group && (selected.group.groupNo || selected.group.name) ? "第 " + (selected.group.groupNo || selected.group.name) + " 组" : "未命名小组";
-            if (titleNode) titleNode.textContent = stage && stage.title ? stage.title : "阶段提交";
-            if (pathNode) {
-                pathNode.textContent = [
-                    course ? (course.name || course.courseNo || course.id) : "--",
-                    assignment ? assignment.title : "--",
-                    stage ? (stage.title || "--") : "--",
-                ].join(" / ");
-            }
-            if (statusNode) {
-                statusNode.className = "badge " + getReviewBadgeClass(selected.status);
-                statusNode.textContent = getReviewStatusLabel(selected.status);
-            }
-            if (contextNode) {
-                contextNode.innerHTML = [
-                    '<span>小组：' + escapeHtml(groupLabel) + "</span>",
-                    '<span>提交人：' + escapeHtml(selected.submittedBy || "--") + "</span>",
-                    '<span>提交时间：' + escapeHtml(formatDate(selected.submittedAt || selected.createdAt)) + "</span>",
-                ].join(" · ");
-            }
-            if (scoreInput) scoreInput.value = selected.grade && selected.grade.score !== undefined && selected.grade.score !== null ? selected.grade.score : "";
-            if (feedbackInput) feedbackInput.value = "";
-            if (startBtn) startBtn.disabled = selected.status !== "submitted";
-            if (reviewBtn) reviewBtn.disabled = false;
-            if (draftBtn) draftBtn.disabled = false;
-            if (publishBtn) publishBtn.disabled = !(selected.gradeId || selected.grade && selected.grade.id);
-
-            renderSubmissionDetailLegacy();
-            renderAttemptList();
-        }
-
-        function renderSubmissionDetailLegacy() {
-            var node = q("#teacherSubmissionDetail");
-            if (!node) return;
-            if (!state.selected || !state.submissionAttempts.length) {
-                node.innerHTML = buildSubmissionEmptyDetailHtml();
-                return;
-            }
-            var selectedSubmission = state.submissionAttempts.find(function (row) {
-                return asId(row.id) === asId(state.selected.id);
-            }) || state.submissionAttempts[0];
-            var payload = selectedSubmission && selectedSubmission.payload && typeof selectedSubmission.payload === "object"
-                ? selectedSubmission.payload
-                : {};
-            var links = Array.isArray(payload.links) ? payload.links : [];
-            var repositoryUrl = typeof payload.repositoryUrl === "string" ? payload.repositoryUrl : "";
-            var description = typeof payload.description === "string" ? payload.description : "";
-            var contributionNote = typeof payload.contributionNote === "string" ? payload.contributionNote : "";
-            var title = typeof payload.title === "string" ? payload.title : "";
-            var fileIds = Array.isArray(payload.fileIds) ? payload.fileIds : [];
-            var fileList = fileIds.length
-                ? fileIds.map(function (fileId, index) {
-                    return [
-                        '<div class="teacher-review-file-row">',
-                        '<span class="teacher-review-file-name">' + escapeHtml(String(fileId)) + "</span>",
-                        '<span class="teacher-review-file-meta">#' + escapeHtml(index + 1) + "</span>",
-                        "</div>",
-                    ].join("");
-                }).join("")
-                : '<div class="teacher-review-file-empty">无</div>';
-            node.innerHTML = [
-                '<div class="teacher-review-detail-layout">',
-                '<div class="teacher-review-detail-main">',
-                '<div class="teacher-review-detail-item"><span class="teacher-review-detail-label">提交标题</span><div class="teacher-review-richtext">' + escapeHtml(title || selectedSubmission.summary || "未填写") + "</div></div>",
-                '<div class="teacher-review-detail-item"><span class="teacher-review-detail-label">提交内容</span><div class="teacher-review-richtext">' + escapeHtml(description || selectedSubmission.summary || "未填写") + "</div></div>",
-                '<div class="teacher-review-detail-item"><span class="teacher-review-detail-label">贡献说明</span><div class="teacher-review-richtext">' + escapeHtml(contributionNote || "未填写") + "</div></div>",
-                '<div class="teacher-review-detail-item"><span class="teacher-review-detail-label">仓库链接</span>' + (
-                    repositoryUrl
-                        ? '<a class="dashboard-inline-link" href="' + escapeHtml(repositoryUrl) + '" target="_blank" rel="noreferrer">' + escapeHtml(repositoryUrl) + "</a>"
-                        : '<div class="teacher-review-richtext">未填写</div>'
-                ) + "</div>",
-                '<div class="teacher-review-detail-item"><span class="teacher-review-detail-label">参考链接</span>' + (
-                    links.length
-                        ? '<div class="teacher-review-link-list">' + links.map(function (link) {
-                            return '<a class="dashboard-inline-link" href="' + escapeHtml(link) + '" target="_blank" rel="noreferrer">' + escapeHtml(link) + "</a>";
-                        }).join("") + "</div>"
-                        : '<div class="teacher-review-richtext">未填写</div>'
-                ) + "</div>",
-                "</div>",
-                '<aside class="teacher-review-file-card">',
-                '<div class="teacher-review-file-head"><span>文件索引</span><span>' + escapeHtml(fileIds.length) + " 项</span></div>",
-                '<div class="teacher-review-file-list">' + fileList + "</div>",
-                "</aside>",
-                "</div>",
-            ].join("");
+            renderReviewManageRows();
         }
 
         function renderSelected() {
@@ -692,6 +598,15 @@
             var reviewBtn = q("#saveReviewBtn");
             var draftBtn = q("#saveDraftBtn");
             var publishBtn = q("#publishGradeBtn");
+            var selectedCard = q(".teacher-review-selected-card");
+
+            if (selectedCard) {
+                selectedCard.classList.remove("is-pending-review", "is-pending-grade");
+                if (selected) {
+                    var stateClass = getReviewStateClass(selected.status);
+                    if (stateClass) selectedCard.classList.add(stateClass);
+                }
+            }
 
             if (!selected) {
                 if (titleNode) titleNode.textContent = state.pendingReviews.length ? "请选择左侧提交" : "暂无组别提交";
@@ -729,6 +644,7 @@
             if (reviewBtn) reviewBtn.disabled = !canSubmitReview(selected.status);
             if (draftBtn) draftBtn.disabled = !canSaveGradeDraft(selected.status) || hasPublishedGrade(selected);
             if (publishBtn) publishBtn.disabled = !canPublishGrade(selected);
+            syncReviewDecisionControls();
 
             renderSubmissionDetail();
             renderAttemptList();
@@ -780,6 +696,7 @@
             if (!state.submissionAttempts.length) {
                 if (countNode) countNode.textContent = "0 次";
                 node.innerHTML = '<div class="teacher-review-placeholder">暂无记录</div>';
+                renderReviewManageRows();
                 return;
             }
             if (countNode) countNode.textContent = state.submissionAttempts.length + " 次";
@@ -791,11 +708,12 @@
                 "<span>状态</span>",
                 "<span>摘要</span>",
                 "</div>",
-                state.submissionAttempts.map(function (attempt) {
+                state.submissionAttempts.map(function (attempt, index) {
                 var isCurrent = state.selected && asId(state.selected.id) === asId(attempt.id);
+                var attemptNo = attempt.attemptNo || index + 1;
                 return [
                     '<div class="teacher-review-attempt-item' + (isCurrent ? " is-current" : "") + '">',
-                    "<span>第 " + escapeHtml(attempt.attemptNo || "--") + " 次</span>",
+                    "<span>第 " + escapeHtml(attemptNo) + " 次</span>",
                     "<span>" + escapeHtml(formatDate(attempt.submittedAt || attempt.createdAt)) + "</span>",
                     '<span class="teacher-review-attempt-status">' + escapeHtml(getReviewStatusLabel(attempt.status)) + "</span>",
                     "<span>" + escapeHtml(attempt.summary || "无") + "</span>",
@@ -804,11 +722,197 @@
             }).join(""),
                 "</div>",
             ].join("");
+            renderReviewManageRows();
+        }
+
+        function getReviewManageReviewer(attempt) {
+            var review = attempt.review || attempt.latestReview || attempt.reviewRecord || {};
+            var reviewer = attempt.reviewer || review.reviewer || attempt.reviewedBy || {};
+            return attempt.reviewerName
+                || review.reviewerName
+                || attempt.reviewedByName
+                || review.reviewedByName
+                || reviewer.realName
+                || reviewer.profile && reviewer.profile.realName
+                || reviewer.displayName
+                || reviewer.name
+                || "未记录";
+        }
+
+        function getReviewManageSummary(attempt) {
+            var review = attempt.review || attempt.latestReview || attempt.reviewRecord || {};
+            return attempt.reviewComment
+                || attempt.comment
+                || review.comment
+                || review.feedback
+                || attempt.summary
+                || "无";
+        }
+
+        function syncReviewDecisionControls() {
+            qsa("[data-review-status-for]").forEach(function (group) {
+                var select = q("#" + group.getAttribute("data-review-status-for"));
+                if (!select) return;
+                qsa("[data-review-status-value]", group).forEach(function (button) {
+                    button.classList.toggle("is-active", button.getAttribute("data-review-status-value") === select.value);
+                });
+            });
+        }
+
+        function renderReviewManageStageOptions() {
+            var select = q("#teacherReviewManageStage");
+            if (!select) return;
+            var current = select.value;
+            select.innerHTML = '<option value="">全部阶段</option>' + state.stages.map(function (stage) {
+                return '<option value="' + escapeHtml(stage.id) + '">' + escapeHtml(stage.title || stage.name || stage.id) + "</option>";
+            }).join("");
+            select.value = current;
+        }
+
+        function getReviewManageRows() {
+            var keywordNode = q("#teacherReviewManageKeyword");
+            var statusNode = q("#teacherReviewManageStatus");
+            var stageNode = q("#teacherReviewManageStage");
+            var keyword = keywordNode ? keywordNode.value.trim().toLowerCase() : "";
+            var status = statusNode ? statusNode.value : "";
+            var stageId = stageNode ? stageNode.value : "";
+            return state.pendingReviews.filter(function (review) {
+                var groupNo = review.group && (review.group.groupNo || review.group.name) ? String(review.group.groupNo || review.group.name) : "";
+                var leader = getLeaderMeta(review);
+                var haystack = [groupNo, leader.realName || "", leader.accountNo || "", getReviewStatusLabel(review.status)].join(" ").toLowerCase();
+                if (keyword && haystack.indexOf(keyword) < 0) return false;
+                if (status && review.status !== status) return false;
+                if (stageId && asId(review.stageId) !== asId(stageId)) return false;
+                return true;
+            });
+        }
+
+        function getReviewManageStageLabel(stageId) {
+            var stage = state.stages.find(function (row) { return asId(row.id) === asId(stageId); }) || null;
+            return getStageLabel(stage);
+        }
+
+        function buildReviewManageHistory(review) {
+            if (!state.expandedManageRows[asId(review.id)]) return "";
+            var attempts = state.selected && asId(state.selected.id) === asId(review.id) ? state.submissionAttempts : [];
+            if (!attempts.length) {
+                return '<div class="review-manage-history"><div class="review-manage-history-empty">暂无历史记录</div></div>';
+            }
+            return [
+                '<div class="review-manage-history">',
+                '<div class="review-manage-history-head"><span>次数</span><span>提交时间</span><span>状态</span><span>批阅人</span><span>摘要</span></div>',
+                attempts.map(function (attempt, index) {
+                    var attemptNo = attempt.attemptNo || index + 1;
+                    return [
+                        '<div class="review-manage-history-row">',
+                        '<span>第 ' + escapeHtml(attemptNo) + " 次</span>",
+                        '<span>' + escapeHtml(formatDate(attempt.submittedAt || attempt.createdAt)) + "</span>",
+                        '<span class="review-manage-status ' + getReviewStatusTone(attempt.status) + '">' + escapeHtml(getReviewStatusLabel(attempt.status)) + "</span>",
+                        '<span>' + escapeHtml(getReviewManageReviewer(attempt)) + "</span>",
+                        '<span class="review-manage-summary" title="' + escapeHtml(getReviewManageSummary(attempt)) + '">' + escapeHtml(getReviewManageSummary(attempt)) + "</span>",
+                        "</div>",
+                    ].join("");
+                }).join(""),
+                "</div>",
+            ].join("");
+        }
+
+        function renderReviewManageRows() {
+            var node = q("#teacherReviewManageRows");
+            if (!node) return;
+            renderReviewManageStageOptions();
+            var rows = getReviewManageRows();
+            renderReviewManageActions();
+            if (!rows.length) {
+                node.innerHTML = '<div class="review-manage-empty">暂无符合条件的小组提交</div>';
+                return;
+            }
+            node.innerHTML = rows.map(function (review) {
+                var groupNo = review.group && (review.group.groupNo || review.group.name) ? (review.group.groupNo || review.group.name) : "--";
+                var leader = getLeaderMeta(review);
+                var selected = state.selected && asId(state.selected.id) === asId(review.id);
+                var expanded = !!state.expandedManageRows[asId(review.id)];
+                var scoreValue = review.grade && review.grade.score !== undefined && review.grade.score !== null ? review.grade.score : "";
+                var scoreDisabled = !canSaveGradeDraft(review.status) || hasPublishedGrade(review);
+                return [
+                    '<article class="review-manage-row' + (selected ? " is-selected" : "") + '" data-review-manage-row="' + escapeHtml(review.id) + '">',
+                    '<div class="review-manage-row-main">',
+                    '<button class="review-manage-expand" type="button" data-review-manage-action="toggle" aria-label="展开历史"><svg class="review-manage-chevron' + (expanded ? " is-open" : "") + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></button>',
+                    '<div class="review-manage-group"><strong>第 ' + escapeHtml(groupNo) + " 组</strong><span>组长：" + escapeHtml(leader.realName || "--") + "</span></div>",
+                    '<div class="review-manage-meta"><strong class="review-manage-status ' + getReviewStatusTone(review.status) + '">' + escapeHtml(getReviewStatusLabel(review.status)) + "</strong><span>提交：" + escapeHtml(formatQueueTime(review.submittedAt || review.createdAt)) + "</span></div>",
+                    '<div class="review-manage-stage">' + escapeHtml(getReviewManageStageLabel(review.stageId)) + "</div>",
+                    '<div class="review-manage-row-actions">',
+                    '<button type="button" data-review-manage-action="review"' + (canSubmitReview(review.status) ? "" : " disabled") + ">批阅</button>",
+                    '<input class="review-manage-score-input" data-review-score-input type="number" min="0" max="100" placeholder="分数" value="' + escapeHtml(scoreValue) + '"' + (scoreDisabled ? " disabled" : "") + '>',
+                    '<button type="button" data-review-manage-action="publish"' + (canPublishGrade(review) ? "" : " disabled") + ">发布</button>",
+                    "</div>",
+                    "</div>",
+                    buildReviewManageHistory(review),
+                    "</article>",
+                ].join("");
+            }).join("");
+        }
+
+        function setReviewManageOpen(open) {
+            var modal = q("#teacherReviewManageModal");
+            if (!modal) return;
+            modal.hidden = !open;
+            if (open) renderReviewManageRows();
+        }
+
+        function handleReviewManageAction(button) {
+            if (!button || button.disabled) return;
+            var row = button.closest("[data-review-manage-row]");
+            if (!row) return;
+            var reviewId = row.getAttribute("data-review-manage-row");
+            var action = button.getAttribute("data-review-manage-action");
+            if (action === "toggle") {
+                state.expandedManageRows[asId(reviewId)] = !state.expandedManageRows[asId(reviewId)];
+                if (state.expandedManageRows[asId(reviewId)]) {
+                    selectReview(reviewId);
+                } else {
+                    renderReviewManageRows();
+                }
+                return;
+            }
+            selectReview(reviewId);
+            if (action === "start") {
+                hideResult();
+                startReview().then(function () {
+                    showResult("已进入评审状态。", false);
+                    return loadPendingReviews();
+                }).catch(function (err) {
+                    showResult(err.message || "开始评审失败", true);
+                });
+            } else if (action === "review") {
+                hideResult();
+                saveReview().then(function () {
+                    showResult("批阅结果已提交。", false);
+                }).catch(function (err) {
+                    showResult(err.message || "保存批阅失败", true);
+                });
+            } else if (action === "draft") {
+                hideResult();
+                saveGradeDraft().then(function () {
+                    showResult("分数草稿已保存。", false);
+                }).catch(function (err) {
+                    showResult(err.message || "保存草稿失败", true);
+                });
+            } else if (action === "publish") {
+                if (!window.confirm("确认发布该成绩吗？发布后学生将看到正式成绩。")) return;
+                hideResult();
+                publishGrade().then(function () {
+                    showResult("成绩已确定并发布。", false);
+                }).catch(function (err) {
+                    showResult(err.message || "发布成绩失败", true);
+                });
+            }
         }
 
         function selectReview(reviewId) {
             hideResult();
             state.selected = state.pendingReviews.find(function (row) { return asId(row.id) === asId(reviewId); }) || null;
+            state.submissionAttempts = [];
             renderReviewList();
             renderSelected();
             if (state.selected) {
@@ -1049,6 +1153,12 @@
             if (state.mockMode) {
                 state.selected.status = "approved";
                 state.selected.publishedAt = new Date().toISOString();
+                state.selected.grade = Object.assign({}, state.selected.grade || {}, {
+                    id: gradeId,
+                    status: "published",
+                    publishedAt: state.selected.publishedAt,
+                });
+                state.selected.gradeId = gradeId;
                 state.pendingReviewsRaw = state.pendingReviewsRaw.map(function (review) {
                     return asId(review.id) === asId(state.selected.id) ? state.selected : review;
                 });
@@ -1059,6 +1169,60 @@
             }
             await window.linkseeApi.postJson("/api/v1/grades/" + encodeURIComponent(gradeId) + "/publish", {});
             await loadPendingReviews();
+        }
+
+        async function publishGradeForReview(review) {
+            if (!canPublishGrade(review)) return;
+            var grade = review.grade || null;
+            var gradeId = review.gradeId || grade && grade.id;
+            if (state.mockMode) {
+                review.gradeId = gradeId || "mock-grade-" + asId(review.id);
+                review.grade = Object.assign({}, grade || {}, {
+                    id: review.gradeId,
+                    status: "published",
+                    publishedAt: new Date().toISOString(),
+                });
+                review.publishedAt = review.grade.publishedAt;
+                state.pendingReviewsRaw = state.pendingReviewsRaw.map(function (row) {
+                    return asId(row.id) === asId(review.id) ? review : row;
+                });
+                return;
+            }
+            await window.linkseeApi.postJson("/api/v1/grades/" + encodeURIComponent(gradeId) + "/publish", {});
+        }
+
+        async function publishAllManageGrades() {
+            var rows = getPublishableManageRows();
+            if (!rows.length) {
+                throw new Error("当前筛选范围内没有可发布的成绩");
+            }
+            for (var index = 0; index < rows.length; index += 1) {
+                await publishGradeForReview(rows[index]);
+            }
+            if (state.mockMode) {
+                applyReviewFilters();
+                renderReviewList();
+                renderSelected();
+                renderReviewManageRows();
+                return rows.length;
+            }
+            await loadPendingReviews();
+            return rows.length;
+        }
+
+        function saveManageScoreDraft(input) {
+            if (!input || input.disabled) return;
+            var row = input.closest("[data-review-manage-row]");
+            if (!row) return;
+            selectReview(row.getAttribute("data-review-manage-row"));
+            var scoreInput = q("#gradeScoreInput");
+            if (scoreInput) scoreInput.value = input.value;
+            hideResult();
+            saveGradeDraft().then(function () {
+                showResult("分数草稿已保存。", false);
+            }).catch(function (err) {
+                showResult(err.message || "保存草稿失败", true);
+            });
         }
 
         function bindEvents() {
@@ -1115,6 +1279,83 @@
                 renderReviewList();
             });
 
+            var manageBtn = q("#teacherReviewManageBtn");
+            if (manageBtn) {
+                manageBtn.addEventListener("click", function () {
+                    setReviewManageOpen(true);
+                });
+            }
+            qsa("#teacherReviewManageModal [data-review-manage-close]").forEach(function (button) {
+                button.addEventListener("click", function () {
+                    setReviewManageOpen(false);
+                });
+            });
+            ["#teacherReviewManageKeyword", "#teacherReviewManageStatus", "#teacherReviewManageStage"].forEach(function (selector) {
+                var input = q(selector);
+                if (!input) return;
+                input.addEventListener(input.tagName === "INPUT" ? "input" : "change", renderReviewManageRows);
+            });
+            var publishAllBtn = q("#teacherPublishAllGradesBtn");
+            if (publishAllBtn) {
+                publishAllBtn.addEventListener("click", function () {
+                    var count = getPublishableManageRows().length;
+                    if (!count) {
+                        showResult("当前筛选范围内没有可发布的成绩", true);
+                        return;
+                    }
+                    if (!window.confirm("确认发布当前筛选范围内 " + count + " 份可发布成绩吗？发布后学生将看到正式成绩。")) return;
+                    hideResult();
+                    publishAllManageGrades().then(function (publishedCount) {
+                        showResult("已发布 " + publishedCount + " 份成绩。", false);
+                    }).catch(function (err) {
+                        showResult(err.message || "一键发布成绩失败", true);
+                    });
+                });
+            }
+            var manageRows = q("#teacherReviewManageRows");
+            if (manageRows) {
+                manageRows.addEventListener("click", function (event) {
+                    if (event.target.closest("[data-review-score-input]")) return;
+                    var actionButton = event.target.closest("[data-review-manage-action]");
+                    if (actionButton) {
+                        handleReviewManageAction(actionButton);
+                        return;
+                    }
+                    var row = event.target.closest("[data-review-manage-row]");
+                    if (row) selectReview(row.getAttribute("data-review-manage-row"));
+                });
+                manageRows.addEventListener("keydown", function (event) {
+                    var scoreInput = event.target.closest("[data-review-score-input]");
+                    if (!scoreInput || event.key !== "Enter") return;
+                    event.preventDefault();
+                    saveManageScoreDraft(scoreInput);
+                });
+            }
+            qsa("[data-review-status-for]").forEach(function (group) {
+                var select = q("#" + group.getAttribute("data-review-status-for"));
+                if (!select) return;
+                qsa("[data-review-status-value]", group).forEach(function (button) {
+                    button.addEventListener("click", function () {
+                        select.value = button.getAttribute("data-review-status-value") || "approved";
+                        syncReviewDecisionControls();
+                    });
+                });
+                select.addEventListener("change", syncReviewDecisionControls);
+            });
+            var gradeScoreInput = q("#gradeScoreInput");
+            if (gradeScoreInput) {
+                gradeScoreInput.addEventListener("keydown", function (event) {
+                    if (event.key !== "Enter") return;
+                    event.preventDefault();
+                    hideResult();
+                    saveGradeDraft().then(function () {
+                        showResult("分数草稿已保存。", false);
+                    }).catch(function (err) {
+                        showResult(err.message || "保存草稿失败", true);
+                    });
+                });
+            }
+
             q("#startReviewBtn").addEventListener("click", function () {
                 hideResult();
                 startReview().then(function () {
@@ -1144,6 +1385,7 @@
             });
 
             q("#publishGradeBtn").addEventListener("click", function () {
+                if (!window.confirm("确认发布该成绩吗？发布后学生将看到正式成绩。")) return;
                 hideResult();
                 publishGrade().then(function () {
                     showResult("成绩已确定并发布。", false);

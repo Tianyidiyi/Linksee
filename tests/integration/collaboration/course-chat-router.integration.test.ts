@@ -174,6 +174,7 @@ describe("course-chat-router integration", () => {
     expect(res.body.data.content).toContain("最新原型要求");
     expect(pushSpy).toHaveBeenCalledTimes(1);
   });
+
 });
 
 describe("group-chat-router integration", () => {
@@ -311,5 +312,62 @@ describe("group-chat-router integration", () => {
     expect(res.body.data.id).toBe("303");
     expect(res.body.data.content).toContain("第二版");
     expect(pushSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("DELETE /api/v1/groups/:groupId/messages/:messageId should hide deleted message from later search", async () => {
+    const app = createApp();
+    jest.spyOn(groupAccess, "getGroupAccess").mockResolvedValue({
+      id: 8n,
+      assignmentId: 12n,
+      courseId: 22n,
+    } as any);
+    jest.spyOn(groupAccess, "ensureCourseMemberActive").mockResolvedValue(true);
+    jest.spyOn(chatHelpers, "getConversationId").mockResolvedValue(102n);
+    jest.spyOn(prisma.chatMessage, "findFirst").mockResolvedValue({
+      senderId: "2026010041",
+      deletedAt: null,
+    } as any);
+    jest.spyOn(prisma.chatMessage, "update").mockResolvedValue({
+      id: 304n,
+      conversationId: 102n,
+      senderId: "2026010041",
+      content: null,
+      files: null,
+      filesMeta: [],
+      mentions: [],
+      replyToId: null,
+      eventId: "evt-group-delete",
+      traceId: "trace-group-delete",
+      createdAt: new Date(),
+      editedAt: null,
+      deletedAt: new Date(),
+    } as any);
+    const findManySpy = jest.spyOn(prisma.chatMessage, "findMany").mockResolvedValue([]);
+    const pushSpy = jest.spyOn(realtimePublisher, "pushSocketEvent").mockResolvedValue();
+
+    const deleteRes = await request(app)
+      .delete("/api/v1/groups/8/messages/304")
+      .set("authorization", authHeader("2026010041", "student"));
+
+    expect(deleteRes.status).toBe(200);
+    expect(deleteRes.body.ok).toBe(true);
+    expect(deleteRes.body.data.id).toBe("304");
+    expect(deleteRes.body.data.deletedAt).toBeDefined();
+    expect(pushSpy).toHaveBeenCalledTimes(1);
+
+    const searchRes = await request(app)
+      .get("/api/v1/groups/8/messages/search?q=prototype")
+      .set("authorization", authHeader("2026010041", "student"));
+
+    expect(searchRes.status).toBe(200);
+    expect(searchRes.body.ok).toBe(true);
+    expect(searchRes.body.data).toEqual([]);
+    expect(findManySpy).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        conversationId: 102n,
+        deletedAt: null,
+        content: expect.objectContaining({ contains: "prototype" }),
+      }),
+    }));
   });
 });

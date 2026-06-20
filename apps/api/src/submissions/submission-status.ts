@@ -7,7 +7,7 @@ export function canCreateSubmissionAttempt(status: SubmissionStatus): { ok: true
   if (status === SubmissionStatus.not_submitted) {
     return { ok: false, message: "Stage deadline has passed; contact course staff for offline handling" };
   }
-  if (status === SubmissionStatus.submitted || status === SubmissionStatus.under_review) {
+  if (status === SubmissionStatus.under_review) {
     return { ok: false, message: "Submission is pending review" };
   }
   return { ok: true };

@@ -24,6 +24,8 @@
         messagesPaging: { hasMore: false, nextCursor: null, loadingOlder: false },
         me: null,
         unreadTotal: 0,
+        userNotifications: [],
+        userNotificationUnreadTotal: 0,
         replyTo: null,
         editingMessageId: null,
         pendingUploads: [],
@@ -243,6 +245,7 @@
         if (tab === "unread") return (Number(c.unreadCount) || 0) > 0;
         if (tab === "group") return c.scopeType === "group";
         if (tab === "task") return getConversationKind(c) === "task";
+        if (tab === "system") return false;
         return true;
     }
     function getFilteredConversations() {
@@ -255,11 +258,24 @@
             return title.indexOf(keyword) >= 0 || preview.indexOf(keyword) >= 0;
         });
     }
+    function getFilteredUserNotifications() {
+        var keyword = String(state.listSearch.keyword || "").trim().toLowerCase();
+        return state.userNotifications.filter(function (item) {
+            if (state.listTab === "unread" && item.readAt) return false;
+            if (!keyword) return true;
+            var title = String(item.title || "").toLowerCase();
+            var content = String(item.content || "").toLowerCase();
+            return title.indexOf(keyword) >= 0 || content.indexOf(keyword) >= 0;
+        });
+    }
     function getTabCount(tab) {
         if (tab === "unread") {
             return state.conversations.reduce(function (sum, c) {
                 return sum + (Number(c.unreadCount) || 0);
-            }, 0);
+            }, 0) + (Number(state.userNotificationUnreadTotal) || 0);
+        }
+        if (tab === "system") {
+            return Number(state.userNotificationUnreadTotal) || 0;
         }
         return state.conversations.filter(function (c) {
             return matchesConversationTab(c, tab);
@@ -410,7 +426,7 @@
         state.unreadTotal = state.conversations.reduce(function (sum, c) {
             return sum + (Number(c.unreadCount) || 0);
         }, 0);
-        setUnread(state.unreadTotal > 0);
+        setUnread((state.unreadTotal + (Number(state.userNotificationUnreadTotal) || 0)) > 0);
     }
 
     function scheduleReadSync() {
@@ -606,7 +622,7 @@
         .chat-head .action-row{align-self:flex-start}
         .chat-head-icon{width:34px;height:34px;border:none;background:transparent;border-radius:10px;display:grid;place-items:center;color:#64748b;cursor:pointer;transition:background .15s ease,color .15s ease,transform .15s ease}
         .chat-head-icon:hover{background:#eef6f4;color:#0f766e}
-        .chat-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:end;gap:0;padding:8px 12px 5px;border-bottom:1px solid rgba(226,232,240,.72);background:rgba(255,255,255,.94)}
+        .chat-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:end;gap:0;padding:8px 12px 5px;border-bottom:1px solid rgba(226,232,240,.72);background:rgba(255,255,255,.94)}
         .chat-tab{position:relative;border:none;background:transparent;padding:0 0 9px;cursor:pointer;color:#64748b;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:6px}
         .chat-tab:hover{color:#0f766e}
         .chat-tab.active{color:#0f766e}
@@ -820,6 +836,7 @@
                     <button type="button" class="chat-tab" data-chat-tab="unread"><span class="chat-tab-label">未读</span><span class="tab-badge red" data-chat-tab-badge="unread">0</span><span class="chat-tab-underline"></span></button>
                     <button type="button" class="chat-tab" data-chat-tab="group"><span class="chat-tab-label">群聊</span><span class="chat-tab-underline"></span></button>
                     <button type="button" class="chat-tab" data-chat-tab="task"><span class="chat-tab-label">任务通知</span><span class="chat-tab-underline"></span></button>
+                    <button type="button" class="chat-tab" data-chat-tab="system"><span class="chat-tab-label">系统通知</span><span class="tab-badge red" data-chat-tab-badge="system">0</span><span class="chat-tab-underline"></span></button>
                 </div>
                 <div class="chat-search-box" data-chat-search-box>
                     <button class="chat-search-back" type="button" data-chat-action="search-back" aria-label="返回">
@@ -1025,7 +1042,33 @@
             }
         }
         state.unreadTotal = state.conversations.reduce(function (s, c) { return s + (Number(c.unreadCount) || 0); }, 0);
-        setUnread(state.unreadTotal > 0);
+        await loadUserNotifications();
+        setUnread((state.unreadTotal + (Number(state.userNotificationUnreadTotal) || 0)) > 0);
+        syncConversationTabs();
+    }
+    async function loadUserNotifications() {
+        try {
+            var payload = await window.linkseeApi.getJson("/api/v1/notifications?limit=50");
+            state.userNotifications = Array.isArray(payload.data) ? payload.data : [];
+            state.userNotificationUnreadTotal = state.userNotifications.reduce(function (sum, item) {
+                return sum + (item && !item.readAt ? 1 : 0);
+            }, 0);
+        } catch (error) {
+            state.userNotifications = [];
+            state.userNotificationUnreadTotal = 0;
+        }
+    }
+    async function markUserNotificationRead(notificationId) {
+        if (!notificationId) return;
+        await window.linkseeApi.postJson("/api/v1/notifications/" + encodeURIComponent(String(notificationId)) + "/read", {});
+        state.userNotifications = state.userNotifications.map(function (item) {
+            if (String(item.id) !== String(notificationId) || item.readAt) return item;
+            return Object.assign({}, item, { readAt: new Date().toISOString() });
+        });
+        state.userNotificationUnreadTotal = state.userNotifications.reduce(function (sum, item) {
+            return sum + (item && !item.readAt ? 1 : 0);
+        }, 0);
+        setUnread((state.unreadTotal + (Number(state.userNotificationUnreadTotal) || 0)) > 0);
         syncConversationTabs();
     }
     async function syncConversationList(shouldRender) {
@@ -1213,8 +1256,35 @@
 
     function renderConversationSelector() {
         var stream = q("[data-chat-stream]", state.panel);
-        var list = getFilteredConversations();
         syncConversationTabs();
+        if (state.listTab === "system") {
+            var notifications = getFilteredUserNotifications();
+            if (!state.userNotifications.length) {
+                stream.innerHTML = "<div class='chat-empty-state'><strong>暂无系统通知</strong><span>课程、小组、任务和系统提醒会在这里集中展示。</span></div>";
+                return;
+            }
+            if (!notifications.length) {
+                stream.innerHTML = "<div class='chat-empty-state'><strong>没有符合条件的通知</strong><span>试试清空搜索关键词，或者切换到其他标签页。</span></div>";
+                return;
+            }
+            stream.innerHTML = notifications.map(function (item) {
+                var unread = !item.readAt;
+                var time = formatConversationTime(item.createdAt);
+                var content = String(item.content || "");
+                var scopeType = item.scopeType ? " data-notification-scope-type='" + escapeHtml(String(item.scopeType)) + "'" : "";
+                var scopeId = item.scopeId ? " data-notification-scope-id='" + escapeHtml(String(item.scopeId)) + "'" : "";
+                return "<div class='chat-conversation-item" + (unread ? " is-active" : "") + "' data-user-notification-id='" + escapeHtml(String(item.id)) + "'" + scopeType + scopeId + ">" +
+                    "<div class='chat-avatar chat-avatar-system'><svg viewBox='0 0 24 24' width='18' height='18' fill='none' stroke='currentColor' stroke-width='1.8'><path d='M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9'></path><path d='M13.73 21a2 2 0 0 1-3.46 0'></path></svg></div>" +
+                    "<div class='chat-conversation-item-main'>" +
+                    "<div class='line1'><strong>" + escapeHtml(item.title || "系统通知") + "</strong><span class='time'>" + escapeHtml(time) + "</span></div>" +
+                    "<div class='line2'>" + escapeHtml(content || "暂无内容") + "</div>" +
+                    "</div>" +
+                    (unread ? "<div class='unread-pill'>新</div>" : "") +
+                    "</div>";
+            }).join("");
+            return;
+        }
+        var list = getFilteredConversations();
         if (!state.conversations.length) {
             stream.innerHTML = "<div class='chat-empty-state'><strong>暂无会话</strong><span>你当前没有可用聊天会话。等课程、小组或公告消息出现后，这里会自动列出来。</span></div>";
             return;
@@ -2227,6 +2297,22 @@
                 return;
             }
 
+            var userNotificationNode = event.target.closest("[data-user-notification-id]");
+            if (userNotificationNode) {
+                closeMoreMenu();
+                var notificationId = userNotificationNode.getAttribute("data-user-notification-id");
+                var notificationScopeType = userNotificationNode.getAttribute("data-notification-scope-type");
+                var notificationScopeId = userNotificationNode.getAttribute("data-notification-scope-id");
+                markUserNotificationRead(notificationId).then(function () {
+                    if (notificationScopeType && notificationScopeId) {
+                        return openConversationByScope(notificationScopeType, notificationScopeId);
+                    }
+                    renderMessages();
+                    return null;
+                }).catch(function (e) { showToast(e.message || "打开通知失败", true); });
+                return;
+            }
+
             var conv = event.target.closest("[data-chat-open]");
             if (conv) {
                 closeMoreMenu();
@@ -2358,7 +2444,7 @@
         ensureContextMenu();
         bindEvents();
         Promise.all([loadMe(), loadConversations()]).then(function () {
-            setUnread(state.unreadTotal > 0);
+            setUnread((state.unreadTotal + (Number(state.userNotificationUnreadTotal) || 0)) > 0);
             renderMessages();
         }).catch(function () {});
     }

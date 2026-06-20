@@ -11,6 +11,7 @@ export type HttpRoute = {
     | "collaboration"
     | "submission"
     | "grading"
+    | "notifications"
     | "rag";
 };
 
@@ -263,6 +264,24 @@ export const mvpRoutes: HttpRoute[] = [
     path: "/api/v1/realtime/replay",
     authRequired: true,
     module: "collaboration",
+  },
+  {
+    method: "GET",
+    path: "/api/v1/notifications",
+    authRequired: true,
+    module: "notifications",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/notifications/:notificationId/read",
+    authRequired: true,
+    module: "notifications",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/notifications/read-all",
+    authRequired: true,
+    module: "notifications",
   },
   {
     method: "POST",

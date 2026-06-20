@@ -21,6 +21,7 @@
             currentStageId: "",
             currentQueuePage: 1,
             queuePageSize: 6,
+            expandedManageRows: {},
             mockMode: assistantReviewMockAllowed,
         };
 
@@ -280,11 +281,12 @@
             return [
                 {
                     id: asId(review && review.id || "mock-attempt-1"),
-                    attemptNo: 1,
+                    attemptNo: 2,
                     summary: title,
                     submittedAt: review && (review.submittedAt || review.createdAt) || new Date().toISOString(),
                     createdAt: review && (review.createdAt || review.submittedAt) || new Date().toISOString(),
                     status: status,
+                    reviewComment: review && review.reviewComment || (status === "approved" ? "成果材料完整，验收说明清晰，可以进入评分。" : ""),
                     payload: {
                         title: title,
                         description: "已完成阶段页面、提交记录、附件整理与批阅状态联调，成果包内容齐全，可直接进入批阅。",
@@ -302,11 +304,12 @@
                 },
                 {
                     id: asId(review && review.id || "mock-attempt-1") + "-prev",
-                    attemptNo: 0,
+                    attemptNo: 1,
                     summary: "上一版提交：缺少附件说明",
                     submittedAt: new Date(Date.now() - 1000 * 60 * 60 * 30).toISOString(),
                     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 30).toISOString(),
                     status: "needs_changes",
+                    reviewComment: "上一版提交缺少附件说明，请补充阶段成果说明和验收依据。",
                     payload: { title: "上一版阶段成果", description: "用于查看历次提交区域的 mock 记录。", links: [] },
                     files: [],
                 },
@@ -410,6 +413,19 @@
             if (status === "submitted") return "badge-pending";
             if (status === "approved") return "badge-approved";
             return "badge-pending";
+        }
+
+        function getReviewStateClass(status) {
+            if (status === "submitted") return "is-pending-review";
+            if (status === "under_review") return "is-pending-grade";
+            return "";
+        }
+
+        function getReviewStatusTone(status) {
+            if (status === "approved" || status === "reviewed") return "is-success";
+            if (status === "needs_changes" || status === "under_review") return "is-warning";
+            if (status === "rejected") return "is-danger";
+            return "is-muted";
         }
 
         function getQueueGroupTone(groupNo) {
@@ -545,6 +561,7 @@
 
             if (!state.pendingReviews.length) {
                 list.innerHTML = '<div class="assistant-review-queue-empty">暂无组别提交</div>';
+                renderReviewManageRows();
                 return;
             }
 
@@ -553,7 +570,7 @@
                 var leader = getLeaderMeta(review);
                 var selected = state.selected && asId(state.selected.id) === asId(review.id);
                 return [
-                    '<div class="list-item dashboard-list-item-interactive assistant-review-queue-item' + (selected ? ' dashboard-list-item-selected' : "") + '" data-submission-id="' + escapeHtml(review.id) + '">',
+                    '<div class="list-item dashboard-list-item-interactive assistant-review-queue-item ' + getReviewStateClass(review.status) + (selected ? ' dashboard-list-item-selected' : "") + '" data-submission-id="' + escapeHtml(review.id) + '">',
                     '<div class="assistant-review-queue-group ' + getQueueGroupTone(groupNo) + '">第 ' + escapeHtml(groupNo) + " 组</div>",
                     '<div class="assistant-review-queue-status"><strong>' + escapeHtml(getReviewStatusLabel(review.status)) + "</strong><span>" + escapeHtml(formatQueueTime(review.submittedAt || review.createdAt)) + "</span></div>",
                     '<div class="assistant-review-queue-leader"><strong>' + escapeHtml(leader.realName || "--") + "</strong><span>" + escapeHtml(leader.accountNo || "--") + "</span></div>",
@@ -566,109 +583,7 @@
                     selectReview(item.getAttribute("data-submission-id"));
                 });
             });
-        }
-
-        function renderSelectedLegacy() {
-            var selected = state.selected;
-            var titleNode = q("#assistantSelectedTitle");
-            var pathNode = q("#assistantSelectedPath");
-            var contextNode = q("#assistantReviewContext");
-            var detailNode = q("#assistantSubmissionDetail");
-            var attemptNode = q("#assistantAttemptList");
-            var startBtn = q("#assistantStartBtn");
-            var saveBtn = q("#assistantReviewSaveBtn");
-
-            if (!selected) {
-                if (titleNode) titleNode.textContent = state.pendingReviews.length ? "请选择左侧提交" : "暂无组别提交";
-                if (pathNode) pathNode.textContent = "课程 / 项目 / 阶段";
-                if (contextNode) contextNode.textContent = "";
-                if (detailNode) detailNode.innerHTML = buildSubmissionEmptyDetailHtml();
-                if (attemptNode) attemptNode.innerHTML = '<div class="assistant-review-placeholder">暂无记录</div>';
-                if (startBtn) startBtn.disabled = true;
-                if (saveBtn) saveBtn.disabled = true;
-                return;
-            }
-
-            var course = getCurrentCourse();
-            var assignment = getCurrentAssignment();
-            var stage = getCurrentStage() || (state.stages.find(function (row) { return asId(row.id) === asId(selected.stageId); }) || null);
-            var groupLabel = selected.group && (selected.group.groupNo || selected.group.name) ? "第 " + (selected.group.groupNo || selected.group.name) + " 组" : "未命名小组";
-            if (titleNode) titleNode.textContent = groupLabel;
-            if (pathNode) {
-                pathNode.textContent = [
-                    course ? (course.name || course.courseNo || course.id) : "--",
-                    assignment ? assignment.title : "--",
-                    stage ? (stage.title || "--") : "--",
-                ].join(" / ");
-            }
-            if (contextNode) {
-                contextNode.textContent = "提交时间：" + formatDate(selected.submittedAt || selected.createdAt);
-            }
-            if (startBtn) {
-                startBtn.disabled = selected.status !== "submitted";
-            }
-            if (saveBtn) {
-                saveBtn.disabled = false;
-            }
-
-            renderSubmissionDetailLegacy();
-            renderAttemptList();
-        }
-
-        function renderSubmissionDetailLegacy() {
-            var node = q("#assistantSubmissionDetail");
-            if (!node) return;
-            if (!state.selected || !state.submissionAttempts.length) {
-                node.innerHTML = buildSubmissionEmptyDetailHtml();
-                return;
-            }
-            var selectedSubmission = state.submissionAttempts.find(function (row) {
-                return asId(row.id) === asId(state.selected.id);
-            }) || state.submissionAttempts[0];
-            var payload = selectedSubmission && selectedSubmission.payload && typeof selectedSubmission.payload === "object"
-                ? selectedSubmission.payload
-                : {};
-            var links = Array.isArray(payload.links) ? payload.links : [];
-            var repositoryUrl = typeof payload.repositoryUrl === "string" ? payload.repositoryUrl : "";
-            var description = typeof payload.description === "string" ? payload.description : "";
-            var contributionNote = typeof payload.contributionNote === "string" ? payload.contributionNote : "";
-            var title = typeof payload.title === "string" ? payload.title : "";
-            var fileIds = Array.isArray(payload.fileIds) ? payload.fileIds : [];
-            var fileList = fileIds.length
-                ? fileIds.map(function (fileId, index) {
-                    return [
-                        '<div class="assistant-review-file-row">',
-                        '<span class="assistant-review-file-name">' + escapeHtml(String(fileId)) + "</span>",
-                        '<span class="assistant-review-file-meta">#' + escapeHtml(index + 1) + "</span>",
-                        "</div>",
-                    ].join("");
-                }).join("")
-                : '<div class="assistant-review-file-empty">无</div>';
-            node.innerHTML = [
-                '<div class="assistant-review-detail-layout">',
-                '<div class="assistant-review-detail-main">',
-                '<div class="assistant-review-detail-item"><span class="assistant-review-detail-label">提交标题</span><div class="assistant-review-richtext">' + escapeHtml(title || selectedSubmission.summary || "未填写") + "</div></div>",
-                '<div class="assistant-review-detail-item"><span class="assistant-review-detail-label">提交内容</span><div class="assistant-review-richtext">' + escapeHtml(description || selectedSubmission.summary || "未填写") + "</div></div>",
-                '<div class="assistant-review-detail-item"><span class="assistant-review-detail-label">贡献说明</span><div class="assistant-review-richtext">' + escapeHtml(contributionNote || "未填写") + "</div></div>",
-                '<div class="assistant-review-detail-item"><span class="assistant-review-detail-label">仓库链接</span>' + (
-                    repositoryUrl
-                        ? '<a class="dashboard-inline-link" href="' + escapeHtml(repositoryUrl) + '" target="_blank" rel="noreferrer">' + escapeHtml(repositoryUrl) + "</a>"
-                        : '<div class="assistant-review-richtext">未填写</div>'
-                ) + "</div>",
-                '<div class="assistant-review-detail-item"><span class="assistant-review-detail-label">参考链接</span>' + (
-                    links.length
-                        ? '<div class="assistant-review-link-list">' + links.map(function (link) {
-                            return '<a class="dashboard-inline-link" href="' + escapeHtml(link) + '" target="_blank" rel="noreferrer">' + escapeHtml(link) + "</a>";
-                        }).join("") + "</div>"
-                        : '<div class="assistant-review-richtext">未填写</div>'
-                ) + "</div>",
-                "</div>",
-                '<aside class="assistant-review-file-card">',
-                '<div class="assistant-review-file-head"><span>文件索引</span><span>' + escapeHtml(fileIds.length) + " 项</span></div>",
-                '<div class="assistant-review-file-list">' + fileList + "</div>",
-                "</aside>",
-                "</div>",
-            ].join("");
+            renderReviewManageRows();
         }
 
         function renderSelected() {
@@ -680,6 +595,16 @@
             var attemptNode = q("#assistantAttemptList");
             var startBtn = q("#assistantStartBtn");
             var saveBtn = q("#assistantReviewSaveBtn");
+            var scoreInput = q("#assistantGradeScoreInput");
+            var selectedCard = q(".assistant-review-selected-card");
+
+            if (selectedCard) {
+                selectedCard.classList.remove("is-pending-review", "is-pending-grade");
+                if (selected) {
+                    var stateClass = getReviewStateClass(selected.status);
+                    if (stateClass) selectedCard.classList.add(stateClass);
+                }
+            }
 
             if (!selected) {
                 if (titleNode) titleNode.textContent = state.pendingReviews.length ? "请选择左侧提交" : "暂无组别提交";
@@ -689,6 +614,10 @@
                 if (attemptNode) attemptNode.innerHTML = '<div class="assistant-review-placeholder">暂无记录</div>';
                 if (startBtn) startBtn.disabled = true;
                 if (saveBtn) saveBtn.disabled = true;
+                if (scoreInput) {
+                    scoreInput.value = "";
+                    scoreInput.disabled = true;
+                }
                 return;
             }
 
@@ -709,6 +638,11 @@
             }
             if (startBtn) startBtn.disabled = selected.status !== "submitted";
             if (saveBtn) saveBtn.disabled = false;
+            if (scoreInput) {
+                scoreInput.value = selected.grade && selected.grade.score !== undefined && selected.grade.score !== null ? selected.grade.score : "";
+                scoreInput.disabled = !canSaveGradeDraft(selected.status);
+            }
+            syncReviewDecisionControls();
 
             renderSubmissionDetail();
             renderAttemptList();
@@ -760,6 +694,7 @@
             if (!state.submissionAttempts.length) {
                 if (countNode) countNode.textContent = "0 次";
                 node.innerHTML = '<div class="assistant-review-placeholder">暂无记录</div>';
+                renderReviewManageRows();
                 return;
             }
             if (countNode) countNode.textContent = state.submissionAttempts.length + " 次";
@@ -771,11 +706,12 @@
                 "<span>状态</span>",
                 "<span>摘要</span>",
                 "</div>",
-                state.submissionAttempts.map(function (attempt) {
+                state.submissionAttempts.map(function (attempt, index) {
                 var isCurrent = state.selected && asId(state.selected.id) === asId(attempt.id);
+                var attemptNo = attempt.attemptNo || index + 1;
                 return [
                     '<div class="assistant-review-attempt-item' + (isCurrent ? " is-current" : "") + '">',
-                    "<span>第 " + escapeHtml(attempt.attemptNo || "--") + " 次</span>",
+                    "<span>第 " + escapeHtml(attemptNo) + " 次</span>",
                     "<span>" + escapeHtml(formatDate(attempt.submittedAt || attempt.createdAt)) + "</span>",
                     '<span class="assistant-review-attempt-status">' + escapeHtml(getReviewStatusLabel(attempt.status)) + "</span>",
                     "<span>" + escapeHtml(attempt.summary || "无") + "</span>",
@@ -784,11 +720,255 @@
             }).join(""),
                 "</div>",
             ].join("");
+            renderReviewManageRows();
+        }
+
+        function getReviewManageReviewer(attempt) {
+            var review = attempt.review || attempt.latestReview || attempt.reviewRecord || {};
+            var reviewer = attempt.reviewer || review.reviewer || attempt.reviewedBy || {};
+            return attempt.reviewerName
+                || review.reviewerName
+                || attempt.reviewedByName
+                || review.reviewedByName
+                || reviewer.realName
+                || reviewer.profile && reviewer.profile.realName
+                || reviewer.displayName
+                || reviewer.name
+                || "未记录";
+        }
+
+        function getReviewManageSummary(attempt) {
+            var review = attempt.review || attempt.latestReview || attempt.reviewRecord || {};
+            return attempt.reviewComment
+                || attempt.comment
+                || review.comment
+                || review.feedback
+                || attempt.summary
+                || "无";
+        }
+
+        function canSaveGradeDraft(status) {
+            return status === "approved" || status === "reviewed";
+        }
+
+        function ensureReviewActionEnhancements() {
+            var statusSelect = q("#assistantReviewStatus");
+            if (statusSelect && !document.querySelector('[data-review-status-for="assistantReviewStatus"]')) {
+                statusSelect.insertAdjacentHTML("afterend", [
+                    '<div class="review-decision-options" data-review-status-for="assistantReviewStatus">',
+                    '<button type="button" data-review-status-value="approved">通过</button>',
+                    '<button type="button" data-review-status-value="needs_changes">待修改</button>',
+                    '<button type="button" data-review-status-value="rejected">未通过</button>',
+                    "</div>",
+                ].join(""));
+            }
+            var commentInput = q("#assistantCommentInput");
+            if (commentInput && !q("#assistantGradeScoreInput")) {
+                commentInput.closest("label").insertAdjacentHTML("afterend", [
+                    '<label class="user-settings-field">',
+                    '<span>分数 (0-100)</span>',
+                    '<input id="assistantGradeScoreInput" class="dashboard-input" type="number" placeholder="输入草稿分数，回车保存" min="0" max="100">',
+                    "</label>",
+                ].join(""));
+            }
+        }
+
+        function syncReviewDecisionControls() {
+            Array.from(document.querySelectorAll("[data-review-status-for]")).forEach(function (group) {
+                var select = q("#" + group.getAttribute("data-review-status-for"));
+                if (!select) return;
+                Array.from(group.querySelectorAll("[data-review-status-value]")).forEach(function (button) {
+                    button.classList.toggle("is-active", button.getAttribute("data-review-status-value") === select.value);
+                });
+            });
+        }
+
+        function renderReviewManageStageOptions() {
+            var select = q("#assistantReviewManageStage");
+            if (!select) return;
+            var current = select.value;
+            select.innerHTML = '<option value="">全部阶段</option>' + state.stages.map(function (stage) {
+                return '<option value="' + escapeHtml(stage.id) + '">' + escapeHtml(stage.title || stage.name || stage.id) + "</option>";
+            }).join("");
+            select.value = current;
+        }
+
+        function getReviewManageRows() {
+            var keywordNode = q("#assistantReviewManageKeyword");
+            var statusNode = q("#assistantReviewManageStatus");
+            var stageNode = q("#assistantReviewManageStage");
+            var keyword = keywordNode ? keywordNode.value.trim().toLowerCase() : "";
+            var status = statusNode ? statusNode.value : "";
+            var stageId = stageNode ? stageNode.value : "";
+            return state.pendingReviews.filter(function (review) {
+                var groupNo = review.group && (review.group.groupNo || review.group.name) ? String(review.group.groupNo || review.group.name) : "";
+                var leader = getLeaderMeta(review);
+                var haystack = [groupNo, leader.realName || "", leader.accountNo || "", getReviewStatusLabel(review.status)].join(" ").toLowerCase();
+                if (keyword && haystack.indexOf(keyword) < 0) return false;
+                if (status && review.status !== status) return false;
+                if (stageId && asId(review.stageId) !== asId(stageId)) return false;
+                return true;
+            });
+        }
+
+        function getReviewManageStageLabel(stageId) {
+            var stage = state.stages.find(function (row) { return asId(row.id) === asId(stageId); }) || null;
+            return getStageLabel(stage);
+        }
+
+        function buildReviewManageHistory(review) {
+            if (!state.expandedManageRows[asId(review.id)]) return "";
+            var attempts = state.selected && asId(state.selected.id) === asId(review.id) ? state.submissionAttempts : [];
+            if (!attempts.length) {
+                return '<div class="review-manage-history"><div class="review-manage-history-empty">暂无历史记录</div></div>';
+            }
+            return [
+                '<div class="review-manage-history">',
+                '<div class="review-manage-history-head"><span>次数</span><span>提交时间</span><span>状态</span><span>批阅人</span><span>摘要</span></div>',
+                attempts.map(function (attempt, index) {
+                    var attemptNo = attempt.attemptNo || index + 1;
+                    return [
+                        '<div class="review-manage-history-row">',
+                        '<span>第 ' + escapeHtml(attemptNo) + " 次</span>",
+                        '<span>' + escapeHtml(formatDate(attempt.submittedAt || attempt.createdAt)) + "</span>",
+                        '<span class="review-manage-status ' + getReviewStatusTone(attempt.status) + '">' + escapeHtml(getReviewStatusLabel(attempt.status)) + "</span>",
+                        '<span>' + escapeHtml(getReviewManageReviewer(attempt)) + "</span>",
+                        '<span class="review-manage-summary" title="' + escapeHtml(getReviewManageSummary(attempt)) + '">' + escapeHtml(getReviewManageSummary(attempt)) + "</span>",
+                        "</div>",
+                    ].join("");
+                }).join(""),
+                "</div>",
+            ].join("");
+        }
+
+        function renderReviewManageRows() {
+            var node = q("#assistantReviewManageRows");
+            if (!node) return;
+            renderReviewManageStageOptions();
+            var rows = getReviewManageRows();
+            if (!rows.length) {
+                node.innerHTML = '<div class="review-manage-empty">暂无符合条件的小组提交</div>';
+                return;
+            }
+            node.innerHTML = rows.map(function (review) {
+                var groupNo = review.group && (review.group.groupNo || review.group.name) ? (review.group.groupNo || review.group.name) : "--";
+                var leader = getLeaderMeta(review);
+                var selected = state.selected && asId(state.selected.id) === asId(review.id);
+                var expanded = !!state.expandedManageRows[asId(review.id)];
+                var canStart = review.status === "submitted";
+                var canReview = review.status === "under_review" || review.status === "submitted";
+                var scoreValue = review.grade && review.grade.score !== undefined && review.grade.score !== null ? review.grade.score : "";
+                var scoreDisabled = !canSaveGradeDraft(review.status);
+                return [
+                    '<article class="review-manage-row' + (selected ? " is-selected" : "") + '" data-review-manage-row="' + escapeHtml(review.id) + '">',
+                    '<div class="review-manage-row-main">',
+                    '<button class="review-manage-expand" type="button" data-review-manage-action="toggle" aria-label="展开历史"><svg class="review-manage-chevron' + (expanded ? " is-open" : "") + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></button>',
+                    '<div class="review-manage-group"><strong>第 ' + escapeHtml(groupNo) + " 组</strong><span>组长：" + escapeHtml(leader.realName || "--") + "</span></div>",
+                    '<div class="review-manage-meta"><strong class="review-manage-status ' + getReviewStatusTone(review.status) + '">' + escapeHtml(getReviewStatusLabel(review.status)) + "</strong><span>提交：" + escapeHtml(formatQueueTime(review.submittedAt || review.createdAt)) + "</span></div>",
+                    '<div class="review-manage-stage">' + escapeHtml(getReviewManageStageLabel(review.stageId)) + "</div>",
+                    '<div class="review-manage-row-actions">',
+                    '<button type="button" data-review-manage-action="review"' + (canReview ? "" : " disabled") + ">批阅</button>",
+                    '<input class="review-manage-score-input" data-review-score-input type="number" min="0" max="100" placeholder="分数" value="' + escapeHtml(scoreValue) + '"' + (scoreDisabled ? " disabled" : "") + '>',
+                    "</div>",
+                    "</div>",
+                    buildReviewManageHistory(review),
+                    "</article>",
+                ].join("");
+            }).join("");
+        }
+
+        function setReviewManageOpen(open) {
+            var modal = q("#assistantReviewManageModal");
+            if (!modal) return;
+            modal.hidden = !open;
+            if (open) renderReviewManageRows();
+        }
+
+        function handleReviewManageAction(button) {
+            if (!button || button.disabled) return;
+            var row = button.closest("[data-review-manage-row]");
+            if (!row) return;
+            var reviewId = row.getAttribute("data-review-manage-row");
+            var action = button.getAttribute("data-review-manage-action");
+            if (action === "toggle") {
+                state.expandedManageRows[asId(reviewId)] = !state.expandedManageRows[asId(reviewId)];
+                if (state.expandedManageRows[asId(reviewId)]) {
+                    selectReview(reviewId);
+                } else {
+                    renderReviewManageRows();
+                }
+                return;
+            }
+            selectReview(reviewId);
+            if (action === "start") {
+                if (!state.selected) {
+                    setResult("无法开始", "请先选择提交。", true);
+                    return;
+                }
+                clearResult();
+                if (state.mockMode) {
+                    state.selected.status = "under_review";
+                    state.pendingReviewsRaw = state.pendingReviewsRaw.map(function (review) {
+                        return asId(review.id) === asId(state.selected.id) ? state.selected : review;
+                    });
+                    applyReviewFilters();
+                    renderQueue();
+                    renderSelected();
+                    renderReviewManageRows();
+                    setResult("已进入评审", "mock 数据已更新为评审中。", false);
+                    return;
+                }
+                window.linkseeApi.postJson("/api/v1/submissions/" + encodeURIComponent(state.selected.id) + "/reviews/start", {})
+                    .then(function () {
+                        setResult("已进入评审", "该提交状态已更新为评审中。", false);
+                        return loadPendingReviews();
+                    })
+                    .catch(function (err) {
+                        setResult("开始失败", err.message || "无法开始评审", true);
+                    });
+            } else if (action === "review") {
+                if (!state.selected) {
+                    setResult("无法提交", "请先选择提交。", true);
+                    return;
+                }
+                var comment = q("#assistantCommentInput").value.trim();
+                var status = q("#assistantReviewStatus").value;
+                if (!comment) {
+                    setResult("无法提交", "请先填写批阅意见。", true);
+                    return;
+                }
+                clearResult();
+                if (state.mockMode) {
+                    state.selected.status = status;
+                    state.selected.reviewComment = comment;
+                    state.pendingReviewsRaw = state.pendingReviewsRaw.map(function (review) {
+                        return asId(review.id) === asId(state.selected.id) ? state.selected : review;
+                    });
+                    q("#assistantCommentInput").value = "";
+                    applyReviewFilters();
+                    renderQueue();
+                    renderSelected();
+                    renderReviewManageRows();
+                    setResult("批阅已提交", "mock 数据已写入批阅结论。", false);
+                    return;
+                }
+                window.linkseeApi.postJson("/api/v1/submissions/" + encodeURIComponent(state.selected.id) + "/reviews", {
+                    status: status,
+                    comment: comment,
+                }).then(function () {
+                    q("#assistantCommentInput").value = "";
+                    setResult("批阅已提交", "本次小组阶段提交已写入批阅结论。", false);
+                    return loadPendingReviews();
+                }).catch(function (err) {
+                    setResult("提交失败", err.message || "无法提交批阅", true);
+                });
+            }
         }
 
         function selectReview(submissionId) {
             clearResult();
             state.selected = state.pendingReviews.find(function (row) { return asId(row.id) === asId(submissionId); }) || null;
+            state.submissionAttempts = [];
             renderQueue();
             renderSelected();
             if (state.selected) {
@@ -867,11 +1047,12 @@
                 renderSelected();
                 return;
             }
-            var payload = await window.linkseeApi.getJson("/api/v1/courses/" + encodeURIComponent(state.currentCourseId) + "/pending-reviews");
+            var payload = await window.linkseeApi.getJson("/api/v1/courses/" + encodeURIComponent(state.currentCourseId) + "/pending-reviews?scope=workbench");
             state.pendingReviewsRaw = rowsOf(payload);
             state.currentQueuePage = 1;
             await enrichGroupLeaders(state.pendingReviewsRaw);
             applyReviewFilters();
+            await loadGrades();
             renderSummary();
             renderQueue();
             renderSelected();
@@ -882,6 +1063,21 @@
                 renderAttemptList();
                 renderSubmissionDetail();
             }
+        }
+
+        async function loadGrades() {
+            if (state.mockMode) return;
+            if (!state.currentCourseId) return;
+            var payload = await window.linkseeApi.getJson("/api/v1/courses/" + encodeURIComponent(state.currentCourseId) + "/grades");
+            var grades = rowsOf(payload);
+            state.pendingReviews = state.pendingReviews.map(function (review) {
+                var grade = grades.find(function (item) { return asId(item.submissionId) === asId(review.id); });
+                if (grade) {
+                    review.grade = grade;
+                    review.gradeId = grade.id;
+                }
+                return review;
+            });
         }
 
         async function loadSubmissionAttempts(review) {
@@ -931,7 +1127,51 @@
             await loadPendingReviews();
         }
 
+        async function saveGradeDraft() {
+            if (!state.selected) return;
+            if (!canSaveGradeDraft(state.selected.status)) {
+                throw new Error("当前提交状态还不能评分");
+            }
+            var scoreInput = q("#assistantGradeScoreInput");
+            var scoreValue = scoreInput && scoreInput.value !== "" ? Number(scoreInput.value) : Number.NaN;
+            if (!Number.isFinite(scoreValue)) {
+                throw new Error("请先输入 0-100 的分数");
+            }
+            if (state.mockMode) {
+                state.selected.gradeId = state.selected.gradeId || "mock-grade-" + asId(state.selected.id);
+                state.selected.grade = { id: state.selected.gradeId, score: scoreValue, status: "draft" };
+                state.pendingReviewsRaw = state.pendingReviewsRaw.map(function (review) {
+                    return asId(review.id) === asId(state.selected.id) ? state.selected : review;
+                });
+                applyReviewFilters();
+                renderQueue();
+                renderSelected();
+                renderReviewManageRows();
+                return;
+            }
+            await window.linkseeApi.postJson("/api/v1/submissions/" + encodeURIComponent(state.selected.id) + "/grade-drafts", {
+                score: scoreValue,
+            });
+            await loadPendingReviews();
+        }
+
+        function saveManageScoreDraft(input) {
+            if (!input || input.disabled) return;
+            var row = input.closest("[data-review-manage-row]");
+            if (!row) return;
+            selectReview(row.getAttribute("data-review-manage-row"));
+            var scoreInput = q("#assistantGradeScoreInput");
+            if (scoreInput) scoreInput.value = input.value;
+            clearResult();
+            saveGradeDraft().then(function () {
+                setResult("分数草稿已保存", "教师端和助教端刷新后都会读取这份草稿。", false);
+            }).catch(function (err) {
+                setResult("保存失败", err.message || "无法保存分数草稿", true);
+            });
+        }
+
         function bindEvents() {
+            ensureReviewActionEnhancements();
             q("#assistantCourseSelect").addEventListener("change", function () {
                 state.currentCourseId = q("#assistantCourseSelect").value;
                 state.currentAssignmentId = "";
@@ -984,6 +1224,66 @@
                 state.currentQueuePage += 1;
                 renderQueue();
             });
+
+            var manageBtn = q("#assistantReviewManageBtn");
+            if (manageBtn) {
+                manageBtn.addEventListener("click", function () {
+                    setReviewManageOpen(true);
+                });
+            }
+            Array.from(document.querySelectorAll("#assistantReviewManageModal [data-review-manage-close]")).forEach(function (button) {
+                button.addEventListener("click", function () {
+                    setReviewManageOpen(false);
+                });
+            });
+            ["#assistantReviewManageKeyword", "#assistantReviewManageStatus", "#assistantReviewManageStage"].forEach(function (selector) {
+                var input = q(selector);
+                if (!input) return;
+                input.addEventListener(input.tagName === "INPUT" ? "input" : "change", renderReviewManageRows);
+            });
+            var manageRows = q("#assistantReviewManageRows");
+            if (manageRows) {
+                manageRows.addEventListener("click", function (event) {
+                    if (event.target.closest("[data-review-score-input]")) return;
+                    var actionButton = event.target.closest("[data-review-manage-action]");
+                    if (actionButton) {
+                        handleReviewManageAction(actionButton);
+                        return;
+                    }
+                    var row = event.target.closest("[data-review-manage-row]");
+                    if (row) selectReview(row.getAttribute("data-review-manage-row"));
+                });
+                manageRows.addEventListener("keydown", function (event) {
+                    var scoreInput = event.target.closest("[data-review-score-input]");
+                    if (!scoreInput || event.key !== "Enter") return;
+                    event.preventDefault();
+                    saveManageScoreDraft(scoreInput);
+                });
+            }
+            Array.from(document.querySelectorAll("[data-review-status-for]")).forEach(function (group) {
+                var select = q("#" + group.getAttribute("data-review-status-for"));
+                if (!select) return;
+                Array.from(group.querySelectorAll("[data-review-status-value]")).forEach(function (button) {
+                    button.addEventListener("click", function () {
+                        select.value = button.getAttribute("data-review-status-value") || "approved";
+                        syncReviewDecisionControls();
+                    });
+                });
+                select.addEventListener("change", syncReviewDecisionControls);
+            });
+            var scoreInput = q("#assistantGradeScoreInput");
+            if (scoreInput) {
+                scoreInput.addEventListener("keydown", function (event) {
+                    if (event.key !== "Enter") return;
+                    event.preventDefault();
+                    clearResult();
+                    saveGradeDraft().then(function () {
+                        setResult("分数草稿已保存", "教师端和助教端刷新后都会读取这份草稿。", false);
+                    }).catch(function (err) {
+                        setResult("保存失败", err.message || "无法保存分数草稿", true);
+                    });
+                });
+            }
 
             q("#assistantStartBtn").addEventListener("click", function () {
                 if (!state.selected) {

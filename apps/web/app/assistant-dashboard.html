@@ -129,6 +129,15 @@
                                                 <strong id="assistantSelectedTitle">提交内容</strong>
                                                 <div id="assistantSelectedPath" class="assistant-review-selected-path">课程 / 项目 / 阶段</div>
                                             </div>
+                                            <button id="assistantReviewManageBtn" class="review-manage-icon-btn" type="button" aria-label="批阅管理" title="批阅管理">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                    <path d="M4 5h16"></path>
+                                                    <path d="M4 12h10"></path>
+                                                    <path d="M4 19h7"></path>
+                                                    <circle cx="18" cy="17" r="3"></circle>
+                                                    <path d="m20.2 19.2 1.8 1.8"></path>
+                                                </svg>
+                                            </button>
                                         </div>
                                         <div id="assistantReviewContext" class="assistant-review-inline-meta"></div>
                                     </div>
@@ -155,7 +164,35 @@
                                     </div>
                                 </div>
 
-                                <div class="dashboard-inline-grid assistant-review-lower-grid">
+                                <div id="assistantReviewManageModal" class="review-manage-modal" hidden>
+                                    <div class="review-manage-backdrop" data-review-manage-close></div>
+                                    <section class="review-manage-dialog" role="dialog" aria-modal="true" aria-labelledby="assistantReviewManageTitle">
+                                        <div class="review-manage-head">
+                                            <div>
+                                                <h3 id="assistantReviewManageTitle">批阅管理</h3>
+                                                <span>按课程、阶段、小组和状态筛选提交记录</span>
+                                            </div>
+                                            <button class="review-manage-close" type="button" data-review-manage-close aria-label="关闭">×</button>
+                                        </div>
+                                        <div class="review-manage-filters">
+                                            <input id="assistantReviewManageKeyword" class="dashboard-input" type="search" placeholder="搜索小组 / 组长">
+                                            <select id="assistantReviewManageStatus" class="dashboard-select">
+                                                <option value="">全部状态</option>
+                                                <option value="submitted">待批阅</option>
+                                                <option value="under_review">待评分</option>
+                                                <option value="approved">已通过</option>
+                                                <option value="needs_changes">待修改</option>
+                                                <option value="rejected">已拒绝</option>
+                                            </select>
+                                            <select id="assistantReviewManageStage" class="dashboard-select">
+                                                <option value="">当前阶段范围</option>
+                                            </select>
+                                        </div>
+                                        <div class="review-manage-body">
+                                            <section class="review-manage-table-card">
+                                                <div id="assistantReviewManageRows" class="review-manage-table"></div>
+                                            </section>
+                                            <div class="dashboard-inline-grid assistant-review-lower-grid review-manage-side">
                                     <div class="dashboard-subcard assistant-review-action-card">
                                         <h3 class="dashboard-subcard-title">批阅</h3>
                                         <label class="user-settings-field">
@@ -185,6 +222,9 @@
                                             <div class="assistant-review-placeholder">暂无记录</div>
                                         </div>
                                     </div>
+                                            </div>
+                                        </div>
+                                    </section>
                                 </div>
 
                                 <div class="dashboard-empty-state" id="assistantActionResult" hidden></div>

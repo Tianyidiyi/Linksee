@@ -1,36 +1,27 @@
-# Demo 页面
+# Web Demo
 
-- [login.html](login.html)：登录按钮页（仅写入 demo token）
-- [status.html](status.html)：在线状态页（基于 Socket 显示在线/离线）
+`apps/web/demo` 只保留前端演示页。后端不再维护独立 demo server；这些页面由正式 API 服务静态托管到 `/demo`。
 
-## 心跳检测能力
+## 正式入口
 
-- 客户端定时发送 `heartbeat:ping`
-- 服务端返回 `heartbeat:pong` 并在终端输出心跳日志
-- 状态页展示心跳状态与延迟（RTT）
-- 服务端超过超时阈值未收到心跳会主动断开连接
+- [login.html](login.html)：demo 区的正式入口页。
 
-## 运行
+## 保留的功能演示
 
-1. 在仓库根目录执行依赖安装
-- npm install
+- [status.html](status.html)：Socket/在线状态诊断页，可从登录页跳转。
+- [vue-review-workbench.html](vue-review-workbench.html)：Vue 版批阅工作台视觉与交互原型。
 
-2. 启动 demo 服务
-- npm run demo:start
+## 访问方式
 
-3. 运行 Socket 烟雾测试（可选）
-- npm run test:socket-demo -w @linksee/api
+启动正式 API 服务后访问：
 
-3.1 观察服务端终端日志（心跳）
-- 预期出现类似 `[demo][heartbeat] socket=... seq=... rttMs=...`
+```bash
+npm run start:auth -w @linksee/api
+```
 
-4. 打开页面
-- https://localhost:3443/login.html
-- https://localhost:3443/status.html
+然后打开：
 
-说明：
+- `/demo/login.html`
+- `/demo/vue-review-workbench.html`
 
-- 默认使用 HTTPS（自签名证书，浏览器会提示不受信任，手动继续即可）
-- 若只测 HTTP，可设置 DEMO_HTTPS=false
-- 可通过环境变量调整心跳参数：`DEMO_HEARTBEAT_INTERVAL_MS`、`DEMO_HEARTBEAT_TIMEOUT_MS`
-- 烟雾测试脚本位置：[apps/api/src/demo/socket-smoke.mjs](../../api/src/demo/socket-smoke.mjs)
+说明：`vue-review-workbench.html` 当前通过 CDN 引入 Vue 3，仅用于快速查看界面效果；正式接入 Vue/Vite 时应改为本地依赖和构建产物。

@@ -1,9 +1,7 @@
 # worker/src
 
-异步任务处理入口（MVP 占位）。
+Worker 源码目录。
 
-后续用于：
+- `submission-deadline-scheduler.ts`：提交截止定时扫描入口。
 
-- 文档处理任务
-- 通知汇总任务
-- RAG 预处理任务
+新增后台任务时，优先把可测试的业务逻辑放在对应领域模块中，再由 worker 入口负责定时、调度和日志输出。

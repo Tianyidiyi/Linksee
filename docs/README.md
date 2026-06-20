@@ -16,8 +16,10 @@
 ### 2. 架构与工程
 
 - [架构文档说明](architecture/架构文档说明.md)
+- [服务架构模式总结](architecture/服务架构模式总结.md)
 - [通信架构设计](architecture/通信架构设计.md)
 - [通信治理规范](architecture/通信治理规范.md)
+- [通知事件链路总结](architecture/通知事件链路总结.md)
 - [工程流程与构建说明](architecture/工程流程与构建说明.md)
 - [数据库迁移规范](architecture/数据库迁移规范.md)
 - [实时通信风险说明](architecture/实时通信风险说明.md)
@@ -28,10 +30,17 @@
 - [接口文档](api/README.md)
 - [课程后端接口总览](api/课程后端接口总览.md)
 - [OpenAPI 规范](api/openapi/linksee-v1.yaml)
+- [前后端联调记录模板](api/frontend-backend-integration-record-template.md)
 
 ### 4. 交付与验收
 
 - [当前交付状态](status/当前交付状态.md)
+- [验收流程](验收/验收流程.md)
+- [验收数据说明](验收/验收数据说明.md)
+- [视频验收链路对照](验收/视频验收链路对照.md)
+- [通知与接口最终收口清单](验收/通知与接口最终收口清单.md)
+- [成绩审核发布前后端差异清单](验收/grade-review-frontend-gap-checklist.md)
+- [前后端衔接问题检查清单](验收/前后端衔接问题检查清单.md)
 
 ## 二、归档文档
 

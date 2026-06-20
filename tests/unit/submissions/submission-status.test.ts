@@ -38,14 +38,10 @@ describe("submissions/submission-status", () => {
     });
   });
 
-  it("canCreateSubmissionAttempt should reject not_submitted and pending review statuses", () => {
+  it("canCreateSubmissionAttempt should reject not_submitted and under_review statuses", () => {
     expect(canCreateSubmissionAttempt(SubmissionStatus.not_submitted)).toEqual({
       ok: false,
       message: "Stage deadline has passed; contact course staff for offline handling",
-    });
-    expect(canCreateSubmissionAttempt(SubmissionStatus.submitted)).toEqual({
-      ok: false,
-      message: "Submission is pending review",
     });
     expect(canCreateSubmissionAttempt(SubmissionStatus.under_review)).toEqual({
       ok: false,
@@ -53,8 +49,9 @@ describe("submissions/submission-status", () => {
     });
   });
 
-  it("canCreateSubmissionAttempt should allow draft/needs_changes", () => {
+  it("canCreateSubmissionAttempt should allow draft/submitted/needs_changes", () => {
     expect(canCreateSubmissionAttempt(SubmissionStatus.draft)).toEqual({ ok: true });
+    expect(canCreateSubmissionAttempt(SubmissionStatus.submitted)).toEqual({ ok: true });
     expect(canCreateSubmissionAttempt(SubmissionStatus.needs_changes)).toEqual({ ok: true });
   });
 

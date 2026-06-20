@@ -1,0 +1,25 @@
+CREATE TABLE `user_notifications` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `userId` VARCHAR(10) NOT NULL,
+  `type` VARCHAR(64) NOT NULL,
+  `title` VARCHAR(120) NOT NULL,
+  `content` TEXT NOT NULL,
+  `scopeType` VARCHAR(32) NULL,
+  `scopeId` BIGINT UNSIGNED NULL,
+  `courseId` BIGINT UNSIGNED NULL,
+  `assignmentId` BIGINT UNSIGNED NULL,
+  `groupId` BIGINT UNSIGNED NULL,
+  `miniTaskId` BIGINT UNSIGNED NULL,
+  `relatedEventId` VARCHAR(64) NULL,
+  `payload` JSON NULL,
+  `readAt` DATETIME(3) NULL,
+  `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `user_notifications_userId_relatedEventId_key` (`userId`, `relatedEventId`),
+  INDEX `user_notifications_userId_readAt_createdAt_idx` (`userId`, `readAt`, `createdAt`),
+  INDEX `user_notifications_scopeType_scopeId_idx` (`scopeType`, `scopeId`),
+  INDEX `user_notifications_courseId_idx` (`courseId`),
+  INDEX `user_notifications_groupId_idx` (`groupId`),
+  CONSTRAINT `user_notifications_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

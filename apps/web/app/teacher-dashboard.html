@@ -123,6 +123,15 @@
                                                 <strong id="teacherSelectedTitle">提交内容</strong>
                                                 <div id="teacherSelectedPath" class="teacher-review-selected-path">课程 / 项目 / 阶段</div>
                                             </div>
+                                            <button id="teacherReviewManageBtn" class="review-manage-icon-btn" type="button" aria-label="批阅管理" title="批阅管理">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                    <path d="M4 5h16"></path>
+                                                    <path d="M4 12h10"></path>
+                                                    <path d="M4 19h7"></path>
+                                                    <circle cx="18" cy="17" r="3"></circle>
+                                                    <path d="m20.2 19.2 1.8 1.8"></path>
+                                                </svg>
+                                            </button>
                                         </div>
                                         <div id="selectedReviewContext" class="teacher-review-inline-meta"></div>
                                     </div>
@@ -149,7 +158,36 @@
                                     </div>
                                 </div>
 
-                                <div class="dashboard-inline-grid teacher-review-lower-grid">
+                                <div id="teacherReviewManageModal" class="review-manage-modal" hidden>
+                                    <div class="review-manage-backdrop" data-review-manage-close></div>
+                                    <section class="review-manage-dialog" role="dialog" aria-modal="true" aria-labelledby="teacherReviewManageTitle">
+                                        <div class="review-manage-head">
+                                            <div>
+                                                <h3 id="teacherReviewManageTitle">批阅管理</h3>
+                                                <span>按课程、阶段、小组和状态筛选提交记录</span>
+                                            </div>
+                                            <button class="review-manage-close" type="button" data-review-manage-close aria-label="关闭">×</button>
+                                        </div>
+                                        <div class="review-manage-filters">
+                                            <input id="teacherReviewManageKeyword" class="dashboard-input" type="search" placeholder="搜索小组 / 组长">
+                                            <select id="teacherReviewManageStatus" class="dashboard-select">
+                                                <option value="">全部状态</option>
+                                                <option value="submitted">待批阅</option>
+                                                <option value="under_review">待评分</option>
+                                                <option value="approved">已通过</option>
+                                                <option value="needs_changes">待修改</option>
+                                                <option value="rejected">已拒绝</option>
+                                            </select>
+                                            <select id="teacherReviewManageStage" class="dashboard-select">
+                                                <option value="">当前阶段范围</option>
+                                            </select>
+                                            <button id="teacherPublishAllGradesBtn" class="review-manage-publish-all" type="button" disabled>发布</button>
+                                        </div>
+                                        <div class="review-manage-body">
+                                            <section class="review-manage-table-card">
+                                                <div id="teacherReviewManageRows" class="review-manage-table"></div>
+                                            </section>
+                                            <div class="dashboard-inline-grid teacher-review-lower-grid review-manage-side">
                                     <div class="dashboard-subcard teacher-review-action-card">
                                         <h3 class="dashboard-subcard-title">批阅与评分</h3>
                                         <label class="user-settings-field">
@@ -159,6 +197,11 @@
                                                 <option value="needs_changes">退回修改</option>
                                                 <option value="rejected">拒绝</option>
                                             </select>
+                                            <div class="review-decision-options" data-review-status-for="teacherReviewStatus">
+                                                <button type="button" data-review-status-value="approved">通过</button>
+                                                <button type="button" data-review-status-value="needs_changes">待修改</button>
+                                                <button type="button" data-review-status-value="rejected">未通过</button>
+                                            </div>
                                         </label>
                                         <label class="user-settings-field">
                                             <span>批阅意见</span>
@@ -172,7 +215,7 @@
                                             <button id="startReviewBtn" class="btn btn-secondary academic-btn-block" type="button" disabled>开始评审</button>
                                             <button id="saveReviewBtn" class="btn btn-secondary academic-btn-block" type="button" disabled>提交批阅</button>
                                             <button id="saveDraftBtn" class="btn btn-secondary academic-btn-block" type="button" disabled>保存分数草稿</button>
-                                            <button id="publishGradeBtn" class="btn btn-primary academic-btn-block" type="button" disabled>确定并发布成绩</button>
+                                            <button id="publishGradeBtn" class="btn btn-primary academic-btn-block" type="button" disabled>发布成绩</button>
                                         </div>
                                     </div>
 
@@ -185,6 +228,9 @@
                                             <div class="teacher-review-placeholder">暂无记录</div>
                                         </div>
                                     </div>
+                                            </div>
+                                        </div>
+                                    </section>
                                 </div>
 
                                 <div class="dashboard-empty-state" id="teacherActionResult" hidden></div>

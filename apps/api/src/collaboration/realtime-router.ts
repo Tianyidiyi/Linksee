@@ -32,6 +32,10 @@ async function ensureRoomReadable(room: string, req: Request, res: Response): Pr
     return !!(await getGroupAccess(BigInt(id), req.user!.id, req.user!.role as Role, res));
   }
 
+  if (scope === "user") {
+    return id === req.user!.id;
+  }
+
   validationFailed(res, "room is invalid");
   return false;
 }

@@ -9,7 +9,6 @@ export default {
   collectCoverageFrom: [
     '<rootDir>/src/**/*.ts',
     '!<rootDir>/src/**/*.d.ts',
-    '!<rootDir>/src/demo/**',
     '!<rootDir>/src/**/*.test.ts',
     '!<rootDir>/src/**/*.integration.test.ts',
   ],

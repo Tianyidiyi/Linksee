@@ -216,6 +216,60 @@ describe("users-router integration", () => {
     expect(createSpy).toHaveBeenCalledTimes(2);
   });
 
+  it("POST /api/v1/users/batch/students should report invalid rows and duplicate conflicts", async () => {
+    const app = createApp();
+    const createSpy = jest
+      .spyOn(prisma.user, "create")
+      .mockResolvedValueOnce({ id: "2026010041" } as any)
+      .mockRejectedValueOnce({ code: "P2002" });
+
+    const res = await request(app)
+      .post("/api/v1/users/batch/students")
+      .set("authorization", authHeader("a1", "academic"))
+      .send({
+        defaultPassword: "StrongPass1",
+        students: [
+          {
+            id: "2026010041",
+            realName: "Student One",
+            stuNo: "2026010041",
+            grade: 2026,
+            cohort: 2026,
+            major: "Software Engineering",
+            adminClass: "Class 1",
+          },
+          {
+            id: "bad-id",
+            realName: "Invalid Student",
+            stuNo: "bad-id",
+            grade: 2026,
+            cohort: 2026,
+            major: "Software Engineering",
+            adminClass: "Class 1",
+          },
+          {
+            id: "2026010042",
+            realName: "Duplicate Student",
+            stuNo: "2026010042",
+            grade: 2026,
+            cohort: 2026,
+            major: "Software Engineering",
+            adminClass: "Class 1",
+          },
+        ],
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(res.body.data.createdCount).toBe(1);
+    expect(res.body.data.failedCount).toBe(2);
+    expect(res.body.data.failed).toEqual([
+      { id: "bad-id", reason: "invalid required fields" },
+      { id: "2026010042", reason: "duplicate id or profile unique field" },
+    ]);
+    expect(createSpy).toHaveBeenCalledTimes(2);
+  });
+
   it("POST /api/v1/users/batch/teachers should create teachers in batch", async () => {
     const app = createApp();
     const createSpy = jest.spyOn(prisma.user, "create").mockResolvedValue({ id: "1000000001" } as any);
@@ -268,6 +322,62 @@ describe("users-router integration", () => {
     expect(res.body.data.createdCount).toBe(1);
     expect(res.body.data.failedCount).toBe(0);
     expect(createSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("POST /api/v1/users/import-file should summarize row validation failures and duplicate conflicts", async () => {
+    const app = createApp();
+    const createSpy = jest
+      .spyOn(prisma.user, "create")
+      .mockResolvedValueOnce({ id: "2026010041" } as any)
+      .mockRejectedValueOnce({ code: "P2002" });
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.aoa_to_sheet([
+      ["一卡通号", "姓名", "年级", "届次", "专业", "行政班"],
+      ["2026010041", "Student One", 2026, 2026, "Software Engineering", "Class 1"],
+      ["bad-id", "Invalid Student", 2026, 2026, "Software Engineering", "Class 1"],
+      ["2026010042", "Duplicate Student", 2026, 2026, "Software Engineering", "Class 1"],
+    ]);
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Students");
+    const workbookBase64 = XLSX.write(workbook, { type: "base64", bookType: "xlsx" });
+
+    const res = await request(app)
+      .post("/api/v1/users/import-file")
+      .set("authorization", authHeader("a1", "academic"))
+      .send({
+        mode: "student",
+        defaultPassword: "StrongPass1",
+        fileBase64: workbookBase64,
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(res.body.data.createdCount).toBe(1);
+    expect(res.body.data.failedCount).toBe(2);
+    expect(res.body.data.totalRows).toBe(3);
+    expect(res.body.data.failed).toEqual([
+      { id: "bad-id", reason: "invalid required fields" },
+      { id: "2026010042", reason: "duplicate id or profile unique field" },
+    ]);
+    expect(createSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("POST /api/v1/users/import-file should reject unreadable uploaded table", async () => {
+    const app = createApp();
+    const createSpy = jest.spyOn(prisma.user, "create");
+
+    const res = await request(app)
+      .post("/api/v1/users/import-file")
+      .set("authorization", authHeader("a1", "academic"))
+      .send({
+        mode: "student",
+        defaultPassword: "StrongPass1",
+        fileBase64: Buffer.from("not a workbook").toString("base64"),
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.ok).toBe(false);
+    expect(res.body.code).toBe("IMPORT_FAILED");
+    expect(createSpy).not.toHaveBeenCalled();
   });
 });
 

@@ -23,7 +23,7 @@ description: '执行发版前就绪检查和发布后观察。用于 Sprint 发�
 3. 检查配置、密钥、迁移与备份方案。
 4. 确认灰度策略与回滚路径。
 5. 发布后观察核心指标并形成记录。
-6. 发布记录沉淀到 [docs/sprints](../../docs/sprints/)。
+6. 发布记录沉淀到 [docs/report](../../docs/report/) 或 [docs/status](../../docs/status/)。
 
 ## References
 

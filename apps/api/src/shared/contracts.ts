@@ -19,6 +19,7 @@ export type EventName =
   | "group.message.deleted"
   | "group.member.updated"
   | "group.minitask.updated"
+  | "system.notification.created"
   | "submission.created"
   | "submission.status.updated"
   | "review.created"

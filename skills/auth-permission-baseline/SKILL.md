@@ -27,4 +27,4 @@ description: '建立鉴权与授权基线，防止未授权访问与越权。用
 ## References
 
 - [references/authz-checklist.md](references/authz-checklist.md)
-- [services/README.md](../../services/README.md)
+- [服务架构模式总结.md](../../docs/architecture/服务架构模式总结.md)

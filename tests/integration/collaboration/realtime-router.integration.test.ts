@@ -69,4 +69,23 @@ describe("realtime-router integration", () => {
     expect(res.body.data).toHaveLength(1);
     expect(res.body.data[0].id).toBe("evt-2");
   });
+
+  it("GET /api/v1/realtime/replay should allow current user to read own user notification room", async () => {
+    const app = createApp();
+    jest.spyOn(realtimeCache, "loadReplayEvents").mockResolvedValue([
+      { id: "evt-3", name: "system.notification.created", payload: { userId: "2026010001" } },
+    ] as any);
+    jest.spyOn(realtimeCache, "filterAckedEvents").mockResolvedValue([
+      { id: "evt-3", name: "system.notification.created", payload: { userId: "2026010001" } },
+    ] as any);
+
+    const res = await request(app)
+      .get("/api/v1/realtime/replay?room=user:2026010001")
+      .set("authorization", authHeader("2026010001", "student"));
+
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].id).toBe("evt-3");
+  });
 });

@@ -49,6 +49,10 @@ export const eventCatalog: Record<EventName, { channel: "socket" | "worker"; des
     channel: "socket",
     description: "小组 MiniTask 更新后推送给小组成员和课程管理者",
   },
+  "system.notification.created": {
+    channel: "socket",
+    description: "用户级系统通知创建后推送给通知中心",
+  },
   "submission.created": {
     channel: "socket",
     description: "阶段提交创建后推送给老师和助教",

@@ -6,6 +6,7 @@
 
 - [课程后端接口总览](./课程后端接口总览.md)
 - [OpenAPI 规范](./openapi/linksee-v1.yaml)
+- [前后端联调记录模板](./frontend-backend-integration-record-template.md)
 - [课程域表结构设计](./courses/课程域表结构设计.md)
 - [历史表结构草案](../归档/设计草案/课程表结构设计-v1.md)
 
