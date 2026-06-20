@@ -1759,9 +1759,28 @@
             renderCourseRelationLists();
         }
 
+        async function loadAllAcademicCourses() {
+            var offset = 0;
+            var limit = 100;
+            var rows = [];
+            var hasMore = true;
+
+            while (hasMore) {
+                var payload = await window.linkseeApi.getJson("/api/v1/courses?limit=" + limit + "&offset=" + offset);
+                var batch = Array.isArray(payload.data) ? payload.data : [];
+                rows = rows.concat(batch);
+                hasMore = Boolean(payload.paging && payload.paging.hasMore);
+                offset += batch.length;
+                if (!batch.length) {
+                    hasMore = false;
+                }
+            }
+
+            return rows;
+        }
+
         async function refreshAcademicData() {
-            var payload = await window.linkseeApi.getJson("/api/v1/courses");
-            state.courses = Array.isArray(payload.data) ? payload.data : [];
+            state.courses = await loadAllAcademicCourses();
             syncCourseFilterOptions();
             renderCourses();
             syncUserDirectoryTabs();
@@ -1784,6 +1803,14 @@
         window.addEventListener("linksee:academic-refresh-request", function (event) {
             if (event && event.detail && event.detail.courseId) {
                 state.selectedEditCourseId = String(event.detail.courseId);
+            }
+            if (event && event.detail && event.detail.reason === "course-created") {
+                state.coursePage = 1;
+                if (courseSearch) courseSearch.value = "";
+                if (courseTeacherFilter) courseTeacherFilter.value = "";
+                if (courseYearFilter) courseYearFilter.value = "";
+                if (courseSemesterFilter) courseSemesterFilter.value = "";
+                if (courseStatusFilter) courseStatusFilter.value = "全部状态";
             }
             refreshAcademicData().catch(function () {});
         });
