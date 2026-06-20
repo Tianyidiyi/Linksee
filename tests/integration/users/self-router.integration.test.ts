@@ -84,4 +84,25 @@ describe("self-router integration", () => {
     expect(res.body.message).toBe("Profile updated");
     expect(upsertSpy).toHaveBeenCalledTimes(1);
   });
+
+  it("PATCH /api/v1/me should return 409 when email is already used", async () => {
+    const app = createApp();
+    jest.spyOn(prisma.userProfile, "findUnique").mockResolvedValue({
+      realName: "秦十三",
+      avatarUrl: null,
+    } as any);
+    jest.spyOn(prisma.userProfile, "upsert").mockRejectedValue({ code: "P2002" } as any);
+
+    const res = await request(app)
+      .patch("/api/v1/me")
+      .set("authorization", authHeader("2026010041", "student"))
+      .send({
+        realName: "秦十三",
+        email: "used@example.com",
+      });
+
+    expect(res.status).toBe(409);
+    expect(res.body.ok).toBe(false);
+    expect(res.body.code).toBe("EMAIL_ALREADY_EXISTS");
+  });
 });

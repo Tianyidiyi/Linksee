@@ -211,11 +211,14 @@
     }
 
     function getProfile() {
+        var me = getMePayload() || {};
+        var currentUserId = localStorage.getItem("auth_user_id") || "";
+        var profile = me && me.id === currentUserId ? (me.profile || {}) : {};
         return {
-            realName: localStorage.getItem("auth_real_name") || localStorage.getItem("auth_user_id") || "",
-            bio: localStorage.getItem("auth_bio") || "",
-            email: localStorage.getItem("auth_email") || "",
-            location: localStorage.getItem("auth_location") || "",
+            realName: profile.realName || localStorage.getItem("auth_real_name") || localStorage.getItem("auth_user_id") || "",
+            bio: typeof profile.bio === "string" ? profile.bio : (localStorage.getItem("auth_bio") || ""),
+            email: typeof profile.email === "string" ? profile.email : "",
+            location: typeof profile.location === "string" ? profile.location : (localStorage.getItem("auth_location") || ""),
         };
     }
 
@@ -266,6 +269,8 @@
                 }
                 if (data.profile && typeof data.profile.email === "string") {
                     localStorage.setItem("auth_email", data.profile.email);
+                } else {
+                    localStorage.removeItem("auth_email");
                 }
                 if (data.profile && typeof data.profile.location === "string") {
                     localStorage.setItem("auth_location", data.profile.location);

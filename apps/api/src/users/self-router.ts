@@ -6,6 +6,7 @@ import { prisma } from "../infra/prisma.js";
 import { requireAuth } from "../infra/jwt-middleware.js";
 import { minioClient, buildPublicUrl, extractObjectName } from "../infra/minio.js";
 import { env } from "../infra/env.js";
+import { isUniqueViolation } from "./errors.js";
 
 export const selfRouter = Router();
 
@@ -153,6 +154,7 @@ selfRouter.get("/me", requireAuth, async (req: Request, res: Response) => {
 selfRouter.patch("/me", requireAuth, async (req: Request, res: Response) => {
   const userId = req.user!.id;
   const { realName, bio, location, email } = req.body ?? {};
+  const normalizedEmail = typeof email === "string" ? email.trim() || null : email;
 
   const forbiddenSelfFields = ["stuNo", "grade", "cohort", "major", "adminClass", "teacherNo", "title", "college"];
   const forbiddenHit = forbiddenSelfFields.find((k) => req.body?.[k] !== undefined);
@@ -176,7 +178,7 @@ selfRouter.patch("/me", requireAuth, async (req: Request, res: Response) => {
     ...(realName !== undefined && { realName }),
     ...(bio !== undefined && { bio }),
     ...(location !== undefined && { location }),
-    ...(email !== undefined && { email }),
+    ...(email !== undefined && { email: normalizedEmail }),
   };
 
   const profileSeed = await getRequiredProfileSeed(userId);
@@ -188,11 +190,22 @@ selfRouter.patch("/me", requireAuth, async (req: Request, res: Response) => {
     });
   }
 
-  await prisma.userProfile.upsert({
-    where: { userId },
-    create: { userId, realName: realName ?? profileSeed!.realName, ...updateData },
-    update: updateData,
-  });
+  try {
+    await prisma.userProfile.upsert({
+      where: { userId },
+      create: { userId, realName: realName ?? profileSeed!.realName, ...updateData },
+      update: updateData,
+    });
+  } catch (error) {
+    if (isUniqueViolation(error)) {
+      return res.status(409).json({
+        ok: false,
+        code: "EMAIL_ALREADY_EXISTS",
+        message: "该邮箱已被其他账号使用，请更换后重试。",
+      });
+    }
+    throw error;
+  }
 
   return res.json({ ok: true, message: "Profile updated" });
 });
