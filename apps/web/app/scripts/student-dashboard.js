@@ -1,4 +1,14 @@
 (function () {
+    function allowExplicitMock(queryKey) {
+        try {
+            var search = new URLSearchParams(window.location.search || "");
+            var raw = String(search.get(queryKey) || "").trim().toLowerCase();
+            return raw === "1" || raw === "true" || raw === "yes" || raw === "on";
+        } catch (_err) {
+            return false;
+        }
+    }
+
     function qs(selector, root) {
         return (root || document).querySelector(selector);
     }
@@ -1463,7 +1473,7 @@
             var gradeRows = rowsOf(payload, "gradeRows").sort(function (a, b) {
                 return new Date(a.grade.publishedAt || a.grade.updatedAt || a.grade.createdAt || 0).getTime() - new Date(b.grade.publishedAt || b.grade.updatedAt || b.grade.createdAt || 0).getTime();
             });
-            if (!courseRows.length && !todoRows.length && !gradeRows.length) {
+            if (allowExplicitMock("studentDashboardMock") && !courseRows.length && !todoRows.length && !gradeRows.length) {
                 var mock = createMockStudentDashboard();
                 courseRows = mock.courses;
                 todoRows = mock.todoRows;
@@ -1483,16 +1493,32 @@
                 detail: state.dashboard,
             }));
         } catch (err) {
-            var mockFallback = createMockStudentDashboard();
-            state.stageDetailMap = mockFallback.stageDetailMap;
-            state.groupDetailMap = mockFallback.groupDetailMap;
+            if (allowExplicitMock("studentDashboardMock")) {
+                var mockFallback = createMockStudentDashboard();
+                state.stageDetailMap = mockFallback.stageDetailMap;
+                state.groupDetailMap = mockFallback.groupDetailMap;
+                state.dashboard = {
+                    courses: mockFallback.courses,
+                    todoRows: mockFallback.todoRows,
+                    gradeRows: mockFallback.gradeRows,
+                };
+                window.linkseeStudentDashboardState = state.dashboard;
+                syncCurrentSelections(mockFallback.courses, mockFallback.todoRows);
+                rerenderStudentDashboardPanels();
+                window.dispatchEvent(new CustomEvent("linksee:student-dashboard-ready", {
+                    detail: state.dashboard,
+                }));
+                return;
+            }
+            state.stageDetailMap = {};
+            state.groupDetailMap = {};
             state.dashboard = {
-                courses: mockFallback.courses,
-                todoRows: mockFallback.todoRows,
-                gradeRows: mockFallback.gradeRows,
+                courses: [],
+                todoRows: [],
+                gradeRows: [],
             };
             window.linkseeStudentDashboardState = state.dashboard;
-            syncCurrentSelections(mockFallback.courses, mockFallback.todoRows);
+            syncCurrentSelections([], []);
             rerenderStudentDashboardPanels();
             window.dispatchEvent(new CustomEvent("linksee:student-dashboard-ready", {
                 detail: state.dashboard,

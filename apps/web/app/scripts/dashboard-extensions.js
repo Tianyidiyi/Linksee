@@ -3729,7 +3729,7 @@
         stages: [],
         members: [],
         activityFilter: "all",
-        mockEnabled: true,
+        mockEnabled: allowExplicitMock("studentTeamMock"),
         selectedTaskId: "",
         syncingTaskEditor: false,
     };
