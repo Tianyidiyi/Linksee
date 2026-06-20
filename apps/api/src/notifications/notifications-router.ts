@@ -78,6 +78,9 @@ notificationsRouter.post("/notifications/read-all", requireAuth, async (req: Req
   const rawScopeId = req.body?.scopeId;
   let scopeId: bigint | null = null;
   if (rawScopeId !== undefined && rawScopeId !== null && rawScopeId !== "") {
+    if (!scopeType) {
+      return validationFailed(res, "scopeType is required when scopeId is provided");
+    }
     if (typeof rawScopeId !== "string" || !/^\d+$/.test(rawScopeId)) {
       return validationFailed(res, "scopeId must be a numeric string");
     }

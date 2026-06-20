@@ -28,39 +28,47 @@ export async function createUserNotifications(input: CreateUserNotificationInput
   const content = String(input.content || "").trim();
   if (userIds.length === 0 || !title || !content) return 0;
 
-  let targetUserIds = userIds;
-  if (input.relatedEventId) {
-    const existing = await prisma.userNotification.findMany({
-      where: {
-        userId: { in: userIds },
-        relatedEventId: input.relatedEventId,
-      },
-      select: { userId: true },
-    });
-    const existingUserIds = new Set(existing.map((item) => item.userId));
-    targetUserIds = userIds.filter((userId) => !existingUserIds.has(userId));
-  }
-  if (targetUserIds.length === 0) return 0;
-
-  const result = await prisma.userNotification.createMany({
-    data: targetUserIds.map((userId) => ({
-      userId,
-      type: input.type,
-      title,
-      content,
-      scopeType: input.scopeType ?? null,
-      scopeId: input.scopeId ?? null,
-      courseId: input.courseId ?? null,
-      assignmentId: input.assignmentId ?? null,
-      groupId: input.groupId ?? null,
-      miniTaskId: input.miniTaskId ?? null,
-      relatedEventId: input.relatedEventId ?? null,
-      payload: input.payload ?? Prisma.JsonNull,
-    })),
-    skipDuplicates: true,
+  const buildRow = (userId: string) => ({
+    userId,
+    type: input.type,
+    title,
+    content,
+    scopeType: input.scopeType ?? null,
+    scopeId: input.scopeId ?? null,
+    courseId: input.courseId ?? null,
+    assignmentId: input.assignmentId ?? null,
+    groupId: input.groupId ?? null,
+    miniTaskId: input.miniTaskId ?? null,
+    relatedEventId: input.relatedEventId ?? null,
+    payload: input.payload ?? Prisma.JsonNull,
   });
+
+  let createdUserIds: string[] = [];
+  if (input.relatedEventId) {
+    for (const userId of userIds) {
+      try {
+        await prisma.userNotification.create({ data: buildRow(userId) });
+        createdUserIds.push(userId);
+      } catch (error) {
+        if (
+          !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+          error.code !== "P2002"
+        ) {
+          throw error;
+        }
+      }
+    }
+  } else {
+    const result = await prisma.userNotification.createMany({
+      data: userIds.map((userId) => buildRow(userId)),
+      skipDuplicates: true,
+    });
+    createdUserIds = result.count > 0 ? userIds : [];
+  }
+  if (createdUserIds.length === 0) return 0;
+
   await Promise.all(
-    targetUserIds.map(async (userId) => {
+    createdUserIds.map(async (userId) => {
       const event = createEventEnvelope("system.notification.created", {
         userId,
         type: input.type,
@@ -77,5 +85,5 @@ export async function createUserNotifications(input: CreateUserNotificationInput
       await pushSocketEvent(`user:${userId}`, event);
     }),
   );
-  return result.count;
+  return createdUserIds.length;
 }

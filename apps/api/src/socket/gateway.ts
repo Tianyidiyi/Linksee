@@ -157,5 +157,5 @@ export function setupRealtimeGateway(
 
 // 约束：网关只负责连接管理与事件分发，不执行业务写库。
 export function validateRealtimeRoom(room: string): boolean {
-  return /^(user|course|assignment|group|stage|submission):[\w-]+$/.test(room);
+  return /^(user|course|group):[\w-]+$/.test(room);
 }

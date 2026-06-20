@@ -566,6 +566,48 @@
         }
     }
 
+    async function syncRealtimeForNotifications() {
+        if (!state.open || !state.me || !state.me.id) return;
+        var roomKey = "user:" + String(state.me.id);
+        var afterEventId = state.realtimeCursorByRoom.get(roomKey) || "";
+        try {
+            var url = "/api/v1/realtime/replay?room=" + encodeURIComponent(roomKey);
+            if (afterEventId) {
+                url += "&afterEventId=" + encodeURIComponent(afterEventId);
+            }
+            var payload = await window.linkseeApi.getJson(url);
+            var events = Array.isArray(payload.data) ? payload.data : [];
+            if (!events.length) return;
+
+            var needsNotificationReload = false;
+            var lastAckedEventId = afterEventId;
+            for (var i = 0; i < events.length; i += 1) {
+                if (String(events[i] && events[i].name || "") === "system.notification.created") {
+                    needsNotificationReload = true;
+                }
+                var acked = await ackRealtimeEvent(events[i], roomKey);
+                if (!acked) {
+                    break;
+                }
+                lastAckedEventId = events[i].id;
+            }
+
+            if (lastAckedEventId) {
+                state.realtimeCursorByRoom.set(roomKey, lastAckedEventId);
+            }
+            if (needsNotificationReload) {
+                await loadUserNotifications();
+                setUnread((state.unreadTotal + (Number(state.userNotificationUnreadTotal) || 0)) > 0);
+                syncConversationTabs();
+                if (state.listTab === "system") {
+                    renderMessages();
+                }
+            }
+        } catch (_err) {
+            // Notification replay is best-effort and should not break chat.
+        }
+    }
+
     function startRealtimeTicker() {
         if (state.realtimeTimer) return;
         state.realtimeTimer = setInterval(function () {
@@ -574,6 +616,7 @@
                 syncConversationList(false).catch(function () {});
             }
             syncRealtimeForSelectedConversation().catch(function () {});
+            syncRealtimeForNotifications().catch(function () {});
         }, 4500);
     }
 
@@ -1050,9 +1093,12 @@
         try {
             var payload = await window.linkseeApi.getJson("/api/v1/notifications?limit=50");
             state.userNotifications = Array.isArray(payload.data) ? payload.data : [];
-            state.userNotificationUnreadTotal = state.userNotifications.reduce(function (sum, item) {
-                return sum + (item && !item.readAt ? 1 : 0);
-            }, 0);
+            state.userNotificationUnreadTotal = Number(payload.unreadTotal);
+            if (!Number.isFinite(state.userNotificationUnreadTotal)) {
+                state.userNotificationUnreadTotal = state.userNotifications.reduce(function (sum, item) {
+                    return sum + (item && !item.readAt ? 1 : 0);
+                }, 0);
+            }
         } catch (error) {
             state.userNotifications = [];
             state.userNotificationUnreadTotal = 0;
