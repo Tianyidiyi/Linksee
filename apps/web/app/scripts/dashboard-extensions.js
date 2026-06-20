@@ -830,7 +830,7 @@
         } catch (_err) {
             teacherMockPref = "";
         }
-        var teacherMockAllowed = teacherMockPref !== "0";
+        var teacherMockAllowed = teacherMockPref === "1";
         var teacherToolState = {
             courses: [],
             assignments: [],

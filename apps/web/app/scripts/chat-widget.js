@@ -1075,7 +1075,7 @@
             if (aTime !== bTime) return bTime - aTime;
             return String(a.title || "").localeCompare(String(b.title || ""), "zh-CN");
         });
-        if ((shouldForceMockConversations() || !state.conversations.length) && auth().role === "student") {
+        if (shouldForceMockConversations() && auth().role === "student") {
             state.conversations = buildMockConversationRows();
         }
         if (state.selected) {

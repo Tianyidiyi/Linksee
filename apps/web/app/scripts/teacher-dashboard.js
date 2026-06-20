@@ -6,7 +6,7 @@
         } catch (_err) {
             teacherReviewMockPref = "";
         }
-        var teacherReviewMockAllowed = teacherReviewMockPref !== "0";
+        var teacherReviewMockAllowed = teacherReviewMockPref === "1";
         var state = {
             courses: [],
             assignments: [],
