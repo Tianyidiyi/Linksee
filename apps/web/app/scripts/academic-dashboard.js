@@ -563,6 +563,41 @@
             };
         }
 
+        function matchesMemberFilter(value, keyword) {
+            if (!keyword && keyword !== 0) return true;
+            return String(value || "").toLowerCase().indexOf(String(keyword || "").trim().toLowerCase()) !== -1;
+        }
+
+        function buildJoinedStudentRows() {
+            var filters = currentFilters();
+            return (state.selectedEditCourseMembers || []).map(function (member) {
+                return member && member.user ? member.user : null;
+            }).filter(function (row) {
+                if (!row) return false;
+                var profile = row.profile || {};
+                var studentProfile = row.studentProfile || {};
+                return matchesMemberFilter(profile.realName, filters.realName)
+                    && matchesMemberFilter(profile.accountNo || row.id, filters.accountNo)
+                    && (!filters.grade || String(studentProfile.grade || "") === String(filters.grade))
+                    && (!filters.major || String(studentProfile.major || "") === String(filters.major))
+                    && (!filters.adminClass || String(studentProfile.adminClass || "") === String(filters.adminClass));
+            });
+        }
+
+        function buildJoinedTeacherRows() {
+            var filters = currentFilters();
+            return (state.selectedEditCourseTeachers || []).map(function (member) {
+                return member && member.user ? member.user : null;
+            }).filter(function (row) {
+                if (!row) return false;
+                var profile = row.profile || {};
+                var teacherProfile = row.teacherProfile || {};
+                return matchesMemberFilter(profile.realName, filters.realName)
+                    && matchesMemberFilter(teacherProfile.teacherNo || row.id, filters.teacherNo)
+                    && matchesMemberFilter(teacherProfile.college, filters.college);
+            });
+        }
+
         function filteredModalRows() {
             var addedOnly = currentAddedOnlyFlag();
             var taken = currentBoundIdSet();
@@ -705,6 +740,14 @@
 
         async function loadMemberDirectory() {
             state.memberPickerImportedMode = false;
+            if (currentAddedOnlyFlag()) {
+                state.memberPickerRows = state.memberPickerMode === "student"
+                    ? buildJoinedStudentRows()
+                    : buildJoinedTeacherRows();
+                state.memberPickerTotal = state.memberPickerRows.length;
+                renderMemberPickerTable();
+                return;
+            }
             var filters = currentFilters();
             var payload = await searchDirectory({
                 role: filters.role,
@@ -2347,11 +2390,21 @@
         }
 
         if (memberStudentAddedOnly) {
-            memberStudentAddedOnly.addEventListener("change", renderMemberPickerTable);
+            memberStudentAddedOnly.addEventListener("change", function () {
+                state.memberPickerPage = 1;
+                loadMemberDirectory().catch(function (err) {
+                    showResult(courseRelationResult, "加载失败", err.message || "学生目录加载失败。", true);
+                });
+            });
         }
 
         if (memberTeacherAddedOnly) {
-            memberTeacherAddedOnly.addEventListener("change", renderMemberPickerTable);
+            memberTeacherAddedOnly.addEventListener("change", function () {
+                state.memberPickerPage = 1;
+                loadMemberDirectory().catch(function (err) {
+                    showResult(courseRelationResult, "加载失败", err.message || "教师目录加载失败。", true);
+                });
+            });
         }
 
         if (memberTeacherRole) {
