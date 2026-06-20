@@ -24,6 +24,15 @@
         return window.linkseeApi;
     }
 
+    function allowExplicitMock(queryKey) {
+        try {
+            var search = new URLSearchParams(window.location.search || "");
+            return search.get(queryKey) === "1";
+        } catch (_err) {
+            return false;
+        }
+    }
+
     function getRole() {
         if (document.body.classList.contains("academic-shell") && !document.body.classList.contains("teacher-shell") && !document.body.classList.contains("assistant-shell") && !document.body.classList.contains("student-shell")) {
             return "academic";
@@ -824,13 +833,7 @@
         var groupEditorDialog = qs("#extTeacherGroupEditorDialog");
         var groupMoveDialog = qs("#extTeacherGroupMoveDialog");
         var teacherMock = teacherCourseMockData();
-        var teacherMockPref = "";
-        try {
-            teacherMockPref = window.localStorage ? String(window.localStorage.getItem("linksee_teacher_course_mock") || "") : "";
-        } catch (_err) {
-            teacherMockPref = "";
-        }
-        var teacherMockAllowed = teacherMockPref === "1";
+        var teacherMockAllowed = allowExplicitMock("teacherCourseMock");
         var teacherToolState = {
             courses: [],
             assignments: [],
@@ -846,12 +849,6 @@
             pendingMoveUserId: "",
             editTarget: "assignment",
         };
-
-        function enableTeacherMockMode() {
-            if (!teacherMockAllowed) return false;
-            teacherToolState.mockMode = true;
-            return true;
-        }
 
         function teacherErrorMessage(err, fallbackText) {
             if (err && err.message) return err.message;
@@ -2149,10 +2146,6 @@
             return api().getJson("/api/v1/courses/" + encodeURIComponent(courseContext.value) + "/members?status=active&limit=500&offset=0").then(function (payload) {
                 teacherToolState.courseMembers = normalizeRows(payload);
                 return teacherToolState.courseMembers;
-            }).catch(function (err) {
-                if (!enableTeacherMockMode()) throw err;
-                teacherToolState.courseMembers = mockCourseMemberRows(courseContext.value);
-                return teacherToolState.courseMembers;
             });
         }
 
@@ -2164,10 +2157,6 @@
             }
             return api().getJson("/api/v1/users/assistants/mine").then(function (payload) {
                 teacherToolState.ownedAssistants = normalizeRows(payload);
-                renderOwnedAssistants();
-            }).catch(function (err) {
-                if (!enableTeacherMockMode()) throw err;
-                teacherToolState.ownedAssistants = (teacherMock.ownedAssistants || []).slice();
                 renderOwnedAssistants();
             });
         }
@@ -2207,9 +2196,6 @@
                 syncAssignmentTargets();
                 renderTeacherWorkspace();
                 return rows;
-            }).catch(function (err) {
-                if (!enableTeacherMockMode()) throw err;
-                return refreshAssignments();
             });
         }
         if (assignCourse && courseContext) {
@@ -2235,26 +2221,14 @@
                 });
             } else {
                 loadCourseOptions(courseContext, function (rows) {
-                teacherToolState.courses = rows;
-                syncCourseSelection(courseContext.value);
-                return refreshTeacherWorkspace();
-                }).catch(function (err) {
-                if (enableTeacherMockMode()) {
-                    var rows = mockCourseRows();
-                    courseContext.innerHTML = optionRows(rows, function (course) {
-                        return (course.name || course.courseNo || course.id) + " · " + (course.status || "--");
-                    });
-                    ensureSelectValue(courseContext, rows, false);
                     teacherToolState.courses = rows;
                     syncCourseSelection(courseContext.value);
                     return refreshTeacherWorkspace();
-                }
-                throw err;
                 }).then(function () {
-                syncCourseSelection(courseContext.value);
-                renderTeacherWorkspace();
+                    syncCourseSelection(courseContext.value);
+                    renderTeacherWorkspace();
                 }).catch(function (err) {
-                reportTeacherLoadError(err, "课程加载失败");
+                    reportTeacherLoadError(err, "课程加载失败");
                 });
             }
             courseContext.onchange = function () {
@@ -2388,9 +2362,6 @@
                     fillStageForm(selectedStage);
                     renderTeacherWorkspace();
                 });
-            }).catch(function (err) {
-                if (!enableTeacherMockMode()) throw err;
-                return refreshStages();
             });
         }
         if (stageCourse) {
@@ -2673,9 +2644,6 @@
                 })).then(function () {
                     renderTeacherWorkspace();
                 });
-            }).catch(function (err) {
-                if (!enableTeacherMockMode()) throw err;
-                return refreshGroups();
             });
         }
         if (groupCourse) {
@@ -2826,10 +2794,6 @@
             return api().getJson("/api/v1/courses/" + encodeURIComponent(courseId) + "/assistants").then(function (payload) {
                 var rows = normalizeRows(payload);
                 teacherToolState.assistants = rows;
-                renderTeacherWorkspace();
-            }).catch(function (err) {
-                if (!enableTeacherMockMode()) throw err;
-                teacherToolState.assistants = mockAssistantRows(courseId);
                 renderTeacherWorkspace();
             });
         }

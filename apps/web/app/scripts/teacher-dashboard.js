@@ -1,12 +1,12 @@
 (function () {
     function initTeacherDashboard() {
-        var teacherReviewMockPref = "";
+        var teacherReviewMockAllowed = false;
         try {
-            teacherReviewMockPref = window.localStorage ? String(window.localStorage.getItem("linksee_teacher_review_mock") || "") : "";
+            var reviewSearch = new URLSearchParams(window.location.search || "");
+            teacherReviewMockAllowed = reviewSearch.get("teacherReviewMock") === "1";
         } catch (_err) {
-            teacherReviewMockPref = "";
+            teacherReviewMockAllowed = false;
         }
-        var teacherReviewMockAllowed = teacherReviewMockPref === "1";
         var state = {
             courses: [],
             assignments: [],
