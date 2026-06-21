@@ -67,6 +67,17 @@
         }
     }
 
+    function ensureSelectHasValue(select) {
+        if (!select) return "";
+        if (select.value) return String(select.value);
+        var firstOption = Array.from(select.options || []).find(function (option) {
+            return String(option.value || "") !== "";
+        }) || null;
+        if (!firstOption) return "";
+        select.value = String(firstOption.value);
+        return String(select.value || "");
+    }
+
     function normalizeRows(payload) {
         return Array.isArray(payload && payload.data) ? payload.data : [];
     }
@@ -3277,6 +3288,7 @@
         var taskAssignment = qs("#extTaskAssignment");
         var taskResult = qs("#extTaskResult");
         function refreshTaskAssignment() {
+            ensureSelectHasValue(taskCourse);
             return loadAssignmentOptions(taskCourse.value, taskAssignment, false).then(refreshTaskGroup);
         }
         function renderTaskContextEmpty(title, message) {
@@ -3294,6 +3306,7 @@
             return Promise.resolve();
         }
         function refreshTaskGroup() {
+            ensureSelectHasValue(taskAssignment);
             if (!taskAssignment.value) {
                 state.currentGroup = null;
                 qs("#extTaskGroupId").value = "";
@@ -4040,6 +4053,7 @@
 
     function refreshTeamCustomSelect(select) {
         if (!select || select.dataset.teamSelectEnhanced !== "1") return;
+        ensureSelectHasValue(select);
         var box = select.nextElementSibling;
         if (!box || !box.classList.contains("student-team-selectbox")) return;
         var textNode = qs(".student-team-select-text", box);
@@ -4195,6 +4209,8 @@
     }
 
     function updateContext(group) {
+        ensureSelectHasValue(taskCourse);
+        ensureSelectHasValue(taskAssignment);
         var courseText = taskCourse && taskCourse.options[taskCourse.selectedIndex] ? taskCourse.options[taskCourse.selectedIndex].text.split(" · ")[0] : "--";
         var assignmentText = taskAssignment && taskAssignment.options[taskAssignment.selectedIndex] ? taskAssignment.options[taskAssignment.selectedIndex].text.split(" · ")[0] : "--";
         text("#studentTeamCourseName", courseText || "--");
@@ -5345,6 +5361,8 @@
     }
 
     function refreshJoinState() {
+        ensureSelectHasValue(taskCourse);
+        ensureSelectHasValue(taskAssignment);
         if (state.mockEnabled) {
             ensureMockContext();
             var mockAssignment = currentMockAssignment();
@@ -5802,13 +5820,13 @@
             window.setTimeout(refreshJoinState, 80);
             return;
         }
-        var preferredCourseId = preferredDashboardCourseId();
+        var preferredCourseId = preferredDashboardCourseId() || ensureSelectHasValue(taskCourse);
         if (!preferredCourseId) {
             window.setTimeout(refreshJoinState, 80);
             return;
         }
         setSelectWithRetry("extTaskCourse", preferredCourseId, function () {
-            var preferredAssignmentId = preferredDashboardAssignmentId(preferredCourseId);
+            var preferredAssignmentId = preferredDashboardAssignmentId(preferredCourseId) || ensureSelectHasValue(taskAssignment);
             if (!preferredAssignmentId) {
                 window.setTimeout(refreshJoinState, 120);
                 return;
