@@ -69,7 +69,11 @@
 
     function ensureSelectHasValue(select) {
         if (!select) return "";
-        if (select.value) return String(select.value);
+        var current = String(select.value || "");
+        var hasCurrent = current && Array.from(select.options || []).some(function (option) {
+            return String(option.value || "") === current;
+        });
+        if (hasCurrent) return current;
         var firstOption = Array.from(select.options || []).find(function (option) {
             return String(option.value || "") !== "";
         }) || null;
