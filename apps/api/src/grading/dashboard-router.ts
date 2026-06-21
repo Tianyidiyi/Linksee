@@ -89,7 +89,7 @@ dashboardRouter.get("/students/dashboard", requireAuth, async (req: Request, res
     prisma.assignmentStage.findMany({
       where: {
         assignmentId: { in: assignmentIds },
-        status: { in: [StageStatus.open, StageStatus.closed, StageStatus.archived] },
+        status: { in: [StageStatus.planned, StageStatus.open, StageStatus.closed, StageStatus.archived] },
       },
       orderBy: [{ stageNo: "asc" }],
       select: {
@@ -103,7 +103,7 @@ dashboardRouter.get("/students/dashboard", requireAuth, async (req: Request, res
     }),
   ]);
 
-  if (groupMemberships.length === 0 || stages.length === 0) {
+  if (stages.length === 0) {
     return ok(res, serializeBigInt({ courses, todoRows: [], gradeRows: [] }));
   }
 
@@ -180,14 +180,14 @@ dashboardRouter.get("/students/dashboard", requireAuth, async (req: Request, res
     const assignment = assignmentById.get(stage.assignmentId.toString());
     if (!assignment) return [];
 
-    const group = groupByAssignmentId.get(stage.assignmentId.toString());
-    if (!group) return [];
-
     const course = courseById.get(assignment.courseId.toString());
     if (!course) return [];
 
-    const key = `${group.id.toString()}::${stage.id.toString()}`;
-    const submission = latestSubmissionByKey.get(key) ?? null;
+    const group = groupByAssignmentId.get(stage.assignmentId.toString()) ?? null;
+
+    const submission = group
+      ? latestSubmissionByKey.get(`${group.id.toString()}::${stage.id.toString()}`) ?? null
+      : null;
 
     return [{
       course,
@@ -199,6 +199,7 @@ dashboardRouter.get("/students/dashboard", requireAuth, async (req: Request, res
   });
 
   const gradeRows = todoRows.flatMap((row) => {
+    if (!row.group) return [];
     const key = `${row.group.id.toString()}::${row.stage.id.toString()}`;
     const grade = gradeByKey.get(key);
     if (!grade) return [];

@@ -77,6 +77,21 @@
             : null;
     }
 
+    function preferredDashboardRow(matcher) {
+        var state = studentDashboardState();
+        var rows = state && Array.isArray(state.todoRows) ? state.todoRows : [];
+        var scopedRows = typeof matcher === "function"
+            ? rows.filter(function (row) { return row && matcher(row); })
+            : rows.filter(Boolean);
+        return scopedRows.find(function (row) {
+            return row && row.group && row.stage && row.stage.status === "open";
+        }) || scopedRows.find(function (row) {
+            return row && row.group;
+        }) || scopedRows.find(function (row) {
+            return row && row.stage && row.stage.status === "open";
+        }) || scopedRows[0] || null;
+    }
+
     function dashboardAssignmentRows(courseId) {
         var state = studentDashboardState();
         var rows = state && Array.isArray(state.todoRows) ? state.todoRows : [];
@@ -99,6 +114,22 @@
                 return row && row.assignment && row.stage && (!assignmentId || String(row.assignment.id) === String(assignmentId));
             })
             .map(function (row) { return row.stage; });
+    }
+
+    function preferredDashboardAssignmentId(courseId) {
+        var row = preferredDashboardRow(function (item) {
+            return item && item.course && item.assignment
+                && (!courseId || String(item.course.id) === String(courseId));
+        });
+        return row && row.assignment ? String(row.assignment.id) : "";
+    }
+
+    function preferredDashboardStageId(assignmentId) {
+        var row = preferredDashboardRow(function (item) {
+            return item && item.assignment && item.stage
+                && (!assignmentId || String(item.assignment.id) === String(assignmentId));
+        });
+        return row && row.stage ? String(row.stage.id) : "";
     }
 
     function fileTypeIconSvg(ext) {
@@ -324,10 +355,10 @@
     }
 
     function preferredDashboardCourseId() {
-        var state = studentDashboardState();
-        var rows = state && Array.isArray(state.todoRows) ? state.todoRows : [];
-        var first = rows.find(function (row) { return row && row.course && row.assignment; }) || null;
-        return first && first.course ? String(first.course.id) : "";
+        var row = preferredDashboardRow(function (item) {
+            return item && item.course && item.assignment;
+        });
+        return row && row.course ? String(row.course.id) : "";
     }
 
     function requestDelete(path, body) {
@@ -667,6 +698,10 @@
                 return (assignment.title || assignment.id) + " · " + (assignment.status || "--");
             });
             ensureSelectValue(select, rows, includeEmpty);
+            var preferredId = preferredDashboardAssignmentId(courseId);
+            if (preferredId && Array.from(select.options || []).some(function (option) { return String(option.value) === preferredId; })) {
+                select.value = preferredId;
+            }
             return rows;
         }
         return api().getJson("/api/v1/courses/" + encodeURIComponent(courseId) + "/assignments").then(function (payload) {
@@ -695,6 +730,10 @@
                 return '<option value="' + escapeHtml(stage.id) + '" data-stage-no="' + escapeHtml(stage.stageNo) + '" data-stage-title="' + escapeHtml(stage.title || ("阶段 " + stage.stageNo)) + '">' + escapeHtml(label) + '</option>';
             }).join("");
             ensureSelectValue(select, rows, includeEmpty);
+            var preferredId = preferredDashboardStageId(assignmentId);
+            if (preferredId && Array.from(select.options || []).some(function (option) { return String(option.value) === preferredId; })) {
+                select.value = preferredId;
+            }
             return rows;
         }
         return api().getJson("/api/v1/assignments/" + encodeURIComponent(assignmentId) + "/stages").then(function (payload) {
