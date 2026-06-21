@@ -843,6 +843,7 @@
             ownedAssistants: [],
             courseMembers: [],
             groupMembers: {},
+            groupStageSubmissions: {},
             mockMode: teacherMockAllowed,
             collapsedAssignments: {},
             selectedGroupId: "",
@@ -1685,7 +1686,8 @@
             var editToggle = qs("#extTeacherStageEditToggle");
             var totalGroups = teacherToolState.groups.length || 0;
             var submittedGroups = teacherToolState.groups.filter(function (row) {
-                return String(row.status || "").toLowerCase() !== "forming";
+                var summary = groupStageSubmissionSummary(row.id, stage);
+                return summary.submitState === "done";
             }).length;
             var editTarget = activeEditTarget();
 
@@ -1729,6 +1731,21 @@
             }
         }
 
+        function groupStageSubmissionSummary(groupId, stage) {
+            if (!stage) return { submitState: "pending", submitLabel: "待提交" };
+            if (String(stage.status || "").toLowerCase() === "archived") {
+                return { submitState: "ended", submitLabel: "已结束" };
+            }
+            var rows = teacherToolState.groupStageSubmissions[String(groupId)] || [];
+            if (!rows.length) return { submitState: "pending", submitLabel: "待提交" };
+            var latest = rows[0] || null;
+            var status = String(latest && latest.status || "").toLowerCase();
+            if (!status || status === "not_submitted") {
+                return { submitState: "pending", submitLabel: "待提交" };
+            }
+            return { submitState: "done", submitLabel: "已提交" };
+        }
+
         function renderTeacherAssistants() {
             renderBoundAssistants();
         }
@@ -1743,9 +1760,9 @@
                 return;
             }
             listNode.innerHTML = teacherToolState.groups.map(function (group) {
-                var normalizedStatus = String(group.status || "").toLowerCase();
-                var submitState = normalizedStatus === "forming" ? "pending" : normalizedStatus === "archived" ? "ended" : "done";
-                var submitLabel = submitState === "pending" ? "待提交" : submitState === "ended" ? "已结束" : "已提交";
+                var summary = groupStageSubmissionSummary(group.id, stage);
+                var submitState = summary.submitState;
+                var submitLabel = summary.submitLabel;
                 var memberRows = teacherToolState.groupMembers[String(group.id)] || [];
                 var memberCount = memberRows.length || group._count && group._count.members || 0;
                 var isSelected = String(teacherToolState.selectedGroupId || "") === String(group.id);
@@ -2381,7 +2398,9 @@
                 var selectedStage = teacherToolState.stages.find(function (row) { return String(row.id) === String(stageSelect.value || ""); }) || null;
                 setEditTarget(selectedStage ? "stage" : "assignment");
                 fillStageForm(selectedStage);
-                renderTeacherWorkspace();
+                refreshGroups().catch(function (err) {
+                    reportTeacherLoadError(err, "小组阶段状态刷新失败");
+                });
             };
         }
         function stageBody() {
@@ -2612,6 +2631,7 @@
             if (!groupAssignment.value) {
                 teacherToolState.groups = [];
                 teacherToolState.groupMembers = {};
+                teacherToolState.groupStageSubmissions = {};
                 teacherToolState.selectedGroupId = "";
                 renderTeacherWorkspace();
                 return Promise.resolve();
@@ -2623,8 +2643,10 @@
                     teacherToolState.selectedGroupId = groupRows[0] ? String(groupRows[0].id) : "";
                 }
                 teacherToolState.groupMembers = {};
+                teacherToolState.groupStageSubmissions = {};
                 groupRows.forEach(function (group) {
                     teacherToolState.groupMembers[String(group.id)] = mockGroupMemberRows(group.id);
+                    teacherToolState.groupStageSubmissions[String(group.id)] = [];
                 });
                 renderTeacherWorkspace();
                 return Promise.resolve(groupRows);
@@ -2635,12 +2657,29 @@
                 if (!rows.some(function (group) { return String(group.id) === String(teacherToolState.selectedGroupId || ""); })) {
                     teacherToolState.selectedGroupId = rows[0] ? String(rows[0].id) : "";
                 }
+                teacherToolState.groupMembers = {};
+                teacherToolState.groupStageSubmissions = {};
+                var stage = selectedStage();
                 return Promise.all(rows.map(function (group) {
-                    return api().getJson("/api/v1/groups/" + encodeURIComponent(group.id) + "/members").then(function (membersPayload) {
-                        teacherToolState.groupMembers[String(group.id)] = normalizeRows(membersPayload);
-                    }).catch(function () {
-                        teacherToolState.groupMembers[String(group.id)] = [];
-                    });
+                    var requests = [
+                        api().getJson("/api/v1/groups/" + encodeURIComponent(group.id) + "/members").then(function (membersPayload) {
+                            teacherToolState.groupMembers[String(group.id)] = normalizeRows(membersPayload);
+                        }).catch(function () {
+                            teacherToolState.groupMembers[String(group.id)] = [];
+                        })
+                    ];
+                    if (stage && stage.id) {
+                        requests.push(
+                            api().getJson("/api/v1/stages/" + encodeURIComponent(stage.id) + "/groups/" + encodeURIComponent(group.id) + "/submissions").then(function (submissionPayload) {
+                                teacherToolState.groupStageSubmissions[String(group.id)] = normalizeRows(submissionPayload);
+                            }).catch(function () {
+                                teacherToolState.groupStageSubmissions[String(group.id)] = [];
+                            })
+                        );
+                    } else {
+                        teacherToolState.groupStageSubmissions[String(group.id)] = [];
+                    }
+                    return Promise.all(requests);
                 })).then(function () {
                     renderTeacherWorkspace();
                 });
