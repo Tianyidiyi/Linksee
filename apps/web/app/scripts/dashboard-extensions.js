@@ -67,6 +67,21 @@
         }
     }
 
+    function ensureSelectHasValue(select) {
+        if (!select) return "";
+        var current = String(select.value || "");
+        var hasCurrent = current && Array.from(select.options || []).some(function (option) {
+            return String(option.value || "") === current;
+        });
+        if (hasCurrent) return current;
+        var firstOption = Array.from(select.options || []).find(function (option) {
+            return String(option.value || "") !== "";
+        }) || null;
+        if (!firstOption) return "";
+        select.value = String(firstOption.value);
+        return String(select.value || "");
+    }
+
     function normalizeRows(payload) {
         return Array.isArray(payload && payload.data) ? payload.data : [];
     }
@@ -75,6 +90,21 @@
         return window.linkseeStudentDashboardState && typeof window.linkseeStudentDashboardState === "object"
             ? window.linkseeStudentDashboardState
             : null;
+    }
+
+    function preferredDashboardRow(matcher) {
+        var state = studentDashboardState();
+        var rows = state && Array.isArray(state.todoRows) ? state.todoRows : [];
+        var scopedRows = typeof matcher === "function"
+            ? rows.filter(function (row) { return row && matcher(row); })
+            : rows.filter(Boolean);
+        return scopedRows.find(function (row) {
+            return row && row.group && row.stage && row.stage.status === "open";
+        }) || scopedRows.find(function (row) {
+            return row && row.group;
+        }) || scopedRows.find(function (row) {
+            return row && row.stage && row.stage.status === "open";
+        }) || scopedRows[0] || null;
     }
 
     function dashboardAssignmentRows(courseId) {
@@ -99,6 +129,22 @@
                 return row && row.assignment && row.stage && (!assignmentId || String(row.assignment.id) === String(assignmentId));
             })
             .map(function (row) { return row.stage; });
+    }
+
+    function preferredDashboardAssignmentId(courseId) {
+        var row = preferredDashboardRow(function (item) {
+            return item && item.course && item.assignment
+                && (!courseId || String(item.course.id) === String(courseId));
+        });
+        return row && row.assignment ? String(row.assignment.id) : "";
+    }
+
+    function preferredDashboardStageId(assignmentId) {
+        var row = preferredDashboardRow(function (item) {
+            return item && item.assignment && item.stage
+                && (!assignmentId || String(item.assignment.id) === String(assignmentId));
+        });
+        return row && row.stage ? String(row.stage.id) : "";
     }
 
     function fileTypeIconSvg(ext) {
@@ -324,10 +370,10 @@
     }
 
     function preferredDashboardCourseId() {
-        var state = studentDashboardState();
-        var rows = state && Array.isArray(state.todoRows) ? state.todoRows : [];
-        var first = rows.find(function (row) { return row && row.course && row.assignment; }) || null;
-        return first && first.course ? String(first.course.id) : "";
+        var row = preferredDashboardRow(function (item) {
+            return item && item.course && item.assignment;
+        });
+        return row && row.course ? String(row.course.id) : "";
     }
 
     function requestDelete(path, body) {
@@ -667,6 +713,10 @@
                 return (assignment.title || assignment.id) + " · " + (assignment.status || "--");
             });
             ensureSelectValue(select, rows, includeEmpty);
+            var preferredId = preferredDashboardAssignmentId(courseId);
+            if (preferredId && Array.from(select.options || []).some(function (option) { return String(option.value) === preferredId; })) {
+                select.value = preferredId;
+            }
             return rows;
         }
         return api().getJson("/api/v1/courses/" + encodeURIComponent(courseId) + "/assignments").then(function (payload) {
@@ -695,6 +745,10 @@
                 return '<option value="' + escapeHtml(stage.id) + '" data-stage-no="' + escapeHtml(stage.stageNo) + '" data-stage-title="' + escapeHtml(stage.title || ("阶段 " + stage.stageNo)) + '">' + escapeHtml(label) + '</option>';
             }).join("");
             ensureSelectValue(select, rows, includeEmpty);
+            var preferredId = preferredDashboardStageId(assignmentId);
+            if (preferredId && Array.from(select.options || []).some(function (option) { return String(option.value) === preferredId; })) {
+                select.value = preferredId;
+            }
             return rows;
         }
         return api().getJson("/api/v1/assignments/" + encodeURIComponent(assignmentId) + "/stages").then(function (payload) {
@@ -3238,6 +3292,7 @@
         var taskAssignment = qs("#extTaskAssignment");
         var taskResult = qs("#extTaskResult");
         function refreshTaskAssignment() {
+            ensureSelectHasValue(taskCourse);
             return loadAssignmentOptions(taskCourse.value, taskAssignment, false).then(refreshTaskGroup);
         }
         function renderTaskContextEmpty(title, message) {
@@ -3255,12 +3310,28 @@
             return Promise.resolve();
         }
         function refreshTaskGroup() {
-            if (!taskAssignment.value) return Promise.resolve();
+            ensureSelectHasValue(taskAssignment);
+            if (!taskAssignment.value) {
+                state.currentGroup = null;
+                qs("#extTaskGroupId").value = "";
+                updateContext(null);
+                renderCurrentGroup(null);
+                applyCapabilityState(null);
+                return Promise.resolve();
+            }
             return api().getJson("/api/v1/assignments/" + encodeURIComponent(taskAssignment.value) + "/my-group").then(function (payload) {
                 var group = payload.data || null;
+                state.currentGroup = group;
                 qs("#extTaskGroupId").value = group && group.id || "";
+                updateContext(group);
+                renderCurrentGroup(group);
+                applyCapabilityState(group);
                 return Promise.all([refreshTaskContext(group), refreshTasks()]);
             }).catch(function () {
+                state.currentGroup = null;
+                updateContext(null);
+                renderCurrentGroup(null);
+                applyCapabilityState(null);
                 qs("#extTaskGroupId").value = "";
                 renderTaskContextEmpty("尚未入组", "加入小组后可以维护任务。");
                 qs("#extTaskList").innerHTML = '<div class="dashboard-empty-state"><strong>尚未入组</strong><p>加入小组后可以维护任务。</p></div>';
@@ -3771,6 +3842,7 @@
         mockEnabled: allowExplicitMock("studentTeamMock"),
         selectedTaskId: "",
         syncingTaskEditor: false,
+        joinRefreshTimer: 0,
     };
 
     var mockTeamData = [
@@ -3986,6 +4058,7 @@
 
     function refreshTeamCustomSelect(select) {
         if (!select || select.dataset.teamSelectEnhanced !== "1") return;
+        ensureSelectHasValue(select);
         var box = select.nextElementSibling;
         if (!box || !box.classList.contains("student-team-selectbox")) return;
         var textNode = qs(".student-team-select-text", box);
@@ -4140,9 +4213,24 @@
         });
     }
 
+    function selectedContextLabel(select) {
+        if (!select) return "--";
+        var selected = Array.from(select.options || []).find(function (option) {
+            return String(option.value) === String(select.value || "");
+        }) || null;
+        if (selected && selected.textContent) return selected.textContent.split(" · ")[0] || "--";
+        var box = select.nextElementSibling;
+        var visibleText = box && box.classList.contains("student-team-selectbox")
+            ? qs(".student-team-select-text", box)
+            : null;
+        return visibleText && visibleText.textContent ? visibleText.textContent.split(" · ")[0] || "--" : "--";
+    }
+
     function updateContext(group) {
-        var courseText = taskCourse && taskCourse.options[taskCourse.selectedIndex] ? taskCourse.options[taskCourse.selectedIndex].text.split(" · ")[0] : "--";
-        var assignmentText = taskAssignment && taskAssignment.options[taskAssignment.selectedIndex] ? taskAssignment.options[taskAssignment.selectedIndex].text.split(" · ")[0] : "--";
+        ensureSelectHasValue(taskCourse);
+        ensureSelectHasValue(taskAssignment);
+        var courseText = selectedContextLabel(taskCourse);
+        var assignmentText = selectedContextLabel(taskAssignment);
         text("#studentTeamCourseName", courseText || "--");
         text("#studentTeamAssignmentName", assignmentText || "--");
         text("#studentTeamCourseMeta", taskCourse && taskCourse.value ? "已选课程" : "请选择课程");
@@ -5291,6 +5379,8 @@
     }
 
     function refreshJoinState() {
+        ensureSelectHasValue(taskCourse);
+        ensureSelectHasValue(taskAssignment);
         if (state.mockEnabled) {
             ensureMockContext();
             var mockAssignment = currentMockAssignment();
@@ -5313,7 +5403,9 @@
             renderRequestRows((mockAssignment.joinRequests || []).slice(), state.currentGroup);
             return refreshActivityState();
         }
-        if (!taskAssignment || !taskAssignment.value) {
+        var assignmentId = taskAssignment && String(taskAssignment.value || "");
+        updateContext(state.currentGroup);
+        if (!assignmentId) {
             state.currentGroup = null;
             updateContext(null);
             renderCurrentGroup(null);
@@ -5324,9 +5416,10 @@
             return Promise.resolve();
         }
         return Promise.all([
-            api().getJson("/api/v1/assignments/" + encodeURIComponent(taskAssignment.value) + "/groups").catch(function () { return { data: [] }; }),
-            api().getJson("/api/v1/assignments/" + encodeURIComponent(taskAssignment.value) + "/my-group").catch(function () { return { data: null }; }),
+            api().getJson("/api/v1/assignments/" + encodeURIComponent(assignmentId) + "/groups").catch(function () { return { data: [] }; }),
+            api().getJson("/api/v1/assignments/" + encodeURIComponent(assignmentId) + "/my-group").catch(function () { return { data: null }; }),
         ]).then(function (payloads) {
+            if (!taskAssignment || String(taskAssignment.value || "") !== assignmentId) return;
             state.groupRows = rowsOf(payloads[0]);
             state.currentGroup = payloads[1].data || null;
             updateContext(state.currentGroup);
@@ -5337,14 +5430,30 @@
                 if (requestList) requestList.innerHTML = '<div class="student-inline-empty">加入小组后，这里会显示你的申请记录和相关状态。</div>';
                 return refreshActivityState();
             }
-            return api().getJson("/api/v1/groups/" + encodeURIComponent(state.currentGroup.id) + "/join-requests").then(function (payload) {
+            var groupId = state.currentGroup.id;
+            return api().getJson("/api/v1/groups/" + encodeURIComponent(groupId) + "/join-requests").then(function (payload) {
+                if (!taskAssignment || String(taskAssignment.value || "") !== assignmentId || !state.currentGroup || String(state.currentGroup.id) !== String(groupId)) return;
                 renderRequestRows(rowsOf(payload), state.currentGroup);
                 return refreshActivityState();
             }).catch(function () {
+                if (!taskAssignment || String(taskAssignment.value || "") !== assignmentId || !state.currentGroup || String(state.currentGroup.id) !== String(groupId)) return;
                 renderRequestRows([], state.currentGroup);
                 return refreshActivityState();
             });
         });
+    }
+
+    function scheduleJoinStateRefresh(delay) {
+        window.clearTimeout(state.joinRefreshTimer);
+        state.joinRefreshTimer = window.setTimeout(function () {
+            refreshJoinState();
+        }, delay == null ? 80 : delay);
+    }
+
+    function resetTeamSelectionContext(delay) {
+        state.currentGroup = null;
+        updateContext(null);
+        scheduleJoinStateRefresh(delay);
     }
 
     function bindStageWheel() {
@@ -5743,7 +5852,43 @@
     bindStageWheel();
     bindJoinActions();
     ensureMockContext();
-    if (taskCourse) taskCourse.addEventListener("change", function () { window.setTimeout(refreshJoinState, 280); });
-    if (taskAssignment) taskAssignment.addEventListener("change", function () { window.setTimeout(refreshJoinState, 280); });
-    window.addEventListener("load", function () { window.setTimeout(refreshJoinState, 800); });
+    function hydrateModernStudentTeam() {
+        if (!qs("#studentTeamViewTabs")) {
+            window.setTimeout(refreshJoinState, 80);
+            return;
+        }
+        var preferredCourseId = preferredDashboardCourseId() || ensureSelectHasValue(taskCourse);
+        if (!preferredCourseId) {
+            window.setTimeout(refreshJoinState, 80);
+            return;
+        }
+        setSelectWithRetry("extTaskCourse", preferredCourseId, function () {
+            var preferredAssignmentId = preferredDashboardAssignmentId(preferredCourseId) || ensureSelectHasValue(taskAssignment);
+            if (!preferredAssignmentId) {
+                window.setTimeout(refreshJoinState, 120);
+                return;
+            }
+            setSelectWithRetry("extTaskAssignment", preferredAssignmentId, function () {
+                window.setTimeout(refreshJoinState, 120);
+            }, 10);
+        }, 10);
+    }
+    if (taskCourse) {
+        taskCourse.addEventListener("change", function () {
+            resetTeamSelectionContext(160);
+        });
+        new MutationObserver(function () {
+            resetTeamSelectionContext(80);
+        }).observe(taskCourse, { childList: true, subtree: true });
+    }
+    if (taskAssignment) {
+        taskAssignment.addEventListener("change", function () {
+            resetTeamSelectionContext(80);
+        });
+        new MutationObserver(function () {
+            resetTeamSelectionContext(80);
+        }).observe(taskAssignment, { childList: true, subtree: true });
+    }
+    window.addEventListener("linksee:student-dashboard-ready", function () { window.setTimeout(hydrateModernStudentTeam, 120); });
+    window.addEventListener("load", function () { window.setTimeout(hydrateModernStudentTeam, 800); });
 })();
