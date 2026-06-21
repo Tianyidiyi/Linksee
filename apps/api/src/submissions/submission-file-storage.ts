@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 import path from "node:path";
 import { env } from "../infra/env.js";
 import { minioClient } from "../infra/minio.js";
+import { normalizeUploadFileName } from "../shared/upload-filename.js";
 
 const SUBMISSION_FILE_PRESIGN_TTL_SECONDS = 60 * 10;
 
@@ -79,8 +80,9 @@ type UploadSubmissionFileInput = {
 };
 
 export async function uploadSubmissionFile(input: UploadSubmissionFileInput): Promise<SubmissionFileMetadata> {
+  const displayName = normalizeUploadFileName(input.file.originalname);
   const prefix = `submissions/courses/${input.courseId.toString()}/assignments/${input.assignmentId.toString()}/stages/${input.stageId.toString()}/groups/${input.groupId.toString()}`;
-  const objectKey = `${prefix}/${crypto.randomUUID()}-${sanitizeFileName(input.file.originalname)}`;
+  const objectKey = `${prefix}/${crypto.randomUUID()}-${sanitizeFileName(displayName)}`;
 
   await minioClient.putObject(
     env.minioBucketSubmissionFiles,
@@ -91,7 +93,7 @@ export async function uploadSubmissionFile(input: UploadSubmissionFileInput): Pr
   );
 
   return {
-    name: input.file.originalname,
+    name: displayName,
     objectKey,
     size: input.file.size,
     mimeType: input.file.mimetype,

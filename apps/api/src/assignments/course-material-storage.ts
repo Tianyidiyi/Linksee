@@ -5,6 +5,7 @@ import crypto from "node:crypto";
 import path from "node:path";
 import { env } from "../infra/env.js";
 import { buildBucketPublicUrl, minioClient } from "../infra/minio.js";
+import { normalizeUploadFileName } from "../shared/upload-filename.js";
 
 export type StoredFileMetadata = {
   name: string;
@@ -117,10 +118,11 @@ type UploadMaterialFileInput = {
 };
 
 export async function uploadCourseMaterialFile(input: UploadMaterialFileInput): Promise<StoredFileMetadata> {
+  const displayName = normalizeUploadFileName(input.file.originalname);
   const prefix = input.stageId
     ? `courses/${input.courseId.toString()}/assignments/${input.assignmentId.toString()}/stages/${input.stageId.toString()}`
     : `courses/${input.courseId.toString()}/assignments/${input.assignmentId.toString()}`;
-  const objectKey = `${prefix}/${crypto.randomUUID()}-${sanitizeFileName(input.file.originalname)}`;
+  const objectKey = `${prefix}/${crypto.randomUUID()}-${sanitizeFileName(displayName)}`;
 
   await minioClient.putObject(
     env.minioBucketCourseMaterials,
@@ -131,7 +133,7 @@ export async function uploadCourseMaterialFile(input: UploadMaterialFileInput): 
   );
 
   return {
-    name: input.file.originalname,
+    name: displayName,
     objectKey,
     size: input.file.size,
     mimeType: input.file.mimetype,
