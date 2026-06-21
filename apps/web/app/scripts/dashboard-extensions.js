@@ -3294,12 +3294,27 @@
             return Promise.resolve();
         }
         function refreshTaskGroup() {
-            if (!taskAssignment.value) return Promise.resolve();
+            if (!taskAssignment.value) {
+                state.currentGroup = null;
+                qs("#extTaskGroupId").value = "";
+                updateContext(null);
+                renderCurrentGroup(null);
+                applyCapabilityState(null);
+                return Promise.resolve();
+            }
             return api().getJson("/api/v1/assignments/" + encodeURIComponent(taskAssignment.value) + "/my-group").then(function (payload) {
                 var group = payload.data || null;
+                state.currentGroup = group;
                 qs("#extTaskGroupId").value = group && group.id || "";
+                updateContext(group);
+                renderCurrentGroup(group);
+                applyCapabilityState(group);
                 return Promise.all([refreshTaskContext(group), refreshTasks()]);
             }).catch(function () {
+                state.currentGroup = null;
+                updateContext(null);
+                renderCurrentGroup(null);
+                applyCapabilityState(null);
                 qs("#extTaskGroupId").value = "";
                 renderTaskContextEmpty("尚未入组", "加入小组后可以维护任务。");
                 qs("#extTaskList").innerHTML = '<div class="dashboard-empty-state"><strong>尚未入组</strong><p>加入小组后可以维护任务。</p></div>';
@@ -5782,7 +5797,29 @@
     bindStageWheel();
     bindJoinActions();
     ensureMockContext();
+    function hydrateModernStudentTeam() {
+        if (!qs("#studentTeamViewTabs")) {
+            window.setTimeout(refreshJoinState, 80);
+            return;
+        }
+        var preferredCourseId = preferredDashboardCourseId();
+        if (!preferredCourseId) {
+            window.setTimeout(refreshJoinState, 80);
+            return;
+        }
+        setSelectWithRetry("extTaskCourse", preferredCourseId, function () {
+            var preferredAssignmentId = preferredDashboardAssignmentId(preferredCourseId);
+            if (!preferredAssignmentId) {
+                window.setTimeout(refreshJoinState, 120);
+                return;
+            }
+            setSelectWithRetry("extTaskAssignment", preferredAssignmentId, function () {
+                window.setTimeout(refreshJoinState, 120);
+            }, 10);
+        }, 10);
+    }
     if (taskCourse) taskCourse.addEventListener("change", function () { window.setTimeout(refreshJoinState, 280); });
     if (taskAssignment) taskAssignment.addEventListener("change", function () { window.setTimeout(refreshJoinState, 280); });
-    window.addEventListener("load", function () { window.setTimeout(refreshJoinState, 800); });
+    window.addEventListener("linksee:student-dashboard-ready", function () { window.setTimeout(hydrateModernStudentTeam, 120); });
+    window.addEventListener("load", function () { window.setTimeout(hydrateModernStudentTeam, 800); });
 })();
