@@ -62,6 +62,14 @@ function sanitizeFileName(originalName: string): string {
   return safeName.length > 0 ? safeName : "file";
 }
 
+function buildAttachmentDisposition(originalName?: string): string | undefined {
+  if (!originalName) return undefined;
+  const cleanName = path.basename(originalName).replace(/[\r\n"]/g, "_").trim();
+  if (!cleanName) return undefined;
+  const fallbackName = sanitizeFileName(cleanName);
+  return `attachment; filename="${fallbackName}"; filename*=UTF-8''${encodeURIComponent(cleanName)}`;
+}
+
 export function isAllowedChatMimeType(mimeType: string): boolean {
   if (typeof mimeType !== "string" || mimeType.length === 0) {
     return false;
@@ -91,8 +99,10 @@ export async function presignChatUpload(objectKey: string, mimeType: string): Pr
   return minioClient.presignedPutObject(env.minioBucketChatFiles, objectKey, CHAT_FILE_PRESIGN_TTL_SECONDS);
 }
 
-export async function presignChatDownload(objectKey: string): Promise<string> {
-  return minioClient.presignedGetObject(env.minioBucketChatFiles, objectKey, CHAT_FILE_PRESIGN_TTL_SECONDS);
+export async function presignChatDownload(objectKey: string, fileName?: string): Promise<string> {
+  const contentDisposition = buildAttachmentDisposition(fileName);
+  const responseParams = contentDisposition ? { "response-content-disposition": contentDisposition } : undefined;
+  return minioClient.presignedGetObject(env.minioBucketChatFiles, objectKey, CHAT_FILE_PRESIGN_TTL_SECONDS, responseParams);
 }
 
 export function normalizeChatFiles(files: unknown): ChatFileInput[] {

@@ -72,6 +72,9 @@
             setTimeout(function () { el.remove(); }, 220);
         }, 2200);
     }
+    function safeFileName(value) {
+        return String(value || "附件").replace(/[\\/:*?"<>|]+/g, "_").trim() || "附件";
+    }
     function defaultAvatar() {
         var svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239CA3AF'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
         return "data:image/svg+xml;base64," + window.btoa(unescape(encodeURIComponent(svg)));
@@ -736,7 +739,11 @@
         .chat-msg.me{background:linear-gradient(180deg,#eefaf4,#e8f7ef);border-color:#cbe5d6}
         .chat-msg.is-pending{opacity:.94}
         .chat-msg > div{display:block;white-space:pre-wrap;word-break:keep-all;overflow-wrap:anywhere;max-width:100%}
-        .chat-text{display:block;white-space:pre-wrap;word-break:keep-all;overflow-wrap:anywhere;max-width:100%}
+        .chat-text{display:block;white-space:pre-wrap;word-break:keep-all;overflow-wrap:anywhere;max-width:100%;cursor:text;-webkit-user-select:text;user-select:text;caret-color:auto}
+        .student-dashboard-page .chat-text,
+        .student-dashboard-page .chat-text *{cursor:text;-webkit-user-select:text;user-select:text;caret-color:auto}
+        .chat-quote,
+        .student-dashboard-page .chat-quote{cursor:text;-webkit-user-select:text;user-select:text;caret-color:auto}
         .chat-meta{font-size:12px;color:#64748b;display:flex;gap:8px;margin-bottom:4px}
         .chat-message-stack{display:flex;flex-direction:column;gap:6px;max-width:min(86%,34rem);width:fit-content;align-items:flex-start;min-width:0}
         .chat-row.me .chat-message-stack{margin-left:auto;align-items:flex-end}
@@ -751,6 +758,7 @@
         .chat-row.file-row.me .chat-file-thread{margin-left:auto;align-self:flex-end;align-items:flex-end}
         .chat-files{display:grid;gap:10px;margin-top:8px}
         .chat-file{display:grid;grid-template-columns:42px minmax(0,1fr);gap:12px;align-items:start;width:100%;max-width:none;padding:14px 16px;border:1px solid #d9e2ec;border-radius:18px;background:#fff;box-shadow:0 1px 0 rgba(15,23,42,.02)}
+        .chat-file[role='button']{cursor:pointer}
         .chat-file-icon{width:42px;height:42px;border-radius:12px;background:#eef2f7;color:#94a3b8;display:grid;place-items:center;flex:none;position:relative;overflow:hidden;align-self:start;border:none;cursor:pointer;padding:0}
         .chat-file.is-downloaded .chat-file-icon{background:#e6f0ef;color:#0f766e}
         .chat-file.is-pending .chat-file-icon,.chat-file.is-uploading .chat-file-icon{background:#eef2f7;color:#0f766e}
@@ -1175,6 +1183,70 @@
         menu.innerHTML = "";
     }
 
+    function selectedTextIntersects(node) {
+        var selection = window.getSelection ? window.getSelection() : null;
+        if (!selection || selection.isCollapsed || !String(selection.toString()).trim()) return false;
+        for (var i = 0; i < selection.rangeCount; i += 1) {
+            var range = selection.getRangeAt(i);
+            if (typeof range.intersectsNode === "function") {
+                try {
+                    if (range.intersectsNode(node)) return true;
+                } catch (_err) {}
+            }
+            if (node.contains(selection.anchorNode) || node.contains(selection.focusNode)) return true;
+        }
+        return false;
+    }
+
+    function messageCopyText(message) {
+        if (!message || message.deletedAt) return "";
+        if (Array.isArray(message.files) && message.files.length) {
+            return message.files.map(function (file) {
+                return file && file.name ? file.name : "附件";
+            }).join("\n");
+        }
+        return String(message.content || "");
+    }
+
+    function fallbackCopyText(text) {
+        var ta = document.createElement("textarea");
+        ta.value = text;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "fixed";
+        ta.style.left = "-9999px";
+        ta.style.top = "0";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        var ok = false;
+        try {
+            ok = document.execCommand("copy");
+        } catch (_err) {
+            ok = false;
+        }
+        ta.remove();
+        return ok;
+    }
+
+    async function copyMessage(message) {
+        var text = messageCopyText(message);
+        if (!text) return showToast("没有可复制的内容", true);
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(text);
+            } else if (!fallbackCopyText(text)) {
+                throw new Error("copy failed");
+            }
+            showToast("已复制消息");
+        } catch (_err) {
+            if (fallbackCopyText(text)) {
+                showToast("已复制消息");
+            } else {
+                showToast("复制失败，请手动选择后复制", true);
+            }
+        }
+    }
+
     function ensureContextMenu() {
         if (state.contextMenu && state.contextMenu.isConnected) return state.contextMenu;
         var menu = document.createElement("div");
@@ -1196,6 +1268,9 @@
             }
             if (kind === "edit") {
                 beginEditMessage(msg);
+            }
+            if (kind === "copy") {
+                copyMessage(msg);
             }
             if (kind === "delete") {
                 deleteMessage(messageId).catch(function (e) { showToast(e.message || "删除失败", true); });
@@ -1587,9 +1662,11 @@
         var isDownloaded = mode === "downloaded";
         var busy = progress !== null && progress < 100;
         var actionLabel = expired ? "已过期" : (busy ? (mode === "upload" ? "上传中" : "下载中") : "下载");
+        var fileRef = escapeHtml(String(message.id)) + ":" + index;
+        var fileActionAttrs = mode === "upload" ? "" : " data-chat-file='" + fileRef + "' role='button' tabindex='0' aria-label='" + escapeHtml(actionLabel + " " + title) + "'";
         return [
-            "<div class='chat-file" + (file && file.pending ? " is-pending is-uploading" : "") + (isDownloaded ? " is-downloaded" : "") + "'>",
-            "<button type='button' class='chat-file-icon' aria-label='" + escapeHtml(actionLabel) + "' data-chat-file='" + escapeHtml(String(message.id)) + ":" + index + "'" + (expired || mode === "upload" ? " disabled" : "") + ">" + fileIcon + (progress !== null ? createProgressRing(progress, busy ? Math.round(progress) + "%" : (mode === "upload" ? "上传" : "下载")) : "") + "</button>",
+            "<div class='chat-file" + (file && file.pending ? " is-pending is-uploading" : "") + (isDownloaded ? " is-downloaded" : "") + "'" + fileActionAttrs + ">",
+            "<button type='button' class='chat-file-icon' aria-label='" + escapeHtml(actionLabel) + "'" + (mode === "upload" ? " disabled" : "") + ">" + fileIcon + (progress !== null ? createProgressRing(progress, busy ? Math.round(progress) + "%" : (mode === "upload" ? "上传" : "下载")) : "") + "</button>",
             "<div class='chat-file-body'>",
             "<div class='chat-file-name' title='" + escapeHtml(title) + "'>" + escapeHtml(title) + "</div>",
             "<div class='chat-file-meta'>",
@@ -1940,10 +2017,22 @@
             if (!skipToast) showToast("已切换到搜索结果（mock）");
             return;
         }
-        var payload = await window.linkseeApi.getJson(searchPath(state.selected.scopeType, state.selected.scopeId, keyword));
-        state.search.results = Array.isArray(payload.data) ? payload.data.slice().reverse() : [];
-        renderMessages();
-        if (!skipToast) showToast("已切换到搜索结果");
+        try {
+            var payload = await window.linkseeApi.getJson(searchPath(state.selected.scopeType, state.selected.scopeId, keyword));
+            state.search.results = Array.isArray(payload.data) ? payload.data.slice().reverse() : [];
+            renderMessages();
+            if (!skipToast) showToast("已切换到搜索结果");
+        } catch (err) {
+            state.search.open = false;
+            state.search.keyword = "";
+            state.search.results = [];
+            state.search.contextAnchorId = "";
+            state.search.contextMessages = [];
+            state.search.contextHasOlder = false;
+            state.search.contextHasNewer = false;
+            renderMessages();
+            showToast("搜索失败，请稍后重试", true);
+        }
     }
 
     async function openSearchContext(messageId) {
@@ -2290,6 +2379,52 @@
         }
     }
 
+    async function fetchDownloadBlob(url, key) {
+        var response = await fetch(url);
+        if (!response.ok) throw new Error("下载失败，请稍后重试");
+        var total = Number(response.headers.get("content-length")) || 0;
+        var contentType = response.headers.get("content-type") || "application/octet-stream";
+        if (!response.body || !response.body.getReader) {
+            return await response.blob();
+        }
+        var reader = response.body.getReader();
+        var chunks = [];
+        var loaded = 0;
+        while (true) {
+            var next = await reader.read();
+            if (next.done) break;
+            chunks.push(next.value);
+            loaded += next.value.byteLength;
+            if (total > 0) {
+                setFileActivity(key, { mode: "download", progress: Math.min(95, 18 + Math.round((loaded / total) * 77)) });
+                renderMessages();
+            }
+        }
+        return new Blob(chunks, { type: contentType });
+    }
+
+    function triggerBlobDownload(blob, fileName) {
+        var objectUrl = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = objectUrl;
+        a.download = safeFileName(fileName);
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function () { URL.revokeObjectURL(objectUrl); }, 1000);
+    }
+
+    function openDownloadFallback(url, fileName) {
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = safeFileName(fileName);
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    }
+
     async function downloadMessageFile(messageId, index) {
         var msg = state.messages.find(function (m) { return String(m.id) === String(messageId); });
         if (!msg || !Array.isArray(msg.files) || !msg.files[index]) return;
@@ -2305,22 +2440,25 @@
         try {
             setFileActivity(key, { mode: "download", progress: 12 });
             renderMessages();
-            var payload = await window.linkseeApi.getJson("/api/v1/chat/files/presign-download?objectKey=" + encodeURIComponent(f.objectKey));
+            var payload = await window.linkseeApi.getJson("/api/v1/chat/files/presign-download?objectKey=" + encodeURIComponent(f.objectKey) + "&fileName=" + encodeURIComponent(f.name || "附件"));
             var url = payload && payload.data && payload.data.downloadUrl;
             if (!url) {
                 throw new Error("下载链接生成失败");
             }
             setFileActivity(key, { mode: "download", progress: 72 });
             renderMessages();
-            var a = document.createElement("a");
-            a.href = url;
-            a.target = "_blank";
-            a.rel = "noopener noreferrer";
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
+            try {
+                var blob = await fetchDownloadBlob(url, key);
+                triggerBlobDownload(blob, f.name || "附件");
+            } catch (downloadErr) {
+                if (downloadErr && downloadErr.message === "下载失败，请稍后重试") throw downloadErr;
+                openDownloadFallback(url, f.name || "附件");
+                showToast("无法直接下载，已打开下载链接，请在新页面保存文件", true);
+            }
             setFileActivity(key, { mode: "downloaded", progress: 100 });
             renderMessages();
+        } catch (err) {
+            showToast((err && err.message) || "下载失败，请稍后重试", true);
         } finally {
             setTimeout(function () {
                 var current = getFileActivity(key);
@@ -2393,14 +2531,16 @@
         var menu = ensureContextMenu();
         var canDelete = String(message.senderId) === String(auth().userId) || isStaff();
         var canEdit = !message.deletedAt && !message.pending && !Array.isArray(message.files) && String(message.senderId) === String(auth().userId);
+        var canCopy = Boolean(messageCopyText(message));
         var items = [
             "<button type='button' data-chat-menu-action='reply'>回复</button>",
+            canCopy ? "<button type='button' data-chat-menu-action='copy'>复制消息</button>" : "",
             canEdit ? "<button type='button' data-chat-menu-action='edit'>编辑</button>" : "",
             canDelete ? "<button type='button' data-chat-menu-action='delete'>删除</button>" : "",
         ].join("");
         menu.innerHTML = items;
         var width = 150;
-        var height = 96;
+        var height = 128;
         var left = Math.min(Math.max(12, x), Math.max(12, window.innerWidth - width - 12));
         var top = Math.min(Math.max(12, y), Math.max(12, window.innerHeight - height - 12));
         menu.style.left = left + "px";
@@ -2597,6 +2737,15 @@
             closeMoreMenu();
         });
 
+        state.panel.addEventListener("keydown", function (event) {
+            if (event.key !== "Enter" && event.key !== " ") return;
+            var fileLink = event.target.closest("[data-chat-file]");
+            if (!fileLink) return;
+            event.preventDefault();
+            var parts = fileLink.getAttribute("data-chat-file").split(":");
+            downloadMessageFile(parts[0], Number(parts[1])).catch(function (e) { showToast(e.message || "下载失败，请稍后重试", true); });
+        });
+
         var ta = q("[data-chat-composer]", state.panel);
         var searchInput = q("[data-chat-search-input]", state.panel);
         ta.addEventListener("keydown", function (event) {
@@ -2679,6 +2828,10 @@
         state.panel.addEventListener("contextmenu", function (event) {
             var bubble = event.target.closest("[data-chat-message-id]");
             if (!bubble) return;
+            if (selectedTextIntersects(bubble)) {
+                closeContextMenu();
+                return;
+            }
             event.preventDefault();
             var id = bubble.getAttribute("data-chat-message-id");
             var msg = state.messages.find(function (m) { return String(m.id) === String(id); });
