@@ -37,6 +37,7 @@ P0 不单独实现老师层 `Task` 实体。老师发布的阶段要求统一建
 ## 文档入口
 
 - [文档导航](docs/README.md)
+- [快速运行与演示账号](docs/验收/快速运行与演示账号.md)
 - [教学协作产品概述](docs/product/教学协作产品概述.md)
 - [课程场景与需求](docs/product/课程场景与需求.md)
 - [MVP任务与后续计划](docs/product/MVP任务与后续计划.md)
@@ -48,22 +49,42 @@ P0 不单独实现老师层 `Task` 实体。老师发布的阶段要求统一建
 - [工程流程与构建说明](docs/architecture/工程流程与构建说明.md)
 - [参考资料目录](docs/参考资料/)
 
-## 本地命令
+## 快速本地运行
+
+以下命令均在仓库根目录执行。首次运行建议按顺序完成依赖安装、Docker 依赖启动、Prisma 初始化和冒烟数据导入：
 
 ```bash
 npm install
-npm run build
+cp infra/docker/.env.example infra/docker/.env
+npm run dev:deps:up
+npm run prisma:generate -w @linksee/api
+npm run prisma:db:push -w @linksee/api
+node scripts/验收/seed-smoke.mjs
 npm run start:auth -w @linksee/api
 ```
 
-Docker 依赖：
+启动后访问：
+
+- 登录页：`http://localhost:3001/app/login.html`
+- 健康检查：`http://localhost:3001/health`
+
+常用演示账号（默认密码均为 `Accept123!`）：
+
+- 教务：`2099000001`
+- 教师：`2099000101`
+- 助教：`2099000201`
+- 学生：`2099001001`
+
+常用命令：
 
 ```bash
+npm run build
+npm run verify:build
 npm run dev:deps:up
 npm run dev:deps:down
 ```
 
-更多说明见 [构建打包流程](infra/ci-cd/build-package-flow.md) 和 [新人安装步骤与日常命令清单](docs/architecture/首次安装步骤与日常命令清单.md)。
+更多说明见 [快速运行与演示账号](docs/验收/快速运行与演示账号.md)、[构建打包流程](infra/ci-cd/build-package-flow.md) 和 [新人安装步骤与日常命令清单](docs/architecture/首次安装步骤与日常命令清单.md)。
 
 ## 协作约定
 

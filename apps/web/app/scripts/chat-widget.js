@@ -355,6 +355,24 @@
         ].indexOf(mimeType) >= 0;
     }
 
+    function fileExtension(file) {
+        var name = String(file && file.name ? file.name : "").toLowerCase();
+        var dot = name.lastIndexOf(".");
+        return dot >= 0 ? name.slice(dot + 1) : "";
+    }
+
+    function isPreviewableFile(file) {
+        var mimeType = String(file && file.mimeType ? file.mimeType : "").toLowerCase();
+        if (mimeType.indexOf("image/") === 0 || mimeType.indexOf("text/") === 0 || mimeType.indexOf("video/") === 0) return true;
+        if (["application/pdf", "application/json", "application/xml"].indexOf(mimeType) >= 0) return true;
+        var ext = fileExtension(file);
+        return [
+            "jpg", "jpeg", "png", "webp", "gif", "svg",
+            "pdf", "txt", "md", "markdown", "json", "xml", "csv", "log", "yaml", "yml",
+            "mp4", "webm", "mov",
+        ].indexOf(ext) >= 0;
+    }
+
     function formatBytes(size) {
         var value = Number(size) || 0;
         var units = ["B", "KB", "MB", "GB", "TB"];
@@ -758,8 +776,7 @@
         .chat-row.file-row.me .chat-file-thread{margin-left:auto;align-self:flex-end;align-items:flex-end}
         .chat-files{display:grid;gap:10px;margin-top:8px}
         .chat-file{display:grid;grid-template-columns:42px minmax(0,1fr);gap:12px;align-items:start;width:100%;max-width:none;padding:14px 16px;border:1px solid #d9e2ec;border-radius:18px;background:#fff;box-shadow:0 1px 0 rgba(15,23,42,.02)}
-        .chat-file[role='button']{cursor:pointer}
-        .chat-file-icon{width:42px;height:42px;border-radius:12px;background:#eef2f7;color:#94a3b8;display:grid;place-items:center;flex:none;position:relative;overflow:hidden;align-self:start;border:none;cursor:pointer;padding:0}
+        .chat-file-icon{width:42px;height:42px;border-radius:12px;background:#eef2f7;color:#94a3b8;display:grid;place-items:center;flex:none;position:relative;overflow:hidden;align-self:start;border:none;cursor:default;padding:0}
         .chat-file.is-downloaded .chat-file-icon{background:#e6f0ef;color:#0f766e}
         .chat-file.is-pending .chat-file-icon,.chat-file.is-uploading .chat-file-icon{background:#eef2f7;color:#0f766e}
         .chat-file-icon svg{position:relative;z-index:1}
@@ -772,8 +789,12 @@
         .chat-file-meta .meta-text{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .chat-file-expiry{font-size:11px;padding:3px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;white-space:nowrap}
         .chat-file-expiry.expired{background:#fef2f2;color:#b91c1c}
-        .chat-file-icon:hover{filter:brightness(.98)}
-        .chat-file-icon:disabled{cursor:not-allowed;opacity:.8}
+        .chat-file-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px}
+        .chat-file-action{border:1px solid #d9e2ec;background:#fff;color:#334155;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:700;line-height:1;cursor:pointer;transition:background .15s ease,border-color .15s ease,color .15s ease}
+        .chat-file-action:hover{background:#eef6f4;border-color:#cbe5d6;color:#0f766e}
+        .chat-file-action:disabled{cursor:not-allowed;opacity:.58;background:#f8fafc;color:#94a3b8;border-color:#e2e8f0}
+        .chat-file-action.primary{background:#0f766e;border-color:#0f766e;color:#fff}
+        .chat-file-action.primary:hover{background:#115e59;border-color:#115e59;color:#fff}
         .chat-quote{margin:4px 0 6px;padding:6px 8px;border-left:3px solid #cbd5e1;background:#f8fafc;color:#475569;font-size:12px}
         .chat-load-more{justify-self:center;border:1px solid #dbe3ee;background:#fff;border-radius:999px;padding:8px 14px;color:#475569;cursor:pointer;font-size:12px;box-shadow:0 4px 10px rgba(15,23,42,.04)}
         .chat-load-more:hover{background:#f8fafc}
@@ -1661,17 +1682,22 @@
         var mode = activity && activity.mode ? activity.mode : (file && file.pending ? "upload" : "");
         var isDownloaded = mode === "downloaded";
         var busy = progress !== null && progress < 100;
-        var actionLabel = expired ? "已过期" : (busy ? (mode === "upload" ? "上传中" : "下载中") : "下载");
+        var previewLabel = isPreviewableFile(file) ? "预览" : "打开";
         var fileRef = escapeHtml(String(message.id)) + ":" + index;
-        var fileActionAttrs = mode === "upload" ? "" : " data-chat-file='" + fileRef + "' role='button' tabindex='0' aria-label='" + escapeHtml(actionLabel + " " + title) + "'";
+        var actionDisabled = mode === "upload" || busy || expired;
+        var disabledAttrs = actionDisabled ? " disabled title='" + escapeHtml(expired ? "附件已过期，无法访问" : (mode === "upload" ? "附件上传中" : "附件处理中")) + "'" : "";
         return [
-            "<div class='chat-file" + (file && file.pending ? " is-pending is-uploading" : "") + (isDownloaded ? " is-downloaded" : "") + "'" + fileActionAttrs + ">",
-            "<button type='button' class='chat-file-icon' aria-label='" + escapeHtml(actionLabel) + "'" + (mode === "upload" ? " disabled" : "") + ">" + fileIcon + (progress !== null ? createProgressRing(progress, busy ? Math.round(progress) + "%" : (mode === "upload" ? "上传" : "下载")) : "") + "</button>",
+            "<div class='chat-file" + (file && file.pending ? " is-pending is-uploading" : "") + (isDownloaded ? " is-downloaded" : "") + "'>",
+            "<div class='chat-file-icon' aria-hidden='true'>" + fileIcon + (progress !== null ? createProgressRing(progress, busy ? Math.round(progress) + "%" : (mode === "upload" ? "上传" : "下载")) : "") + "</div>",
             "<div class='chat-file-body'>",
             "<div class='chat-file-name' title='" + escapeHtml(title) + "'>" + escapeHtml(title) + "</div>",
             "<div class='chat-file-meta'>",
             metaText ? "<span class='meta-text' title='" + escapeHtml(metaText) + "'>" + escapeHtml(metaText) + "</span>" : "",
             expiryText ? "<span class='chat-file-expiry" + (expired ? " expired" : "") + "' title='" + escapeHtml(file.expiresAt || "") + "'>" + escapeHtml(expiryText) + "</span>" : "",
+            "</div>",
+            "<div class='chat-file-actions'>",
+            "<button type='button' class='chat-file-action primary' data-chat-file-preview='" + fileRef + "' aria-label='" + escapeHtml(previewLabel + " " + title) + "'" + disabledAttrs + ">" + escapeHtml(previewLabel) + "</button>",
+            "<button type='button' class='chat-file-action' data-chat-file-download='" + fileRef + "' aria-label='" + escapeHtml("下载 " + title) + "'" + disabledAttrs + ">下载</button>",
             "</div>",
             "</div>",
             "</div>",
@@ -2414,15 +2440,44 @@
         setTimeout(function () { URL.revokeObjectURL(objectUrl); }, 1000);
     }
 
-    function openDownloadFallback(url, fileName) {
+    function openFileLink(url) {
+        var opened = window.open(url, "_blank", "noopener,noreferrer");
+        if (opened) return;
         var a = document.createElement("a");
         a.href = url;
-        a.download = safeFileName(fileName);
         a.target = "_blank";
         a.rel = "noopener noreferrer";
         document.body.appendChild(a);
         a.click();
         a.remove();
+    }
+
+    async function getMessageFileDownloadUrl(file) {
+        var payload = await window.linkseeApi.getJson("/api/v1/chat/files/presign-download?objectKey=" + encodeURIComponent(file.objectKey) + "&fileName=" + encodeURIComponent(file.name || "附件"));
+        var url = payload && payload.data && payload.data.downloadUrl;
+        if (!url) {
+            throw new Error("下载链接生成失败");
+        }
+        return url;
+    }
+
+    async function previewMessageFile(messageId, index) {
+        var msg = state.messages.find(function (m) { return String(m.id) === String(messageId); });
+        if (!msg || !Array.isArray(msg.files) || !msg.files[index]) return;
+        var f = msg.files[index];
+        if (f.expiresAt && new Date(f.expiresAt).getTime() <= Date.now()) {
+            showToast("附件已过期，无法访问", true);
+            return;
+        }
+        if (state.selected && state.selected.scopeType === "mock") {
+            return showToast("mock 会话不提供真实文件链接");
+        }
+        try {
+            var url = await getMessageFileDownloadUrl(f);
+            openFileLink(url);
+        } catch (err) {
+            showToast((err && err.message) || "打开文件失败，请稍后重试", true);
+        }
     }
 
     async function downloadMessageFile(messageId, index) {
@@ -2440,11 +2495,7 @@
         try {
             setFileActivity(key, { mode: "download", progress: 12 });
             renderMessages();
-            var payload = await window.linkseeApi.getJson("/api/v1/chat/files/presign-download?objectKey=" + encodeURIComponent(f.objectKey) + "&fileName=" + encodeURIComponent(f.name || "附件"));
-            var url = payload && payload.data && payload.data.downloadUrl;
-            if (!url) {
-                throw new Error("下载链接生成失败");
-            }
+            var url = await getMessageFileDownloadUrl(f);
             setFileActivity(key, { mode: "download", progress: 72 });
             renderMessages();
             try {
@@ -2452,8 +2503,8 @@
                 triggerBlobDownload(blob, f.name || "附件");
             } catch (downloadErr) {
                 if (downloadErr && downloadErr.message === "下载失败，请稍后重试") throw downloadErr;
-                openDownloadFallback(url, f.name || "附件");
-                showToast("无法直接下载，已打开下载链接，请在新页面保存文件", true);
+                openFileLink(url);
+                showToast("无法直接下载，已尝试打开文件链接", true);
             }
             setFileActivity(key, { mode: "downloaded", progress: 100 });
             renderMessages();
@@ -2717,12 +2768,21 @@
                 return;
             }
 
-            var fileLink = event.target.closest("[data-chat-file]");
-            if (fileLink) {
+            var filePreview = event.target.closest("[data-chat-file-preview]");
+            if (filePreview) {
                 closeMoreMenu();
                 event.preventDefault();
-                var parts = fileLink.getAttribute("data-chat-file").split(":");
-                downloadMessageFile(parts[0], Number(parts[1])).catch(function (e) { showToast(e.message || "下载失败", true); });
+                var previewParts = filePreview.getAttribute("data-chat-file-preview").split(":");
+                previewMessageFile(previewParts[0], Number(previewParts[1])).catch(function (e) { showToast(e.message || "打开文件失败", true); });
+                return;
+            }
+
+            var fileDownload = event.target.closest("[data-chat-file-download]");
+            if (fileDownload) {
+                closeMoreMenu();
+                event.preventDefault();
+                var downloadParts = fileDownload.getAttribute("data-chat-file-download").split(":");
+                downloadMessageFile(downloadParts[0], Number(downloadParts[1])).catch(function (e) { showToast(e.message || "下载失败", true); });
                 return;
             }
 
@@ -2739,11 +2799,16 @@
 
         state.panel.addEventListener("keydown", function (event) {
             if (event.key !== "Enter" && event.key !== " ") return;
-            var fileLink = event.target.closest("[data-chat-file]");
+            var fileLink = event.target.closest("[data-chat-file-preview],[data-chat-file-download]");
             if (!fileLink) return;
             event.preventDefault();
-            var parts = fileLink.getAttribute("data-chat-file").split(":");
-            downloadMessageFile(parts[0], Number(parts[1])).catch(function (e) { showToast(e.message || "下载失败，请稍后重试", true); });
+            if (fileLink.hasAttribute("data-chat-file-preview")) {
+                var previewParts = fileLink.getAttribute("data-chat-file-preview").split(":");
+                previewMessageFile(previewParts[0], Number(previewParts[1])).catch(function (e) { showToast(e.message || "打开文件失败，请稍后重试", true); });
+                return;
+            }
+            var downloadParts = fileLink.getAttribute("data-chat-file-download").split(":");
+            downloadMessageFile(downloadParts[0], Number(downloadParts[1])).catch(function (e) { showToast(e.message || "下载失败，请稍后重试", true); });
         });
 
         var ta = q("[data-chat-composer]", state.panel);
