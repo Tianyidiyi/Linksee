@@ -107,7 +107,7 @@ describe("course-chat-router integration", () => {
     jest.spyOn(courseAccess, "ensureCourseReadable").mockResolvedValue({ id: 1n } as any);
     jest.spyOn(prisma.course, "findUnique").mockResolvedValue({ status: "active" } as any);
     jest.spyOn(chatHelpers, "getConversationId").mockResolvedValue(101n);
-    jest.spyOn(prisma.chatMessage, "findMany").mockResolvedValue([
+    const findManySpy = jest.spyOn(prisma.chatMessage, "findMany").mockResolvedValue([
       {
         id: 202n,
         conversationId: 101n,
@@ -134,6 +134,31 @@ describe("course-chat-router integration", () => {
     expect(res.body.data).toHaveLength(1);
     expect(res.body.data[0].id).toBe("202");
     expect(res.body.data[0].content).toContain("原型");
+    expect(findManySpy).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        content: { contains: "原型" },
+      }),
+    }));
+  });
+
+  it("GET /api/v1/courses/:courseId/messages/search should return SEARCH_FAILED when query fails", async () => {
+    const app = createApp();
+    jest.spyOn(console, "error").mockImplementation(() => undefined);
+    jest.spyOn(courseAccess, "ensureCourseReadable").mockResolvedValue({ id: 1n } as any);
+    jest.spyOn(prisma.course, "findUnique").mockResolvedValue({ status: "active" } as any);
+    jest.spyOn(chatHelpers, "getConversationId").mockResolvedValue(101n);
+    jest.spyOn(prisma.chatMessage, "findMany").mockRejectedValue(new Error("unsupported filter"));
+
+    const res = await request(app)
+      .get("/api/v1/courses/1/messages/search?q=%E5%8A%A9%E6%95%99")
+      .set("authorization", authHeader("t1", "teacher"));
+
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({
+      ok: false,
+      code: "SEARCH_FAILED",
+      message: "Message search failed",
+    });
   });
 
   it("PATCH /api/v1/courses/:courseId/messages/:messageId should edit text message and emit realtime event", async () => {
@@ -242,7 +267,7 @@ describe("group-chat-router integration", () => {
     } as any);
     jest.spyOn(groupAccess, "ensureCourseMemberActive").mockResolvedValue(true);
     jest.spyOn(chatHelpers, "getConversationId").mockResolvedValue(102n);
-    jest.spyOn(prisma.chatMessage, "findMany").mockResolvedValue([
+    const findManySpy = jest.spyOn(prisma.chatMessage, "findMany").mockResolvedValue([
       {
         id: 302n,
         conversationId: 102n,
@@ -269,6 +294,35 @@ describe("group-chat-router integration", () => {
     expect(res.body.data).toHaveLength(1);
     expect(res.body.data[0].id).toBe("302");
     expect(res.body.data[0].content).toContain("原型交互");
+    expect(findManySpy).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        content: { contains: "原型" },
+      }),
+    }));
+  });
+
+  it("GET /api/v1/groups/:groupId/messages/search should return SEARCH_FAILED when query fails", async () => {
+    const app = createApp();
+    jest.spyOn(console, "error").mockImplementation(() => undefined);
+    jest.spyOn(groupAccess, "getGroupAccess").mockResolvedValue({
+      id: 8n,
+      assignmentId: 12n,
+      courseId: 22n,
+    } as any);
+    jest.spyOn(groupAccess, "ensureCourseMemberActive").mockResolvedValue(true);
+    jest.spyOn(chatHelpers, "getConversationId").mockResolvedValue(102n);
+    jest.spyOn(prisma.chatMessage, "findMany").mockRejectedValue(new Error("unsupported filter"));
+
+    const res = await request(app)
+      .get("/api/v1/groups/8/messages/search?q=%E5%8A%A9%E6%95%99")
+      .set("authorization", authHeader("2026010041", "student"));
+
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({
+      ok: false,
+      code: "SEARCH_FAILED",
+      message: "Message search failed",
+    });
   });
 
   it("PATCH /api/v1/groups/:groupId/messages/:messageId should edit group text message and emit realtime event", async () => {

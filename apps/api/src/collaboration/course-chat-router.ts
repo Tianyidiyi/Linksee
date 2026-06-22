@@ -465,26 +465,31 @@ courseChatRouter.get("/courses/:courseId/messages/search", requireAuth, async (r
     return validationFailed(res, "q is required");
   }
 
-  const conversationId = await getConversationId("course", courseId);
-  if (!conversationId) {
-    return res.json({ ok: true, data: [] });
+  try {
+    const conversationId = await getConversationId("course", courseId);
+    if (!conversationId) {
+      return res.json({ ok: true, data: [] });
+    }
+
+    const { limit } = parseLimitOffset(req.query as Record<string, unknown>);
+    const messages = await prisma.chatMessage.findMany({
+      where: {
+        conversationId,
+        deletedAt: null,
+        content: { contains: query },
+      },
+      orderBy: [{ createdAt: Prisma.SortOrder.desc }, { id: Prisma.SortOrder.desc }],
+      take: limit,
+      select: messageSelect,
+    });
+
+    const mapped = messages.map((message) => serializeChatMessage(message as unknown as Record<string, unknown>));
+
+    res.json({ ok: true, data: serializeBigInt(mapped) });
+  } catch (err) {
+    console.error("[course-chat] message search failed", err);
+    res.status(500).json({ ok: false, code: "SEARCH_FAILED", message: "Message search failed" });
   }
-
-  const { limit } = parseLimitOffset(req.query as Record<string, unknown>);
-  const messages = await prisma.chatMessage.findMany({
-    where: {
-      conversationId,
-      deletedAt: null,
-      content: { contains: query, mode: "insensitive" },
-    },
-    orderBy: [{ createdAt: Prisma.SortOrder.desc }, { id: Prisma.SortOrder.desc }],
-    take: limit,
-    select: messageSelect,
-  });
-
-  const mapped = messages.map((message) => serializeChatMessage(message as unknown as Record<string, unknown>));
-
-  res.json({ ok: true, data: serializeBigInt(mapped) });
 });
 
 // ──────────────────────────────────────────────────────────────
