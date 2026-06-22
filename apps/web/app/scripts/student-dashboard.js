@@ -467,6 +467,19 @@
             selectedMaterialKeys: [],
         };
 
+        function publishDashboardState(eventName) {
+            if (!state.dashboard) return;
+            state.dashboard.selectedCourseId = state.selectedCourseId || "";
+            state.dashboard.selectedAssignmentId = state.selectedAssignmentId || "";
+            state.dashboard.selectedStageId = state.selectedStageId || "";
+            window.linkseeStudentDashboardState = state.dashboard;
+            if (eventName && typeof window.CustomEvent === "function") {
+                window.dispatchEvent(new CustomEvent(eventName, {
+                    detail: state.dashboard,
+                }));
+            }
+        }
+
         function toggleTodoPopover(forceOpen) {
             if (!todoPopover || !todoToggle) return;
             var shouldOpen = typeof forceOpen === "boolean" ? forceOpen : todoPopover.hidden;
@@ -853,6 +866,7 @@
                         state.selectedStageId = "";
                         closeCourseScopeMenu();
                         renderCoursePanel(courseRows, todoRows, gradeRows);
+                        publishDashboardState("linksee:student-dashboard-selection-changed");
                     });
                 });
             }
@@ -870,6 +884,7 @@
                         state.selectedAssignmentId = "";
                         state.selectedStageId = "";
                         renderCoursePanel(courseRows, todoRows, gradeRows);
+                        publishDashboardState("linksee:student-dashboard-selection-changed");
                     });
                 });
             }
@@ -886,6 +901,7 @@
                         state.selectedAssignmentId = button.getAttribute("data-assignment-id") || "";
                         state.selectedStageId = "";
                         renderCoursePanel(courseRows, todoRows, gradeRows);
+                        publishDashboardState("linksee:student-dashboard-selection-changed");
                     });
                 });
             }
@@ -1264,6 +1280,7 @@
             renderCoursePanel(state.dashboard.courses || [], state.dashboard.todoRows || [], state.dashboard.gradeRows || []);
             renderSubmitPanel(state.dashboard.courses || [], state.dashboard.todoRows || []);
             renderGradesPanel(state.dashboard.courses || [], state.dashboard.todoRows || [], state.dashboard.gradeRows || []);
+            publishDashboardState();
         }
 
         function wireInteractions() {
@@ -1486,8 +1503,8 @@
                 todoRows: todoRows,
                 gradeRows: gradeRows,
             };
-            window.linkseeStudentDashboardState = state.dashboard;
             syncCurrentSelections(courseRows, todoRows);
+            publishDashboardState();
             rerenderStudentDashboardPanels();
             window.dispatchEvent(new CustomEvent("linksee:student-dashboard-ready", {
                 detail: state.dashboard,
@@ -1502,8 +1519,8 @@
                     todoRows: mockFallback.todoRows,
                     gradeRows: mockFallback.gradeRows,
                 };
-                window.linkseeStudentDashboardState = state.dashboard;
                 syncCurrentSelections(mockFallback.courses, mockFallback.todoRows);
+                publishDashboardState();
                 rerenderStudentDashboardPanels();
                 window.dispatchEvent(new CustomEvent("linksee:student-dashboard-ready", {
                     detail: state.dashboard,
@@ -1517,8 +1534,8 @@
                 todoRows: [],
                 gradeRows: [],
             };
-            window.linkseeStudentDashboardState = state.dashboard;
             syncCurrentSelections([], []);
+            publishDashboardState();
             rerenderStudentDashboardPanels();
             window.dispatchEvent(new CustomEvent("linksee:student-dashboard-ready", {
                 detail: state.dashboard,

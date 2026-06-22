@@ -132,6 +132,14 @@
     }
 
     function preferredDashboardAssignmentId(courseId) {
+        var state = studentDashboardState();
+        var selectedId = state && state.selectedAssignmentId ? String(state.selectedAssignmentId) : "";
+        if (selectedId) {
+            var selectedRows = dashboardAssignmentRows(courseId);
+            if (!courseId || selectedRows.some(function (row) { return String(row.id) === selectedId; })) {
+                return selectedId;
+            }
+        }
         var row = preferredDashboardRow(function (item) {
             return item && item.course && item.assignment
                 && (!courseId || String(item.course.id) === String(courseId));
@@ -370,6 +378,8 @@
     }
 
     function preferredDashboardCourseId() {
+        var state = studentDashboardState();
+        if (state && state.selectedCourseId) return String(state.selectedCourseId);
         var row = preferredDashboardRow(function (item) {
             return item && item.course && item.assignment;
         });
@@ -3296,17 +3306,21 @@
             return loadAssignmentOptions(taskCourse.value, taskAssignment, false).then(refreshTaskGroup);
         }
         function renderTaskContextEmpty(title, message) {
-            qs("#extTaskGroupSummary").innerHTML = '<div class="dashboard-empty-state"><strong>' + escapeHtml(title) + '</strong><p>' + escapeHtml(message) + '</p></div>';
+            var summary = qs("#extTaskGroupSummary");
+            if (!summary) return;
+            summary.innerHTML = '<div class="dashboard-empty-state"><strong>' + escapeHtml(title) + '</strong><p>' + escapeHtml(message) + '</p></div>';
         }
         function refreshTaskContext(group) {
+            var summary = qs("#extTaskGroupSummary");
             var groupId = group && group.id;
             if (!groupId || !taskAssignment.value) {
                 renderTaskContextEmpty("尚未入组", "加入小组后可以查看小组信息并维护任务。");
                 return Promise.resolve();
             }
+            if (!summary) return Promise.resolve();
 
             var label = group.name || ("第 " + (group.groupNo || "--") + " 组");
-            qs("#extTaskGroupSummary").innerHTML = '<div class="list-item dashboard-list-item-vertical"><div class="dashboard-split-row"><strong>' + escapeHtml(label) + '</strong><span class="badge badge-active">' + escapeHtml(group.status || "--") + '</span></div><div class="muted">小组 ID：' + escapeHtml(group.id) + ' · 我的角色：' + escapeHtml(group.myRole || "--") + ' · 成员数：' + escapeHtml(group._count && group._count.members || "--") + '</div></div>';
+            summary.innerHTML = '<div class="list-item dashboard-list-item-vertical"><div class="dashboard-split-row"><strong>' + escapeHtml(label) + '</strong><span class="badge badge-active">' + escapeHtml(group.status || "--") + '</span></div><div class="muted">小组 ID：' + escapeHtml(group.id) + ' · 我的角色：' + escapeHtml(group.myRole || "--") + ' · 成员数：' + escapeHtml(group._count && group._count.members || "--") + '</div></div>';
             return Promise.resolve();
         }
         function refreshTaskGroup() {
@@ -3347,7 +3361,7 @@
                 }).join("") || '<div class="dashboard-empty-state"><strong>暂无任务</strong><p>可以创建第一条 MiniTask。</p></div>';
             });
         }
-        if (taskCourse) {
+        if (taskCourse && !qs("#studentTeamViewTabs")) {
             loadCourseOptions(taskCourse, refreshTaskAssignment);
             taskCourse.onchange = refreshTaskAssignment;
             taskAssignment.onchange = refreshTaskGroup;
@@ -3728,6 +3742,185 @@
         return [];
     }
 
+    function allowExplicitMock(queryKey) {
+        try {
+            var search = new URLSearchParams(window.location.search || "");
+            return search.get(queryKey) === "1";
+        } catch (_err) {
+            return false;
+        }
+    }
+
+    function optionRows(rows, labeler) {
+        return rows.map(function (row) {
+            return '<option value="' + escapeHtml(row.id) + '">' + escapeHtml(labeler(row)) + '</option>';
+        }).join("");
+    }
+
+    function ensureSelectValue(select, rows, includeEmpty) {
+        if (!select) return;
+        var current = String(select.value || "");
+        var ids = rows.map(function (row) { return String(row.id); });
+        if (current && ids.indexOf(current) >= 0) return;
+        if (rows[0]) {
+            select.value = String(rows[0].id);
+            return;
+        }
+        if (includeEmpty) {
+            select.value = "";
+        }
+    }
+
+    function ensureSelectHasValue(select) {
+        if (!select) return "";
+        var current = String(select.value || "");
+        var hasCurrent = current && Array.from(select.options || []).some(function (option) {
+            return String(option.value || "") === current;
+        });
+        if (hasCurrent) return current;
+        var firstOption = Array.from(select.options || []).find(function (option) {
+            return String(option.value || "") !== "";
+        }) || null;
+        if (!firstOption) return "";
+        select.value = String(firstOption.value);
+        return String(select.value || "");
+    }
+
+    function studentDashboardState() {
+        return window.linkseeStudentDashboardState && typeof window.linkseeStudentDashboardState === "object"
+            ? window.linkseeStudentDashboardState
+            : null;
+    }
+
+    function preferredDashboardRow(matcher) {
+        var dashboard = studentDashboardState();
+        var rows = dashboard && Array.isArray(dashboard.todoRows) ? dashboard.todoRows : [];
+        var scopedRows = typeof matcher === "function"
+            ? rows.filter(function (row) { return row && matcher(row); })
+            : rows.filter(Boolean);
+        return scopedRows.find(function (row) {
+            return row && row.group && row.stage && row.stage.status === "open";
+        }) || scopedRows.find(function (row) {
+            return row && row.group;
+        }) || scopedRows.find(function (row) {
+            return row && row.stage && row.stage.status === "open";
+        }) || scopedRows[0] || null;
+    }
+
+    function dashboardAssignmentRows(courseId) {
+        var dashboard = studentDashboardState();
+        var rows = dashboard && Array.isArray(dashboard.todoRows) ? dashboard.todoRows : [];
+        var map = new Map();
+        rows.forEach(function (row) {
+            if (!row || !row.course || !row.assignment) return;
+            if (courseId && String(row.course.id) !== String(courseId)) return;
+            if (!map.has(String(row.assignment.id))) {
+                map.set(String(row.assignment.id), row.assignment);
+            }
+        });
+        return Array.from(map.values());
+    }
+
+    function preferredDashboardCourseId() {
+        var dashboard = studentDashboardState();
+        if (dashboard && dashboard.selectedCourseId) return String(dashboard.selectedCourseId);
+        var row = preferredDashboardRow(function (item) {
+            return item && item.course && item.assignment;
+        });
+        return row && row.course ? String(row.course.id) : "";
+    }
+
+    function preferredDashboardAssignmentId(courseId) {
+        var dashboard = studentDashboardState();
+        var selectedId = dashboard && dashboard.selectedAssignmentId ? String(dashboard.selectedAssignmentId) : "";
+        if (selectedId) {
+            var selectedRows = dashboardAssignmentRows(courseId);
+            if (!courseId || selectedRows.some(function (row) { return String(row.id) === selectedId; })) {
+                return selectedId;
+            }
+        }
+        var row = preferredDashboardRow(function (item) {
+            return item && item.course && item.assignment
+                && (!courseId || String(item.course.id) === String(courseId));
+        });
+        return row && row.assignment ? String(row.assignment.id) : "";
+    }
+
+    function loadCourseOptions(select, next) {
+        function applyRows(rows) {
+            if (!select) return rows;
+            var currentValue = String(select.value || "");
+            select.innerHTML = optionRows(rows, function (course) {
+                return (course.name || course.courseNo || course.id) + " · " + (course.status || "--");
+            });
+            var canKeepCurrent = typeof state !== "undefined" && state && typeof hasRecentManualContextChange === "function" && hasRecentManualContextChange()
+                && currentValue && rows.some(function (row) { return String(row.id) === currentValue; });
+            if (canKeepCurrent) {
+                select.value = currentValue;
+            } else {
+                ensureSelectValue(select, rows, false);
+                var preferredId = preferredDashboardCourseId();
+                if (preferredId && Array.from(select.options || []).some(function (option) { return String(option.value) === preferredId; })) {
+                    select.value = preferredId;
+                }
+            }
+            if (next) return next(rows);
+            return rows;
+        }
+        return api().getJson("/api/v1/courses").then(function (payload) {
+            var rows = rowsOf(payload);
+            if (!rows.length) {
+                var dashboard = studentDashboardState();
+                rows = dashboard && Array.isArray(dashboard.courses) ? dashboard.courses : [];
+            }
+            return applyRows(rows);
+        }).catch(function (err) {
+            var dashboard = studentDashboardState();
+            var rows = dashboard && Array.isArray(dashboard.courses) ? dashboard.courses : [];
+            if (rows.length) return applyRows(rows);
+            throw err;
+        });
+    }
+
+    function loadAssignmentOptions(courseId, select, includeEmpty) {
+        if (!courseId) {
+            if (select) select.innerHTML = includeEmpty ? '<option value="">请选择课程</option>' : "";
+            return Promise.resolve([]);
+        }
+        function applyRows(rows) {
+            if (!select) return rows;
+            if (typeof state !== "undefined" && state && typeof hasRecentManualContextChange === "function" && hasRecentManualContextChange()
+                && taskCourse && String(taskCourse.value || "") !== String(courseId || "")) {
+                return rows;
+            }
+            var currentValue = String(select.value || "");
+            select.innerHTML = (includeEmpty ? '<option value="">请选择项目</option>' : "") + optionRows(rows, function (assignment) {
+                return (assignment.title || assignment.id) + " · " + (assignment.status || "--");
+            });
+            var canKeepCurrent = typeof state !== "undefined" && state && typeof hasRecentManualContextChange === "function" && hasRecentManualContextChange()
+                && currentValue && rows.some(function (row) { return String(row.id) === currentValue; });
+            if (canKeepCurrent) {
+                select.value = currentValue;
+            } else {
+                ensureSelectValue(select, rows, includeEmpty);
+                var preferredId = preferredDashboardAssignmentId(courseId);
+                if (preferredId && Array.from(select.options || []).some(function (option) { return String(option.value) === preferredId; })) {
+                    select.value = preferredId;
+                }
+            }
+            return rows;
+        }
+        return api().getJson("/api/v1/courses/" + encodeURIComponent(courseId) + "/assignments").then(function (payload) {
+            var rows = rowsOf(payload);
+            if (!rows.length) rows = dashboardAssignmentRows(courseId);
+            return applyRows(rows);
+        }).catch(function (err) {
+            var rows = dashboardAssignmentRows(courseId);
+            if (rows.length) return applyRows(rows);
+            throw err;
+        });
+    }
+
     function currentRole() {
         return localStorage.getItem("auth_role") || "";
     }
@@ -3842,6 +4035,12 @@
         mockEnabled: allowExplicitMock("studentTeamMock"),
         selectedTaskId: "",
         syncingTaskEditor: false,
+        syncingWorkbenchFilters: false,
+        workbenchStageFilterTouched: false,
+        workbenchStatusFilterTouched: false,
+        workbenchFilterAssignmentId: "",
+        hydratingContext: false,
+        manualContextChangedAt: 0,
         joinRefreshTimer: 0,
     };
 
@@ -4107,7 +4306,9 @@
             var option = event.target.closest("[data-team-select-value]");
             if (!option) return;
             select.value = option.getAttribute("data-team-select-value") || "";
+            select.dataset.teamUserChanging = "1";
             select.dispatchEvent(new Event("change", { bubbles: true }));
+            delete select.dataset.teamUserChanging;
             refreshTeamCustomSelect(select);
             closeTeamCustomSelects();
         });
@@ -4125,6 +4326,10 @@
         ["#extTaskCourse", "#extTaskAssignment", "#extTaskStageId", "#studentTaskStatusFilter", "#extTaskStatus", "#studentLeaderTaskStage"].forEach(function (selector) {
             ensureTeamCustomSelect(qs(selector));
         });
+    }
+
+    function isUserDrivenSelectChange(event) {
+        return Boolean(event && event.target && event.target.dataset && event.target.dataset.teamUserChanging === "1");
     }
 
     function mockCourseRows() {
@@ -4209,6 +4414,10 @@
                     view.hidden = !active;
                     view.classList.toggle("is-active", active);
                 });
+                if (key === "workbench") {
+                    resetWorkbenchFilters();
+                    renderWorkbenchState();
+                }
             });
         });
     }
@@ -4757,16 +4966,19 @@
         return true;
     }
 
-    function setSelectWithRetry(selectId, value, callback, attempts) {
+    function setSelectWithRetry(selectId, value, callback, attempts, programmaticContext) {
         var remaining = attempts || 8;
         var select = qs("#" + selectId);
-        if (setSelectValue(select, value)) {
+        if (programmaticContext) state.hydratingContext = true;
+        var matched = setSelectValue(select, value);
+        if (programmaticContext) state.hydratingContext = false;
+        if (matched) {
             if (callback) callback();
             return;
         }
         if (remaining <= 0) return;
         window.setTimeout(function () {
-            setSelectWithRetry(selectId, value, callback, remaining - 1);
+            setSelectWithRetry(selectId, value, callback, remaining - 1, programmaticContext);
         }, 120);
     }
 
@@ -5108,17 +5320,25 @@
     function syncWorkbenchStageOptions() {
         var stageSelect = qs("#extTaskStageId");
         if (!stageSelect) return;
+        var wasSyncing = state.syncingWorkbenchFilters;
+        state.syncingWorkbenchFilters = true;
         var previousValue = stageSelect.value || "";
+        var assignmentId = taskAssignment && String(taskAssignment.value || "") || "";
         var rows = (state.stages || []).slice().sort(function (a, b) {
             return Number(a.stageNo || 0) - Number(b.stageNo || 0);
         });
         stageSelect.innerHTML = ['<option value="">全部阶段</option>'].concat(rows.map(function (stage) {
             return '<option value="' + escapeHtml(stage.id) + '">' + escapeHtml((stage.stageNo ? ("阶段 " + stage.stageNo + " · ") : "") + (stage.title || "未命名阶段")) + '</option>';
         })).join("");
-        if (previousValue && rows.some(function (stage) { return String(stage.id) === String(previousValue); })) {
+        if (stageSelect.dataset.teamFilterActive === "1" && state.workbenchFilterAssignmentId === assignmentId && previousValue && rows.some(function (stage) { return String(stage.id) === String(previousValue); })) {
             stageSelect.value = previousValue;
+        } else {
+            stageSelect.value = "";
+            delete stageSelect.dataset.teamFilterActive;
         }
+        state.workbenchFilterAssignmentId = assignmentId;
         refreshTeamCustomSelect(stageSelect);
+        state.syncingWorkbenchFilters = wasSyncing;
     }
 
     function renderWorkbenchTaskList() {
@@ -5126,8 +5346,20 @@
         if (!taskList) return;
         var rows = (state.tasks || []).slice();
         var search = (qs("#studentTaskSearch") && qs("#studentTaskSearch").value || "").trim().toLowerCase();
-        var stageId = qs("#extTaskStageId") && qs("#extTaskStageId").value || "";
-        var status = qs("#studentTaskStatusFilter") && qs("#studentTaskStatusFilter").value || "";
+        var stageSelect = qs("#extTaskStageId");
+        var statusSelect = qs("#studentTaskStatusFilter");
+        var stageFilterActive = Boolean(stageSelect && stageSelect.dataset.teamFilterActive === "1");
+        var statusFilterActive = Boolean(statusSelect && statusSelect.dataset.teamFilterActive === "1");
+        if (stageSelect && !stageFilterActive && stageSelect.value) {
+            stageSelect.value = "";
+            refreshTeamCustomSelect(stageSelect);
+        }
+        if (statusSelect && !statusFilterActive && statusSelect.value) {
+            statusSelect.value = "";
+            refreshTeamCustomSelect(statusSelect);
+        }
+        var stageId = stageFilterActive && stageSelect && stageSelect.value || "";
+        var status = statusFilterActive && statusSelect && statusSelect.value || "";
         var mineOnly = Boolean(qs("#studentTaskMineOnly") && qs("#studentTaskMineOnly").checked);
         var me = currentUserId();
         rows = rows.filter(function (task) {
@@ -5456,6 +5688,66 @@
         scheduleJoinStateRefresh(delay);
     }
 
+    function resetWorkbenchFilters() {
+        var search = qs("#studentTaskSearch");
+        var stage = qs("#extTaskStageId");
+        var status = qs("#studentTaskStatusFilter");
+        var mineOnly = qs("#studentTaskMineOnly");
+        state.syncingWorkbenchFilters = true;
+        state.workbenchStageFilterTouched = false;
+        state.workbenchStatusFilterTouched = false;
+        state.workbenchFilterAssignmentId = taskAssignment && String(taskAssignment.value || "") || "";
+        if (search) search.value = "";
+        if (stage) {
+            stage.value = "";
+            delete stage.dataset.teamFilterActive;
+            refreshTeamCustomSelect(stage);
+        }
+        if (status) {
+            status.value = "";
+            delete status.dataset.teamFilterActive;
+            refreshTeamCustomSelect(status);
+        }
+        if (mineOnly) mineOnly.checked = false;
+        state.syncingWorkbenchFilters = false;
+    }
+
+    function hasRecentManualContextChange() {
+        return Boolean(state.manualContextChangedAt && Date.now() - state.manualContextChangedAt < 2400);
+    }
+
+    function refreshAssignmentsForSelectedCourse(delay) {
+        if (!taskCourse || !taskAssignment) {
+            resetTeamSelectionContext(delay);
+            return Promise.resolve();
+        }
+        var courseId = String(taskCourse.value || "");
+        state.currentGroup = null;
+        updateContext(null);
+        renderCurrentGroup(null);
+        applyCapabilityState(null);
+        clearResult(groupResult);
+        resetWorkbenchFilters();
+        if (!courseId) {
+            taskAssignment.innerHTML = "";
+            refreshTeamCustomSelect(taskAssignment);
+            resetTeamSelectionContext(delay);
+            return Promise.resolve([]);
+        }
+        taskAssignment.innerHTML = '<option value="">加载项目中...</option>';
+        refreshTeamCustomSelect(taskAssignment);
+        return loadAssignmentOptions(courseId, taskAssignment, false).then(function (rows) {
+            refreshTeamCustomSelect(taskAssignment);
+            resetTeamSelectionContext(delay);
+            return rows;
+        }).catch(function () {
+            taskAssignment.innerHTML = "";
+            refreshTeamCustomSelect(taskAssignment);
+            resetTeamSelectionContext(delay);
+            return [];
+        });
+    }
+
     function bindStageWheel() {
         if (!stageRail) return;
         stageRail.addEventListener("wheel", function (event) {
@@ -5752,7 +6044,17 @@
             });
         });
         if (qs("#studentTaskSearch")) qs("#studentTaskSearch").addEventListener("input", renderWorkbenchTaskList);
-        if (qs("#studentTaskStatusFilter")) qs("#studentTaskStatusFilter").addEventListener("change", renderWorkbenchTaskList);
+        if (qs("#studentTaskStatusFilter")) qs("#studentTaskStatusFilter").addEventListener("change", function (event) {
+            if (!state.syncingWorkbenchFilters && isUserDrivenSelectChange(event)) {
+                state.workbenchStatusFilterTouched = true;
+                if (event.target.value) {
+                    event.target.dataset.teamFilterActive = "1";
+                } else {
+                    delete event.target.dataset.teamFilterActive;
+                }
+            }
+            renderWorkbenchTaskList();
+        });
         if (qs("#studentTaskMineOnly")) qs("#studentTaskMineOnly").addEventListener("change", renderWorkbenchTaskList);
         if (qs("#studentTaskSummaryMoreBtn")) {
             qs("#studentTaskSummaryMoreBtn").addEventListener("click", function () {
@@ -5831,7 +6133,15 @@
                 submitTaskPatch();
             });
         }
-        if (qs("#extTaskStageId")) qs("#extTaskStageId").addEventListener("change", function () {
+        if (qs("#extTaskStageId")) qs("#extTaskStageId").addEventListener("change", function (event) {
+            if (!state.syncingWorkbenchFilters && isUserDrivenSelectChange(event)) {
+                state.workbenchStageFilterTouched = true;
+                if (event.target.value) {
+                    event.target.dataset.teamFilterActive = "1";
+                } else {
+                    delete event.target.dataset.teamFilterActive;
+                }
+            }
             renderWorkbenchTaskList();
             renderSelectedTask();
         });
@@ -5857,25 +6167,50 @@
             window.setTimeout(refreshJoinState, 80);
             return;
         }
-        var preferredCourseId = preferredDashboardCourseId() || ensureSelectHasValue(taskCourse);
-        if (!preferredCourseId) {
+        if (hasRecentManualContextChange()) {
             window.setTimeout(refreshJoinState, 80);
             return;
         }
-        setSelectWithRetry("extTaskCourse", preferredCourseId, function () {
-            var preferredAssignmentId = preferredDashboardAssignmentId(preferredCourseId) || ensureSelectHasValue(taskAssignment);
-            if (!preferredAssignmentId) {
-                window.setTimeout(refreshJoinState, 120);
+        if (!taskCourse || !taskAssignment) {
+            window.setTimeout(refreshJoinState, 80);
+            return;
+        }
+        loadCourseOptions(taskCourse).then(function () {
+            if (hasRecentManualContextChange()) {
+                window.setTimeout(refreshJoinState, 80);
                 return;
             }
-            setSelectWithRetry("extTaskAssignment", preferredAssignmentId, function () {
-                window.setTimeout(refreshJoinState, 120);
-            }, 10);
-        }, 10);
+            var preferredCourseId = preferredDashboardCourseId() || ensureSelectHasValue(taskCourse);
+            if (!preferredCourseId) {
+                window.setTimeout(refreshJoinState, 80);
+                return;
+            }
+            setSelectWithRetry("extTaskCourse", preferredCourseId, function () {
+                loadAssignmentOptions(preferredCourseId, taskAssignment, false).then(function () {
+                    if (hasRecentManualContextChange()) {
+                        window.setTimeout(refreshJoinState, 80);
+                        return;
+                    }
+                    var preferredAssignmentId = preferredDashboardAssignmentId(preferredCourseId) || ensureSelectHasValue(taskAssignment);
+                    if (!preferredAssignmentId) {
+                        window.setTimeout(refreshJoinState, 120);
+                        return;
+                    }
+                    setSelectWithRetry("extTaskAssignment", preferredAssignmentId, function () {
+                        window.setTimeout(refreshJoinState, 120);
+                    }, 10, true);
+                }).catch(function () {
+                    window.setTimeout(refreshJoinState, 120);
+                });
+            }, 10, true);
+        }).catch(function () {
+            window.setTimeout(refreshJoinState, 120);
+        });
     }
     if (taskCourse) {
         taskCourse.addEventListener("change", function () {
-            resetTeamSelectionContext(160);
+            if (!state.hydratingContext) state.manualContextChangedAt = Date.now();
+            refreshAssignmentsForSelectedCourse(120);
         });
         new MutationObserver(function () {
             resetTeamSelectionContext(80);
@@ -5883,6 +6218,8 @@
     }
     if (taskAssignment) {
         taskAssignment.addEventListener("change", function () {
+            if (!state.hydratingContext) state.manualContextChangedAt = Date.now();
+            resetWorkbenchFilters();
             resetTeamSelectionContext(80);
         });
         new MutationObserver(function () {
@@ -5890,5 +6227,6 @@
         }).observe(taskAssignment, { childList: true, subtree: true });
     }
     window.addEventListener("linksee:student-dashboard-ready", function () { window.setTimeout(hydrateModernStudentTeam, 120); });
+    window.addEventListener("linksee:student-dashboard-selection-changed", function () { window.setTimeout(hydrateModernStudentTeam, 40); });
     window.addEventListener("load", function () { window.setTimeout(hydrateModernStudentTeam, 800); });
 })();
