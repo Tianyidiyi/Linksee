@@ -43,7 +43,15 @@
         lastConversationRefreshAt: 0,
         contextMenu: null,
         mention: { open: false, start: -1, keyword: "", options: [], index: 0 },
+        panelDrag: null,
     };
+
+    var PANEL_STORAGE_KEY = "linksee_chat_panel_geometry";
+    var PANEL_MIN_WIDTH = 340;
+    var PANEL_MIN_HEIGHT = 420;
+    var PANEL_DEFAULT_WIDTH = 376;
+    var PANEL_DEFAULT_CHAT_WIDTH = 680;
+    var PANEL_MARGIN = 12;
 
     function q(selector, root) { return (root || document).querySelector(selector); }
     function qs(selector, root) { return Array.from((root || document).querySelectorAll(selector)); }
@@ -646,17 +654,13 @@
         .linksee-chat-launcher svg{width:30px;height:30px}
         .linksee-chat-dot{position:absolute;right:7px;top:7px;width:9px;height:9px;border-radius:50%;background:#2563eb;display:none}
         .linksee-chat-dot.show{display:block}
-        body.linksee-chat-docked-open .workspace{padding-right:calc(360px + 24px);transition:padding-right .2s ease}
-        body.linksee-chat-docked-open.chat-expanded .workspace{padding-right:calc(700px + 24px)}
-        body.app-shell.linksee-chat-docked-open .workspace{padding-right:calc(360px + 40px)}
-        body.app-shell.linksee-chat-docked-open.chat-expanded .workspace{padding-right:calc(700px + 40px)}
-        .linksee-chat-panel{position:fixed;right:16px;top:calc(var(--linksee-topbar-height, 56px) + 16px);bottom:16px;width:min(376px,calc(100vw - 24px));z-index:280;border:1px solid rgba(226,232,240,.95);background:linear-gradient(180deg,rgba(255,255,255,.99) 0%,rgba(246,248,250,.99) 100%);border-radius:24px;display:none;overflow:hidden;box-shadow:0 22px 54px rgba(15,23,42,.10);backdrop-filter:blur(14px);transition:width .2s ease}
-        body.app-shell .linksee-chat-panel{right:24px;top:calc(var(--linksee-topbar-height, 56px) + 16px);bottom:20px;max-height:calc(100vh - var(--linksee-topbar-height, 56px) - 36px)}
-        .linksee-chat-panel.expanded{width:min(760px,calc(100vw - 32px))}
+        .linksee-chat-panel{position:fixed;left:auto;right:auto;top:auto;bottom:auto;width:376px;height:min(720px,calc(100vh - var(--linksee-topbar-height, 56px) - 36px));min-width:340px;min-height:420px;max-width:calc(100vw - 24px);max-height:calc(100vh - 24px);z-index:280;border:1px solid rgba(226,232,240,.95);background:linear-gradient(180deg,rgba(255,255,255,.99) 0%,rgba(246,248,250,.99) 100%);border-radius:24px;display:none;overflow:hidden;box-shadow:0 22px 54px rgba(15,23,42,.10);backdrop-filter:blur(14px)}
+        body.app-shell .linksee-chat-panel{max-height:calc(100vh - 24px)}
+        .linksee-chat-panel.expanded{min-width:min(520px,calc(100vw - 24px))}
         .linksee-chat-panel.open{display:grid}
         .chat-shell{height:100%;min-height:0;display:flex;flex-direction:column}
         .chat-shell > *{min-height:0}
-        .chat-head{position:sticky;top:0;z-index:3;display:flex;align-items:flex-start;justify-content:space-between;padding:14px 16px 10px;border-bottom:1px solid rgba(226,232,240,.84);background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(255,255,255,.92));backdrop-filter:blur(10px)}
+        .chat-head{position:sticky;top:0;z-index:3;display:flex;align-items:flex-start;justify-content:space-between;padding:14px 16px 10px;border-bottom:1px solid rgba(226,232,240,.84);background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(255,255,255,.92));backdrop-filter:blur(10px);cursor:move;touch-action:none}
         .chat-head-copy{display:grid;gap:3px}
         .chat-head-title-row{display:flex;align-items:flex-start;gap:8px;min-width:0}
         .chat-head-back{width:32px;height:32px;border:none;background:transparent;border-radius:10px;display:none;place-items:center;color:#64748b;cursor:pointer;flex:none;transition:background .15s ease,color .15s ease}
@@ -665,6 +669,9 @@
         .chat-head .action-row{align-self:flex-start}
         .chat-head-icon{width:34px;height:34px;border:none;background:transparent;border-radius:10px;display:grid;place-items:center;color:#64748b;cursor:pointer;transition:background .15s ease,color .15s ease,transform .15s ease}
         .chat-head-icon:hover{background:#eef6f4;color:#0f766e}
+        .linksee-chat-panel.is-dragging,.linksee-chat-panel.is-resizing{transition:none;user-select:none}
+        .chat-resize-handle{position:absolute;right:0;bottom:0;width:20px;height:20px;z-index:4;cursor:nwse-resize;touch-action:none}
+        .chat-resize-handle::after{content:"";position:absolute;right:6px;bottom:6px;width:9px;height:9px;border-right:2px solid rgba(100,116,139,.55);border-bottom:2px solid rgba(100,116,139,.55);border-radius:1px}
         .chat-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:end;gap:0;padding:8px 12px 5px;border-bottom:1px solid rgba(226,232,240,.72);background:rgba(255,255,255,.94)}
         .chat-tab{position:relative;border:none;background:transparent;padding:0 0 9px;cursor:pointer;color:#64748b;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:6px}
         .chat-tab:hover{color:#0f766e}
@@ -830,6 +837,12 @@
         .chat-box .chat-toolbar{position:static;left:auto;right:auto;top:auto;padding:10px 12px;border-bottom:1px solid #e2e8f0;background:#fff}
         .linksee-chat-panel.mode-chat .chat-tabs{display:none}
         .linksee-chat-panel.mode-chat .chat-head-back{display:grid}
+        @media (max-width:720px){
+            .linksee-chat-panel{left:12px!important;right:12px!important;top:auto!important;bottom:12px!important;width:calc(100vw - 24px)!important;height:min(76vh,calc(100vh - 24px))!important;min-width:0;min-height:360px;max-width:calc(100vw - 24px);max-height:calc(100vh - 24px);border-radius:20px}
+            .linksee-chat-panel.expanded{min-width:0}
+            .chat-head{cursor:default;touch-action:auto}
+            .chat-resize-handle{display:none}
+        }
     `);
 
     function createLauncher() {
@@ -853,6 +866,7 @@
     function createPanel() {
         var panel = document.createElement("section");
         panel.className = "linksee-chat-panel";
+        panel.setAttribute("aria-label", "消息中心");
         panel.innerHTML = `
             <div class="chat-shell">
                 <div class="chat-head">
@@ -871,6 +885,9 @@
                         </button>
                         <button class="chat-head-icon" type="button" data-chat-action="more" title="更多 / 筛选" aria-label="更多 / 筛选">
                             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 7h14"></path><path d="M5 12h14"></path><path d="M5 17h14"></path></svg>
+                        </button>
+                        <button class="chat-head-icon" type="button" data-chat-action="close" title="关闭" aria-label="关闭消息中心">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
                         </button>
                     </div>
                 </div>
@@ -915,9 +932,195 @@
                 </div>
             </div>
             <div class="chat-more-menu" data-chat-more-menu></div>
-            <div class="chat-toast-host" data-chat-toast-host></div>`;
+            <div class="chat-toast-host" data-chat-toast-host></div>
+            <div class="chat-resize-handle" data-chat-resize-handle aria-hidden="true"></div>`;
         document.body.appendChild(panel);
         return panel;
+    }
+
+    function isCompactPanelViewport() {
+        return window.matchMedia && window.matchMedia("(max-width: 720px)").matches;
+    }
+
+    function parsePx(value) {
+        var number = Number.parseFloat(value);
+        return Number.isFinite(number) ? number : 0;
+    }
+
+    function getPanelTopOffset() {
+        var raw = getComputedStyle(document.documentElement).getPropertyValue("--linksee-topbar-height");
+        var topbar = parsePx(raw) || 56;
+        return Math.max(PANEL_MARGIN, topbar + 16);
+    }
+
+    function getPanelMaxWidth() {
+        return Math.max(PANEL_MIN_WIDTH, window.innerWidth - PANEL_MARGIN * 2);
+    }
+
+    function getPanelMaxHeight() {
+        return Math.max(PANEL_MIN_HEIGHT, window.innerHeight - PANEL_MARGIN * 2);
+    }
+
+    function clampPanelGeometry(geometry) {
+        var maxWidth = getPanelMaxWidth();
+        var maxHeight = getPanelMaxHeight();
+        var width = Math.min(Math.max(Number(geometry.width) || PANEL_DEFAULT_WIDTH, PANEL_MIN_WIDTH), maxWidth);
+        var height = Math.min(Math.max(Number(geometry.height) || getPanelMaxHeight(), PANEL_MIN_HEIGHT), maxHeight);
+        var left = Number(geometry.left);
+        var top = Number(geometry.top);
+        if (!Number.isFinite(left)) left = window.innerWidth - width - 24;
+        if (!Number.isFinite(top)) top = getPanelTopOffset();
+        left = Math.min(Math.max(PANEL_MARGIN, left), Math.max(PANEL_MARGIN, window.innerWidth - width - PANEL_MARGIN));
+        top = Math.min(Math.max(PANEL_MARGIN, top), Math.max(PANEL_MARGIN, window.innerHeight - height - PANEL_MARGIN));
+        return { left: left, top: top, width: width, height: height };
+    }
+
+    function readPanelGeometry() {
+        try {
+            var stored = JSON.parse(localStorage.getItem(PANEL_STORAGE_KEY) || "null");
+            if (stored && typeof stored === "object") return clampPanelGeometry(stored);
+        } catch (_err) {}
+        return clampPanelGeometry({
+            width: state.mode === "chat" ? PANEL_DEFAULT_CHAT_WIDTH : PANEL_DEFAULT_WIDTH,
+            height: Math.min(720, getPanelMaxHeight()),
+        });
+    }
+
+    function writePanelGeometry(geometry) {
+        try {
+            localStorage.setItem(PANEL_STORAGE_KEY, JSON.stringify({
+                left: Math.round(geometry.left),
+                top: Math.round(geometry.top),
+                width: Math.round(geometry.width),
+                height: Math.round(geometry.height),
+            }));
+        } catch (_err) {}
+    }
+
+    function applyPanelGeometry(geometry, shouldPersist) {
+        if (!state.panel || isCompactPanelViewport()) return;
+        var next = clampPanelGeometry(geometry);
+        state.panel.style.left = Math.round(next.left) + "px";
+        state.panel.style.top = Math.round(next.top) + "px";
+        state.panel.style.width = Math.round(next.width) + "px";
+        state.panel.style.height = Math.round(next.height) + "px";
+        state.panel.style.right = "auto";
+        state.panel.style.bottom = "auto";
+        if (shouldPersist) writePanelGeometry(next);
+    }
+
+    function getCurrentPanelGeometry() {
+        if (!state.panel) return readPanelGeometry();
+        var rect = state.panel.getBoundingClientRect();
+        return {
+            left: rect.left,
+            top: rect.top,
+            width: rect.width || PANEL_DEFAULT_WIDTH,
+            height: rect.height || Math.min(720, getPanelMaxHeight()),
+        };
+    }
+
+    function resetCompactPanelInlineGeometry() {
+        if (!state.panel || !isCompactPanelViewport()) return;
+        state.panel.style.left = "";
+        state.panel.style.top = "";
+        state.panel.style.width = "";
+        state.panel.style.height = "";
+        state.panel.style.right = "";
+        state.panel.style.bottom = "";
+    }
+
+    function syncPanelGeometryForViewport() {
+        if (!state.panel) return;
+        if (isCompactPanelViewport()) {
+            resetCompactPanelInlineGeometry();
+            return;
+        }
+        applyPanelGeometry(getCurrentPanelGeometry(), state.open);
+    }
+
+    function ensurePanelGeometry() {
+        if (!state.panel) return;
+        if (isCompactPanelViewport()) {
+            resetCompactPanelInlineGeometry();
+            return;
+        }
+        applyPanelGeometry(readPanelGeometry(), false);
+    }
+
+    function beginPanelDrag(event) {
+        if (!state.panel || isCompactPanelViewport() || event.button !== 0) return;
+        if (event.target.closest("button,a,input,textarea,select,[data-chat-more-menu]")) return;
+        var rect = state.panel.getBoundingClientRect();
+        state.panelDrag = {
+            type: "drag",
+            startX: event.clientX,
+            startY: event.clientY,
+            left: rect.left,
+            top: rect.top,
+            width: rect.width,
+            height: rect.height,
+        };
+        state.panel.classList.add("is-dragging");
+        event.preventDefault();
+    }
+
+    function beginPanelResize(event) {
+        if (!state.panel || isCompactPanelViewport() || event.button !== 0) return;
+        var rect = state.panel.getBoundingClientRect();
+        state.panelDrag = {
+            type: "resize",
+            startX: event.clientX,
+            startY: event.clientY,
+            left: rect.left,
+            top: rect.top,
+            width: rect.width,
+            height: rect.height,
+        };
+        state.panel.classList.add("is-resizing");
+        event.preventDefault();
+        event.stopPropagation();
+    }
+
+    function movePanelWindow(event) {
+        if (!state.panelDrag) return;
+        var drag = state.panelDrag;
+        if (drag.type === "drag") {
+            applyPanelGeometry({
+                left: drag.left + event.clientX - drag.startX,
+                top: drag.top + event.clientY - drag.startY,
+                width: drag.width,
+                height: drag.height,
+            }, false);
+            return;
+        }
+        if (drag.type === "resize") {
+            applyPanelGeometry({
+                left: drag.left,
+                top: drag.top,
+                width: drag.width + event.clientX - drag.startX,
+                height: drag.height + event.clientY - drag.startY,
+            }, false);
+        }
+    }
+
+    function endPanelWindowInteraction() {
+        if (!state.panelDrag) return;
+        state.panelDrag = null;
+        state.panel.classList.remove("is-dragging", "is-resizing");
+        if (!isCompactPanelViewport()) {
+            applyPanelGeometry(getCurrentPanelGeometry(), true);
+        }
+    }
+
+    function bindPanelWindowEvents() {
+        var head = q(".chat-head", state.panel);
+        var resizeHandle = q("[data-chat-resize-handle]", state.panel);
+        if (head) head.addEventListener("pointerdown", beginPanelDrag);
+        if (resizeHandle) resizeHandle.addEventListener("pointerdown", beginPanelResize);
+        window.addEventListener("pointermove", movePanelWindow);
+        window.addEventListener("pointerup", endPanelWindowInteraction);
+        window.addEventListener("resize", syncPanelGeometryForViewport);
     }
 
     function setUnread(visible) {
@@ -2251,8 +2454,8 @@
 
     function setChatOpen(nextOpen) {
         state.open = Boolean(nextOpen);
+        if (state.open) ensurePanelGeometry();
         state.panel.classList.toggle("open", state.open);
-        document.body.classList.toggle("linksee-chat-docked-open", state.open);
         syncTopActionsHidden(state.open);
         if (state.open) {
             startExpiryTicker();
@@ -2263,6 +2466,7 @@
             resetSearchState();
             state.replyTo = null;
             state.editingMessageId = null;
+            document.body.classList.remove("chat-expanded");
             stopExpiryTicker();
             stopRealtimeTicker();
         }
@@ -2487,7 +2691,9 @@
         if (!auth().token || !window.linkseeApi) return;
         state.launcher = createLauncher();
         state.panel = createPanel();
+        ensurePanelGeometry();
         ensureContextMenu();
+        bindPanelWindowEvents();
         bindEvents();
         Promise.all([loadMe(), loadConversations()]).then(function () {
             setUnread((state.unreadTotal + (Number(state.userNotificationUnreadTotal) || 0)) > 0);
