@@ -1940,10 +1940,22 @@
             if (!skipToast) showToast("已切换到搜索结果（mock）");
             return;
         }
-        var payload = await window.linkseeApi.getJson(searchPath(state.selected.scopeType, state.selected.scopeId, keyword));
-        state.search.results = Array.isArray(payload.data) ? payload.data.slice().reverse() : [];
-        renderMessages();
-        if (!skipToast) showToast("已切换到搜索结果");
+        try {
+            var payload = await window.linkseeApi.getJson(searchPath(state.selected.scopeType, state.selected.scopeId, keyword));
+            state.search.results = Array.isArray(payload.data) ? payload.data.slice().reverse() : [];
+            renderMessages();
+            if (!skipToast) showToast("已切换到搜索结果");
+        } catch (err) {
+            state.search.open = false;
+            state.search.keyword = "";
+            state.search.results = [];
+            state.search.contextAnchorId = "";
+            state.search.contextMessages = [];
+            state.search.contextHasOlder = false;
+            state.search.contextHasNewer = false;
+            renderMessages();
+            showToast("搜索失败，请稍后重试", true);
+        }
     }
 
     async function openSearchContext(messageId) {
