@@ -216,6 +216,36 @@
             return;
         }
 
+        function isAcademicModalVisible(node) {
+            return !!node && !node.hidden;
+        }
+
+        function mountAcademicModal(node) {
+            if (!node || !document.body || node.parentElement === document.body) return;
+            document.body.appendChild(node);
+        }
+
+        function syncAcademicModalOpen() {
+            if (!document.body) return;
+            document.body.classList.toggle(
+                "academic-modal-open",
+                isAcademicModalVisible(memberPicker) || isAcademicModalVisible(studentDetail)
+            );
+        }
+
+        function showAcademicModal(node) {
+            if (!node) return;
+            mountAcademicModal(node);
+            node.hidden = false;
+            syncAcademicModalOpen();
+        }
+
+        function hideAcademicModal(node) {
+            if (!node) return;
+            node.hidden = true;
+            syncAcademicModalOpen();
+        }
+
         initStudentTaxonomyControls();
         bindStudentTaxonomyControls();
         loadUserDefaultPasswordSetting();
@@ -411,13 +441,12 @@
                 String(studentProfile.major || "")
             );
             syncStudentAdminClassSelect(studentDetailAdminClass, studentProfile.grade, studentProfile.major, String(studentProfile.adminClass || ""), "请选择行政班");
-            studentDetail.hidden = false;
+            showAcademicModal(studentDetail);
         }
 
         function closeStudentDetail() {
             state.selectedStudentMemberId = "";
-            if (!studentDetail) return;
-            studentDetail.hidden = true;
+            hideAcademicModal(studentDetail);
         }
 
         function openPanel(panelId) {
@@ -728,14 +757,14 @@
             state.memberPickerMode = mode || "student";
             state.memberPickerPage = 1;
             syncMemberPickerTabs();
-            if (memberPicker) memberPicker.hidden = false;
+            showAcademicModal(memberPicker);
             loadMemberDirectory().catch(function (err) {
                 showResult(courseRelationResult, "加载失败", err.message || "成员目录加载失败。", true);
             });
         }
 
         function closeMemberPicker() {
-            if (memberPicker) memberPicker.hidden = true;
+            hideAcademicModal(memberPicker);
         }
 
         async function loadMemberDirectory() {
@@ -2281,7 +2310,7 @@
                 state.memberPickerPage = 1;
                 state.memberPickerImportedMode = false;
                 syncMemberPickerTabs();
-                if (memberPicker) memberPicker.hidden = false;
+                showAcademicModal(memberPicker);
                 loadMemberDirectory().catch(function (err) {
                     showResult(courseRelationResult, "加载失败", err.message || "学生目录加载失败。", true);
                 });
