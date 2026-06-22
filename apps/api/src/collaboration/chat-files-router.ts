@@ -107,6 +107,7 @@ chatFilesRouter.post("/chat/files/presign-upload", requireAuth, async (req: Requ
 // ──────────────────────────────────────────────────────────────
 chatFilesRouter.get("/chat/files/presign-download", requireAuth, async (req: Request, res: Response) => {
   const objectKey = typeof req.query.objectKey === "string" ? req.query.objectKey : "";
+  const fileName = typeof req.query.fileName === "string" ? req.query.fileName : undefined;
   if (!objectKey) {
     return validationFailed(res, "objectKey is required");
   }
@@ -119,7 +120,7 @@ chatFilesRouter.get("/chat/files/presign-download", requireAuth, async (req: Req
   const readable = await ensureScopeReadable(scope.scopeType, scope.scopeId, req, res);
   if (!readable) return;
 
-  const downloadUrl = await presignChatDownload(objectKey);
+  const downloadUrl = await presignChatDownload(objectKey, fileName);
 
   res.json({
     ok: true,
